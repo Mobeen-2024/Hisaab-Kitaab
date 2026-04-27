@@ -1,0 +1,122 @@
+import React, { useState, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db';
+import { t, Lang } from '../lib/i18n';
+import { format } from 'date-fns';
+import { ArrowUpRight, ArrowDownRight, Trash2, Search } from 'lucide-react';
+import { formatCurrency as formatSharedCurrency } from '../lib/currency';
+import ConfirmDialog from './ConfirmDialog';
+
+export default function TransactionList({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
+  const transactionsData = useLiveQuery(() => db.transactions.where('context').equals(activeContext).reverse().sortBy('date')) || [];
+  const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  const settingsObj = useLiveQuery(() => db.settings.get(1));
+  const users = useLiveQuery(() => db.appUsers.toArray()) || [];
+
+  const activeUser = users.find(u => u.id === settingsObj?.activeUserId);
+  const activeRole = activeUser?.role || 'owner';
+  const canDelete = activeRole === 'owner' || activeRole === 'spouse';
+  
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  const formatCurrency = (valInPKR: number) => {
+    return formatSharedCurrency(valInPKR, currency, lang);
+  };
+
+  const getCategoryName = (id: number) => {
+    const cat = categories.find(c => c.id === id);
+    return cat ? t(lang, cat.name) : 'Unknown';
+  };
+
+  const handleDelete = async () => {
+    if (confirmDeleteId) {
+      await db.transactions.delete(confirmDeleteId);
+      setConfirmDeleteId(null);
+    }
+  };
+
+  const filteredTransactions = transactionsData.filter(tx => {
+    if (!searchQuery.trim()) return true;
+    const catName = getCategoryName(tx.categoryId).toLowerCase();
+    const desc = (tx.description || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+    return catName.includes(query) || desc.includes(query);
+  }).slice(0, 20);
+
+  return (
+    <div className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden relative">
+      <ConfirmDialog
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={handleDelete}
+        title="Delete Transaction"
+        message="Are you sure you want to delete this transaction? This action cannot be undone."
+      />
+      <div className="absolute top-0 right-1/4 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+      <div className="p-6 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">{t(lang, 'recentTransactions')}</h3>
+        <div className="relative w-full sm:w-auto">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            type="text"
+            placeholder={t(lang, 'searchTransactions')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#0F172A]/50 border border-white/10 text-white rounded-xl pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-blue-500/50 outline-none placeholder:text-slate-600"
+          />
+        </div>
+      </div>
+      
+      <div className="divide-y divide-white/5">
+        {filteredTransactions.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">No transactions found</div>
+        ) : (
+          filteredTransactions.map(tx => (
+            <div key={tx.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-white/5 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center border ${
+                  tx.type === 'income' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                }`}>
+                  {tx.type === 'income' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+                </div>
+                <div>
+                  <p className="font-semibold text-white">{getCategoryName(tx.categoryId)}</p>
+                  <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+                    <span>{format(new Date(tx.date), 'MMM dd, yyyy')}</span>
+                    <span>•</span>
+                    <span className="capitalize">{t(lang, tx.context)}</span>
+                  </div>
+                  {tx.description && <p className="text-xs text-slate-400 mt-1">{tx.description}</p>}
+                </div>
+              </div>
+              
+              <div className="flex flex-col items-end gap-1">
+                 <div className={`font-semibold ${tx.type === 'income' ? 'text-emerald-400' : 'text-slate-300'}`}>
+                   {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                 </div>
+                 {tx.originalCurrency && tx.originalCurrency !== 'PKR' && (
+                   <div className="text-[10px] text-slate-500 font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                     {tx.originalAmount} {tx.originalCurrency}
+                   </div>
+                 )}
+                 {canDelete && (
+                   <button 
+                     onClick={() => setConfirmDeleteId(tx.id!)} 
+                     className="p-1.5 transition-colors cursor-pointer rounded-full ml-2 text-slate-500 hover:text-rose-400 hover:bg-white/5"
+                     title="Delete"
+                   >
+                     <Trash2 size={16} />
+                   </button>
+                 )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
