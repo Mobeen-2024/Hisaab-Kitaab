@@ -45,7 +45,7 @@ Hisaab-Kitab is built with a modern, high-performance web stack focused on relia
   <br/><br/>
   `Data Layer` <br/> **Dexie.js (IndexedDB)** • **Offline-First Architecture**
   <br/><br/>
-  `Intelligence` <br/> **Google Gemini 1.5 Flash (AI Studio)**
+  `Intelligence` <br/> **Google Gemini 1.5 Flash**
   
 </div>
 

@@ -159,7 +159,7 @@ export default function Settings({ lang, currency }: { lang: Lang, currency: str
                       placeholder="Paste your API key here..."
                     />
                     <p className="text-[10px] text-slate-500 mt-2">
-                      Used for AI voice entry and smart insights. Get one from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">Google AI Studio</a>.
+                      Used for AI voice entry and smart insights. Get one from <a href="https://ai.google.dev/" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">Google Gemini</a>.
                     </p>
                   </div>
                 </div>
