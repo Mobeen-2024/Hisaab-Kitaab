@@ -50,6 +50,7 @@ export default function App() {
   
   const settingsObj = useLiveQuery(() => db.settings.get(1));
   const lang = (settingsObj?.language || 'en') as Lang;
+  const isUrdu = lang === 'ur';
   const currency = settingsObj?.currency || 'PKR';
 
   const ownerName = settingsObj?.ownerName || 'Arsalan Khan';
@@ -445,8 +446,8 @@ export default function App() {
         </button>
       </div>
 
-      {/* FAB - Centralized on Mobile, Bottom Right on Desktop */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:bottom-8 md:right-8 z-50">
+      {/* FAB - Centralized on Mobile, Bottom Right on Desktop (Bottom Left for Urdu) */}
+      <div className={`fixed bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 md:translate-x-0 z-50 ${isUrdu ? 'md:right-auto md:left-8' : 'md:left-auto md:right-8'}`}>
         {currentTab === 'dashboard' || currentTab === 'smart' || currentTab === 'intelligence' || currentTab === 'reports' || currentTab === 'planner' || currentTab === 'inventory' ? (
           <button
             onClick={() => setIsQuickEntryOpen(true)}
