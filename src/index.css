@@ -13,6 +13,8 @@ body {
   font-family: "Noto Sans Arabic", sans-serif;
   line-height: 1.6 !important;
   letter-spacing: 0 !important;
+  text-rendering: optimizeSpeed; /* Speed up shaping */
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Limit heavy Nastaliq to only major headings to prevent performance lag */
@@ -24,6 +26,22 @@ body {
 .ur h2, .ur h3, .ur h4 {
   font-family: "Noto Sans Arabic", sans-serif;
   font-weight: 700;
+  text-rendering: optimizeSpeed;
+}
+
+/* Scroll performance optimization for heavy layouts */
+.ur section, .ur .scroll-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}
+
+/* Critical: Disable expensive backdrop-blur compositing in RTL mode.
+   backdrop-blur creates GPU compositor layers on every element.
+   With 10+ cards + Arabic text shaping, this saturates the GPU.
+   Cards still look great with their dark backgrounds. */
+.ur [class*='backdrop-blur'] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* Custom Scrollbar */
@@ -75,6 +93,12 @@ body {
 .animate-liquid {
   animation: liquid 40s linear infinite;
   will-change: transform;
+}
+
+/* Reduce GPU strain in RTL mode to prevent font shaping lag */
+.ur .animate-liquid, .ur .animate-float-1, .ur .animate-float-2 {
+  animation-duration: 80s !important; /* Slow down to reduce re-paints */
+  opacity: 0.6 !important; /* Reduce blending cost */
 }
 
 .animate-float-1 {

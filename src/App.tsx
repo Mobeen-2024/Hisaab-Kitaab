@@ -243,16 +243,24 @@ export default function App() {
       >
         {/* Modern Liquid Glow Background */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none bg-[#020617]">
-          {/* Liquid Blobs - Floating Randomly */}
-          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[120px] animate-float-1 mix-blend-screen"></div>
-          <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-indigo-600/15 rounded-full blur-[140px] animate-float-2 mix-blend-screen"></div>
-          <div className="absolute top-[20%] right-[-5%] w-[45%] h-[45%] bg-purple-600/10 rounded-full blur-[110px] animate-liquid mix-blend-screen"></div>
-          <div className="absolute bottom-[10%] left-[10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[130px] animate-float-1 animation-delay-2000 mix-blend-screen"></div>
-          <div className="absolute top-[40%] left-[30%] w-[35%] h-[35%] bg-indigo-400/5 rounded-full blur-[90px] animate-float-2 animation-delay-4000 mix-blend-screen"></div>
-          
+          {rtl ? (
+            /* Lightweight static background for RTL/Urdu mode to prevent scroll lag */
+            <>
+              <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_80%_80%_at_20%_20%,rgba(37,99,235,0.08)_0%,transparent_60%)]" />
+              <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(ellipse_60%_60%_at_80%_80%,rgba(99,102,241,0.08)_0%,transparent_60%)]" />
+            </>
+          ) : (
+            /* Full animated background for LTR mode */
+            <>
+              <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[120px] animate-float-1 mix-blend-screen"></div>
+              <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-indigo-600/15 rounded-full blur-[140px] animate-float-2 mix-blend-screen"></div>
+              <div className="absolute top-[20%] right-[-5%] w-[45%] h-[45%] bg-purple-600/10 rounded-full blur-[110px] animate-liquid mix-blend-screen"></div>
+              <div className="absolute bottom-[10%] left-[10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[130px] animate-float-1 animation-delay-2000 mix-blend-screen"></div>
+              <div className="absolute top-[40%] left-[30%] w-[35%] h-[35%] bg-indigo-400/5 rounded-full blur-[90px] animate-float-2 animation-delay-4000 mix-blend-screen"></div>
+            </>
+          )}
           {/* Center Glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-indigo-500/[0.02] rounded-full blur-[150px]"></div>
-          
           {/* Technical Overlays */}
           <div className="absolute inset-0 bg-noise opacity-[0.03]"></div>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#020617_100%)] opacity-40"></div>
