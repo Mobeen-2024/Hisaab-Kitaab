@@ -84,6 +84,15 @@ export default function Analytics({ lang, currency, activeContext }: { lang: Lan
     }).format(val);
   };
 
+  // Calculate max daily value for proportional bars
+  const maxDailyValue = Math.max(
+    ...calendarDays.map(date => {
+      const s = getDaySummary(date);
+      return Math.max(s.income, s.expense);
+    }),
+    1 // avoid division by zero
+  );
+
   return (
     <div className="space-y-6">
       {/* Calendar Widget Preview */}
@@ -143,22 +152,47 @@ export default function Analytics({ lang, currency, activeContext }: { lang: Lan
               return (
                 <div 
                   key={i} 
-                  className={`flex flex-col p-1.5 aspect-square rounded-xl transition-all duration-300 relative group/day
-                    ${isCurrentMonth ? 'bg-white/[0.03] text-slate-200' : 'bg-transparent text-slate-700'}
-                    ${isTodayDate ? 'bg-blue-600/20 ring-1 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'hover:bg-white/10'}
+                  className={`flex flex-col p-1.5 aspect-square rounded-2xl transition-all duration-300 relative group/day border
+                    ${isCurrentMonth ? 'bg-white/[0.03] border-white/5 text-slate-200' : 'bg-transparent border-transparent text-slate-700'}
+                    ${isTodayDate ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)] scale-105 z-10' : 'hover:bg-white/10 hover:border-white/10'}
                   `}
                 >
                   <div className={`
-                    text-[10px] font-black mb-1 w-5 h-5 flex items-center justify-center rounded-lg mx-auto
-                    ${isTodayDate ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-110' : 'group-hover/day:text-blue-400'}
+                    text-[10px] font-black mb-1 w-5 h-5 flex items-center justify-center rounded-lg mx-auto transition-colors
+                    ${isTodayDate ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'group-hover/day:text-blue-400'}
                   `}>
                     {format(date, 'd')}
                   </div>
                   
-                  <div className="flex flex-col gap-0.5 mt-auto w-full">
-                    {summary.income > 0 && <div className="h-1 bg-emerald-400/30 rounded-full w-full" />}
-                    {summary.expense > 0 && <div className="h-1 bg-rose-400/30 rounded-full w-full" />}
+                  <div className="flex flex-col gap-1 mt-auto items-center">
+                    {summary.income > 0 && (
+                      <div 
+                        className="w-full h-1 bg-emerald-500/20 rounded-full overflow-hidden relative group/income"
+                        title={`Income: ${summary.income}`}
+                      >
+                        <div 
+                          className="absolute inset-y-0 left-0 bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-500" 
+                          style={{ width: `${Math.max(10, (summary.income / maxDailyValue) * 100)}%` }}
+                        ></div>
+                      </div>
+                    )}
+                    {summary.expense > 0 && (
+                      <div 
+                        className="w-full h-1 bg-rose-500/20 rounded-full overflow-hidden relative group/expense"
+                        title={`Expense: ${summary.expense}`}
+                      >
+                        <div 
+                          className="absolute inset-y-0 left-0 bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.5)] transition-all duration-500" 
+                          style={{ width: `${Math.max(10, (summary.expense / maxDailyValue) * 100)}%` }}
+                        ></div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Activity Indicator Dot */}
+                  {(summary.income > 0 || summary.expense > 0) && !isTodayDate && (
+                    <div className="absolute top-1 right-1 w-1 h-1 bg-blue-400 rounded-full opacity-50"></div>
+                  )}
                 </div>
               );
             })}
