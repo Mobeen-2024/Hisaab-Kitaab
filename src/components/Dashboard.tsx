@@ -135,46 +135,73 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
     <div className={`space-y-10 scroll-section ${rtl ? 'text-right' : ''}`}>
       {/* Welcome Header */}
       <motion.div 
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-6"
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative"
       >
+        {/* Subtle aurora behind greeting */}
+        <div className="absolute -inset-6 bg-[radial-gradient(ellipse_60%_40%_at_30%_50%,rgba(59,130,246,0.08)_0%,transparent_70%)] pointer-events-none" />
         <div>
-          <h2 className={`text-4xl font-black text-white tracking-tighter flex items-center gap-3 ${rtl ? 'flex-row-reverse' : ''}`}>
-            {isUrdu ? '،خوش آمدید' : 'Hello,'} {settingsObj?.ownerName || 'Arsalan'} <Sparkles size={28} className="text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]" />
+          <div className="flex items-center gap-2 mb-1">
+            <div className={`w-1.5 h-6 bg-gradient-to-b from-blue-400 to-indigo-600 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.8)]`} />
+            <p className={`text-[10px] font-black uppercase text-slate-500 ${isUrdu ? '' : 'tracking-[0.3em]'}`}>
+              {isUrdu ? 'خوش آمدید' : 'Welcome back'}
+            </p>
+          </div>
+          <h2 className={`text-4xl md:text-5xl font-black tracking-tighter flex items-center gap-3 relative ${rtl ? 'flex-row-reverse' : ''}`}>
+            <span className="text-white">{isUrdu ? '' : 'Hello, '}</span>
+            <span className="relative">
+              <span className="bg-gradient-to-r from-blue-300 via-indigo-200 to-purple-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(99,102,241,0.6)]">
+                {settingsObj?.ownerName || 'Arsalan'}
+              </span>
+              {/* Name underline glow */}
+              <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/0 via-indigo-400/80 to-purple-500/0 rounded-full blur-[1px]" />
+            </span>
+            <Sparkles size={26} className="text-indigo-400 drop-shadow-[0_0_16px_rgba(99,102,241,0.9)] animate-pulse" />
           </h2>
-          <p className="text-slate-500 font-bold uppercase tracking-[0.15em] text-[10px] mt-2 opacity-80">
-            {isUrdu ? 'آپ کے سیاق و سباق کے لیے ذہین بصیرت' : `Intelligent Insights for your ${activeContext} context`}
+          <p className={`text-slate-500 font-bold uppercase text-[10px] mt-3 opacity-70 ${isUrdu ? '' : 'tracking-[0.2em]'}`}>
+            {isUrdu ? 'آپ کے کاروبار کی ذہین بصیرت' : `Intelligent insights · ${activeContext} context`}
           </p>
         </div>
-        <div className="bg-white/[0.03] border border-white/5 px-6 py-2.5 rounded-[1.25rem] backdrop-blur-xl flex items-center gap-3 shadow-xl">
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>
-          <span className={`text-[10px] font-black text-slate-400 uppercase ${isUrdu ? '' : 'tracking-[0.25em]'}`}>{format(new Date(), 'EEEE, MMMM do')}</span>
+        <div className="relative">
+          <div className="absolute inset-0 bg-blue-500/10 rounded-[1.5rem] blur-xl" />
+          <div className="relative bg-white/[0.04] border border-white/10 hover:border-blue-500/30 px-6 py-3 rounded-[1.25rem] flex items-center gap-3 shadow-xl transition-colors duration-500">
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(96,165,250,1)]"></div>
+            <div>
+              <p className={`text-[9px] font-black text-slate-600 uppercase mb-0.5 ${isUrdu ? '' : 'tracking-[0.2em]'}`}>{isUrdu ? 'آج کی تاریخ' : 'Today'}</p>
+              <span className={`text-[11px] font-black text-slate-300 uppercase ${isUrdu ? '' : 'tracking-[0.15em]'}`}>{format(new Date(), 'EEEE, MMM do')}</span>
+            </div>
+          </div>
         </div>
       </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8" style={{ perspective: '1200px' }}>
 
         {/* Total Balance Card */}
-        <TiltCard glowColor="rgba(59,130,246,0.4)">
-          <div className="group h-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] relative z-10 overflow-hidden transition-all duration-500 shadow-2xl hover:border-blue-500/30">
-            <div className="absolute -top-4 -right-4 w-40 h-40 bg-blue-500/5 rounded-full blur-[80px] transition-all duration-700 group-hover:bg-blue-500/15 group-hover:scale-150"></div>
+        <TiltCard glowColor="rgba(59,130,246,0.5)">
+          <div className="group h-full bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-slate-900/60 border border-blue-500/10 hover:border-blue-400/40 p-8 rounded-[2.5rem] relative z-10 overflow-hidden transition-all duration-700 shadow-2xl">
+            {/* Multi-layer glow orb */}
+            <div className="absolute -top-8 -right-8 w-52 h-52 bg-blue-500/20 rounded-full blur-[60px] transition-all duration-700 group-hover:bg-blue-400/35 group-hover:scale-125" />
+            <div className="absolute -top-4 -right-4 w-28 h-28 bg-blue-400/15 rounded-full blur-[30px] transition-all duration-500 group-hover:bg-blue-300/25" />
+            {/* Neon border accent */}
+            <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
             
             <div className={`flex justify-between items-start relative z-10 ${rtl ? 'flex-row-reverse' : ''}`}>
-              <p className={`text-[10px] font-black uppercase text-blue-400/80 flex items-center gap-2 ${isUrdu ? 'flex-row-reverse' : 'tracking-[0.2em]'}`}>
+              <p className={`text-[10px] font-black uppercase text-blue-300/90 flex items-center gap-2 ${isUrdu ? 'flex-row-reverse' : 'tracking-[0.2em]'}`}>
                 <Wallet size={14} strokeWidth={3} />
                 {activeContext === 'business' ? (isUrdu ? 'مجموعی آمدنی' : 'Cumulative Revenue') : (isUrdu ? 'کل بیلنس' : 'Net Liquidity')}
               </p>
-              <div className="w-9 h-9 rounded-2xl border border-white/5 bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-blue-400 group-hover:border-blue-400/20 group-hover:bg-blue-400/10 transition-all duration-500 shrink-0">
+              <div className="w-9 h-9 rounded-2xl border border-blue-400/20 bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-400/20 group-hover:border-blue-400/40 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-500 shrink-0">
                 <ArrowUpRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
               </div>
             </div>
             <div className="relative z-10 w-full mt-8 flex flex-col">
-              <h3 className={`text-5xl font-black tracking-tighter text-white drop-shadow-[0_4px_20px_rgba(59,130,246,0.3)] tabular-nums leading-none ${isUrdu ? 'text-right' : ''}`} dir="ltr">
+              <h3 className={`text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] ${isUrdu ? 'text-right' : ''}`} style={{ color: '#e0eaff' }} dir="ltr">
                 {formatCompactCurrency(totalBalancePKR)}
               </h3>
             </div>
-            <div className={`mt-8 text-emerald-400 text-[10px] flex items-center gap-2 font-black uppercase bg-emerald-500/5 inline-flex px-5 py-2 rounded-xl border border-emerald-500/10 relative z-10 shadow-lg ${isUrdu ? 'flex-row-reverse tracking-normal' : 'tracking-[0.15em]'}`}>
+            <div className={`mt-8 text-emerald-300 text-[10px] flex items-center gap-2 font-black uppercase bg-emerald-500/10 inline-flex px-5 py-2 rounded-xl border border-emerald-400/20 relative z-10 shadow-[0_0_15px_rgba(16,185,129,0.2)] ${isUrdu ? 'flex-row-reverse tracking-normal' : 'tracking-[0.15em]'}`}>
               <TrendingUp size={12} strokeWidth={3} />
               {isUrdu ? 'فعال' : 'Operational'}
             </div>
@@ -182,34 +209,38 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         </TiltCard>
 
         {/* Today's Expenses Card */}
-        <TiltCard glowColor="rgba(244,63,94,0.4)">
-          <div className="group h-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] relative overflow-hidden transition-all duration-500 shadow-2xl hover:border-rose-500/30">
-              <div className="absolute -top-4 -right-4 w-40 h-40 bg-rose-500/5 rounded-full blur-[80px] transition-all duration-700 group-hover:bg-rose-500/15 group-hover:scale-150"></div>
-              
+        <TiltCard glowColor="rgba(244,63,94,0.5)">
+          <div className="group h-full bg-gradient-to-br from-rose-950/50 via-slate-900/80 to-slate-900/60 border border-rose-500/10 hover:border-rose-400/40 p-8 rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl">
+            <div className="absolute -top-8 -right-8 w-52 h-52 bg-rose-500/20 rounded-full blur-[60px] transition-all duration-700 group-hover:bg-rose-400/35 group-hover:scale-125" />
+            <div className="absolute -top-4 -right-4 w-28 h-28 bg-rose-400/15 rounded-full blur-[30px] transition-all duration-500 group-hover:bg-rose-300/25" />
+            <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-rose-400/60 to-transparent" />
+
             <div className={`flex justify-between items-start relative z-10 ${rtl ? 'flex-row-reverse' : ''}`}>
-              <p className={`text-[10px] font-black uppercase text-rose-400/80 flex items-center gap-2 ${isUrdu ? 'flex-row-reverse' : 'tracking-[0.2em]'}`}>
+              <p className={`text-[10px] font-black uppercase text-rose-300/90 flex items-center gap-2 ${isUrdu ? 'flex-row-reverse' : 'tracking-[0.2em]'}`}>
                 <TrendingDown size={14} strokeWidth={3} />
                 {activeContext === 'business' ? (isUrdu ? 'آج کی خریداری' : 'Cost Basis Today') : (isUrdu ? 'آج کے اخراجات' : 'Burn Rate Today')}
               </p>
-              <div className="w-9 h-9 rounded-2xl border border-white/5 bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-rose-400 group-hover:border-rose-400/20 group-hover:bg-rose-400/10 transition-all duration-500 shrink-0">
+              <div className="w-9 h-9 rounded-2xl border border-rose-400/20 bg-rose-500/10 flex items-center justify-center text-rose-400 group-hover:bg-rose-400/20 group-hover:border-rose-400/40 group-hover:shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all duration-500 shrink-0">
                 <ArrowDownRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
               </div>
             </div>
             <div className="relative z-10 w-full mt-8 flex flex-col">
-              <h3 className={`text-5xl font-black tracking-tighter text-white drop-shadow-[0_4px_20px_rgba(244,63,94,0.3)] tabular-nums leading-none ${isUrdu ? 'text-right' : ''}`} dir="ltr">
+              <h3 className={`text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] ${isUrdu ? 'text-right' : ''}`} style={{ color: '#ffe0e6' }} dir="ltr">
                 {formatCompactCurrency(todayExpensePKR)}
               </h3>
             </div>
-            <div className={`mt-8 text-rose-400/80 text-[10px] font-black uppercase bg-rose-500/5 inline-flex px-5 py-2 rounded-xl border border-rose-500/10 relative z-10 shadow-lg ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>
+            <div className={`mt-8 text-rose-300/90 text-[10px] font-black uppercase bg-rose-500/10 inline-flex px-5 py-2 rounded-xl border border-rose-400/20 relative z-10 shadow-[0_0_15px_rgba(244,63,94,0.2)] ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>
               {isUrdu ? 'لائیو فیڈ' : 'Live Feed'}
             </div>
           </div>
         </TiltCard>
 
         {/* Highlighted Category Card */}
-        <TiltCard glowColor="rgba(245,158,11,0.4)">
-          <div className="group h-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] relative z-20 overflow-visible transition-all duration-500 shadow-2xl hover:border-amber-500/30">
-            <div className="absolute -top-4 -right-4 w-40 h-40 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none transition-all duration-700 group-hover:bg-amber-500/15 group-hover:scale-150"></div>
+        <TiltCard glowColor="rgba(245,158,11,0.5)">
+          <div className="group h-full bg-gradient-to-br from-amber-950/40 via-slate-900/80 to-slate-900/60 border border-amber-500/10 hover:border-amber-400/40 p-8 rounded-[2.5rem] relative z-20 overflow-visible transition-all duration-700 shadow-2xl">
+            <div className="absolute -top-8 -right-8 w-52 h-52 bg-amber-500/20 rounded-full blur-[60px] transition-all duration-700 group-hover:bg-amber-400/35 group-hover:scale-125" />
+            <div className="absolute -top-4 -right-4 w-28 h-28 bg-amber-400/15 rounded-full blur-[30px] transition-all duration-500 group-hover:bg-amber-300/25" />
+            <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
             
             <div className={`flex justify-between items-start relative z-50 ${rtl ? 'flex-row-reverse' : ''}`}>
               <div className="relative inline-block">
