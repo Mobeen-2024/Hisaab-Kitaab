@@ -486,6 +486,7 @@ export default function App() {
         isOpen={isMessagesOpen}
         onClose={() => setIsMessagesOpen(false)}
         lang={lang}
+        currency={currency}
       />
       <ReminderSystem settingsObj={settingsObj} />
       {/* Global Search Modal */}
