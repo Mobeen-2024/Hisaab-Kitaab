@@ -10,10 +10,9 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function Analytics({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
-  const allTransactions = useLiveQuery(() => db.transactions.toArray()) || [];
-  const categories = useLiveQuery(() => db.categories.toArray()) || [];
-
-  const transactions = allTransactions.filter(t => t.context === activeContext);
+  const allTransactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
+  const transactions = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
+  const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
 
   const now = new Date();
   const [currentDisplayMonth, setCurrentDisplayMonth] = useState(startOfMonth(now));

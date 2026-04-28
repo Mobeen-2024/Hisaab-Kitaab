@@ -7,7 +7,7 @@ import { t, Lang } from '../lib/i18n';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function Inventory({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
-  const items = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray()) || [];
+  const items = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);

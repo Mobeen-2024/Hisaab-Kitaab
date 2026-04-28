@@ -54,7 +54,8 @@ export default function TransactionCalendar({ lang, currency, activeContext }: T
   const dy = useSpring(rotateY, springConfig);
 
   const transactions = useLiveQuery(() => 
-    db.transactions.where({ context: activeContext }).toArray()
+    db.transactions.where({ context: activeContext }).toArray(),
+    [activeContext]
   ) || [];
 
   const categories = useLiveQuery(() => db.categories.toArray()) || [];

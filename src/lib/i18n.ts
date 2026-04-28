@@ -45,6 +45,8 @@ export const translations = {
     totalIncome: 'Total Income',
     totalExpense: 'Total Expenses',
     netBalance: 'Remaining Cash',
+    today: 'Today',
+    yesterday: 'Yesterday',
   },
   ur: {
     dashboard: 'ڈیش بورڈ',
@@ -92,6 +94,8 @@ export const translations = {
     totalIncome: 'کل آمدنی',
     totalExpense: 'کل اخراجات',
     netBalance: 'خالص بیلنس',
+    today: 'آج',
+    yesterday: 'کل',
   },
   ru: {
     dashboard: 'Dashboard',
@@ -139,6 +143,8 @@ export const translations = {
     totalIncome: 'Kul Aamdani',
     totalExpense: 'Kul Akhrajat',
     netBalance: 'Net Balance',
+    today: 'Aaj',
+    yesterday: 'Kal',
   },
   hi: {},
   es: {},

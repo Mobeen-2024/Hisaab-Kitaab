@@ -37,7 +37,7 @@ export default function QuickEntryModal({
   const [customerId, setCustomerId] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(
-    () => new Date().toISOString().split("T")[0],
+    () => new Date().toLocaleDateString('en-CA')
   );
   const [isRecording, setIsRecording] = useState(false);
   const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
@@ -75,7 +75,7 @@ export default function QuickEntryModal({
     }
     if (isOpen && !isSmartVoiceMode) {
       loadLastCategory();
-      setDate(new Date().toISOString().split("T")[0]); // Auto-fill today's date on open
+      setDate(new Date().toLocaleDateString('en-CA')); // Auto-fill today's local date on open
     }
   }, [type, activeContext, isOpen, isSmartVoiceMode]);
 

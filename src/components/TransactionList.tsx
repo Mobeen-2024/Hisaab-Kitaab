@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { t, Lang } from '../lib/i18n';
@@ -8,7 +8,7 @@ import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function TransactionList({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
-  const transactionsData = useLiveQuery(() => db.transactions.where('context').equals(activeContext).reverse().sortBy('date')) || [];
+  const transactionsData = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const settingsObj = useLiveQuery(() => db.settings.get(1));
   const users = useLiveQuery(() => db.appUsers.toArray()) || [];
@@ -18,6 +18,13 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
   const canDelete = activeRole === 'owner' || activeRole === 'spouse';
   
   const [searchQuery, setSearchQuery] = useState('');
+  const [now, setNow] = useState(new Date());
+
+  // Update 'now' every minute to keep relative dates (if any) or day boundaries fresh
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
@@ -30,6 +37,20 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
     return cat ? t(lang, cat.name) : 'Unknown';
   };
 
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (d.toDateString() === today.toDateString()) {
+      return t(lang, 'today') || 'Today';
+    } else if (d.toDateString() === yesterday.toDateString()) {
+      return t(lang, 'yesterday') || 'Yesterday';
+    }
+    return format(d, 'MMM dd, yyyy');
+  };
+
   const handleDelete = async () => {
     if (confirmDeleteId) {
       await db.transactions.delete(confirmDeleteId);
@@ -37,13 +58,22 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
     }
   };
 
-  const filteredTransactions = transactionsData.filter(tx => {
-    if (!searchQuery.trim()) return true;
-    const catName = getCategoryName(tx.categoryId).toLowerCase();
-    const desc = (tx.description || '').toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return catName.includes(query) || desc.includes(query);
-  }).slice(0, 20);
+  const filteredTransactions = useMemo(() => {
+    const filtered = transactionsData.filter(tx => {
+      if (!searchQuery.trim()) return true;
+      const catName = getCategoryName(tx.categoryId).toLowerCase();
+      const desc = (tx.description || '').toLowerCase();
+      const query = searchQuery.toLowerCase();
+      return catName.includes(query) || desc.includes(query);
+    });
+
+    // Sort by date DESC, then ID DESC (newest first)
+    return filtered.sort((a, b) => {
+      const dateCompare = (b.date || '').localeCompare(a.date || '');
+      if (dateCompare !== 0) return dateCompare;
+      return (b.id || 0) - (a.id || 0);
+    }).slice(0, 20);
+  }, [transactionsData, searchQuery, categories, lang]);
 
   return (
     <div className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden relative">
@@ -86,7 +116,7 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
                 <div>
                   <p className="font-semibold text-white">{getCategoryName(tx.categoryId)}</p>
                   <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                    <span>{format(new Date(tx.date), 'MMM dd, yyyy')}</span>
+                    <span>{formatDate(tx.date)}</span>
                     <span>•</span>
                     <span className="capitalize">{t(lang, tx.context)}</span>
                   </div>

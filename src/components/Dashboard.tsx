@@ -61,13 +61,16 @@ function TiltCard({ children, className, glowColor = "rgba(59,130,246,0.5)" }: {
 }
 
 export default function Dashboard({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
-  const allTransactions = useLiveQuery(() => db.transactions.toArray()) || [];
-  const settingsObj = useLiveQuery(() => db.settings.get(1));
-  const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  const allTransactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
+  const settingsObj = useLiveQuery(() => db.settings.get(1), []) || null;
+  const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const transactions = allTransactions.filter(t => t.context === activeContext);
+  const transactions = useLiveQuery(
+    () => db.transactions.where('context').equals(activeContext).toArray(),
+    [activeContext]
+  ) || [];
 
   // Calculate balances
   const totalIncomePKR = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
