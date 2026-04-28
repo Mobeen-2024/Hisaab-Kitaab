@@ -237,12 +237,17 @@ export default function App() {
     <>
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       <div 
-        className={`h-screen w-full flex overflow-hidden bg-[#0F172A] text-slate-100 font-sans ${['ur', 'ar'].includes(lang) ? 'ur' : ''}`} 
+        className={`h-screen w-full flex overflow-hidden bg-[#020617] text-slate-100 font-sans ${['ur', 'ar'].includes(lang) ? 'ur' : ''} relative`} 
         dir={['ur', 'ar'].includes(lang) ? 'rtl' : 'ltr'}
-        style={{
-          background: 'radial-gradient(circle at top left, #1E293B, #0F172A), radial-gradient(circle at bottom right, #1E3A8A, #0F172A)'
-        }}
       >
+        {/* Modern Animated Background */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px] animate-blob"></div>
+          <div className="absolute top-[20%] right-[-5%] w-[35%] h-[35%] bg-indigo-600/20 rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
+          <div className="absolute bottom-[-10%] left-[20%] w-[45%] h-[45%] bg-purple-600/15 rounded-full blur-[130px] animate-blob animation-delay-4000"></div>
+          <div className="absolute inset-0 bg-noise opacity-[0.03]"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#020617]/50 to-[#020617]"></div>
+        </div>
       {/* Sidebar - Rail on tablet, full on desktop */}
       <nav className="hidden md:flex flex-col z-50 w-20 lg:w-64 border-r border-white/10 bg-white/10 backdrop-blur-3xl shrink-0 transition-all duration-300 overflow-x-hidden shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
         <div className="h-24 flex items-center justify-center lg:justify-start px-0 lg:px-6 gap-3 border-b border-white/5 shrink-0 bg-gradient-to-b from-white/5 to-transparent">
