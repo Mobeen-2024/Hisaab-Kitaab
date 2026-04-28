@@ -207,7 +207,7 @@ export default function QuickEntryModal({
     try {
       const settings = await db.settings.get(1);
       const apiKey =
-        settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
+        settings?.geminiApiKey || (import.meta as any).env.VITE_GEMINI_API_KEY;
       if (!apiKey)
         throw new Error(
           "GEMINI_API_KEY is missing. Please add it in App Settings.",
@@ -353,7 +353,7 @@ export default function QuickEntryModal({
         </div>
 
         {isSmartVoiceMode ? (
-          <div className="px-6 pb-8 pt-4 flex flex-col items-center justify-center min-h-[300px]">
+          <div className="px-6 pb-8 pt-4 flex flex-col items-center justify-center min-h-75">
             {isParsingVoice ? (
               <div className="flex flex-col items-center gap-4 animate-in zoom-in duration-300">
                 <div className="w-16 h-16 rounded-full bg-indigo-500/20 flex items-center justify-center relative">
@@ -385,7 +385,7 @@ export default function QuickEntryModal({
                   <h3 className="text-white font-bold text-lg mb-1">
                     {isRecording ? "Listening..." : "Tap Mic to Speak"}
                   </h3>
-                  <p className="text-slate-400 text-sm max-w-[250px] mx-auto leading-relaxed">
+                  <p className="text-slate-400 text-sm max-w-62.5 mx-auto leading-relaxed">
                     Say something like
                     <br />{" "}
                     <span className="italic text-slate-300">
