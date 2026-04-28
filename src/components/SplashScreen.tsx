@@ -19,8 +19,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   }, [onComplete]);
 
   // Snappy cubic bezier for easing
-  const easing = [0.25, 1, 0.5, 1]; // Custom ease out
-  const drawEasing = [0.83, 0, 0.17, 1]; // Exponential/Snappy
+  const easing = [0.25, 1, 0.5, 1] as const; // Custom ease out
+  const drawEasing = [0.83, 0, 0.17, 1] as const; // Exponential/Snappy
 
   return (
     <AnimatePresence>
