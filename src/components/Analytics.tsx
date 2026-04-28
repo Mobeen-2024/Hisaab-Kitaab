@@ -201,31 +201,95 @@ export default function Analytics({ lang, currency, activeContext }: { lang: Lan
       </div>
 
       {/* Weekly Cashflow */}
-      <div className="bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] relative overflow-hidden group hover:border-emerald-500/30 transition-colors duration-500">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-500"></div>
-        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6 relative">Weekly Cashflow</h3>
+      <div className="bg-[#1E293B]/40 backdrop-blur-3xl border border-white/10 p-8 rounded-[3rem] relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500 shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] group-hover:bg-emerald-500/10 transition-all duration-500"></div>
         
-        <div className="h-48 text-xs font-medium" style={{ minHeight: '200px' }}>
-          <ResponsiveContainer width="100%" height="100%" minHeight={200} minWidth={0}>
-            <ComposedChart data={weeklyData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} dy={10} />
-              <YAxis hide axisLine={false} tickLine={false} />
-              <Tooltip 
-                cursor={{ fill: 'rgba(255,255,255,0.05)', radius: 8 }}
-                contentStyle={{ 
-                  backgroundColor: 'rgba(15, 23, 42, 0.95)', 
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '16px',
-                  color: '#fff',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.5)'
-                }}
-                formatter={(value: number) => [formatTooltipCurrency(value), '']}
-                labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+        <div className="flex justify-between items-start mb-8 relative">
+          <div>
+            <h3 className="text-lg font-black text-white tracking-tight">Weekly Performance</h3>
+            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Cash In vs Cash Out</div>
+          </div>
+          <div className="flex gap-4">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Income</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Expense</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="h-64 text-xs font-medium relative" style={{ minHeight: '250px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={weeklyData} margin={{ top: 10, right: 0, left: -25, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis 
+                dataKey="name" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} 
+                dy={15} 
               />
-              <Bar dataKey="income" name={activeContext === 'business' ? 'Sales' : 'Income'} fill="#10b981" radius={[4, 4, 4, 4]} barSize={8} />
-              <Bar dataKey="expense" name={activeContext === 'business' ? 'Purchases' : 'Expense'} fill="#f43f5e" radius={[4, 4, 4, 4]} barSize={8} />
-              <Line type="monotone" dataKey="net" name={activeContext === 'business' ? 'Net Profit' : 'Net Balance'} stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+              <YAxis hide />
+              <Tooltip 
+                cursor={{ fill: 'rgba(255,255,255,0.03)', radius: 12 }}
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-[#0F172A]/90 backdrop-blur-xl border border-white/10 p-4 rounded-2xl shadow-2xl min-w-[160px]">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 border-b border-white/5 pb-2">{label} Transactions</p>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center gap-4">
+                            <span className="text-[10px] font-bold text-emerald-400 uppercase">Income</span>
+                            <span className="text-sm font-black text-white">{formatTooltipCurrency(payload[0].value as number)}</span>
+                          </div>
+                          <div className="flex justify-between items-center gap-4">
+                            <span className="text-[10px] font-bold text-rose-400 uppercase">Expense</span>
+                            <span className="text-sm font-black text-white">{formatTooltipCurrency(payload[1].value as number)}</span>
+                          </div>
+                          <div className="pt-2 mt-2 border-t border-white/5 flex justify-between items-center gap-4">
+                            <span className="text-[10px] font-bold text-blue-400 uppercase">Net Flow</span>
+                            <span className={`text-sm font-black ${Number(payload[2].value) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {formatTooltipCurrency(payload[2].value as number)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar 
+                dataKey="income" 
+                fill="#10b981" 
+                radius={[6, 6, 6, 6]} 
+                barSize={10} 
+                opacity={0.8}
+              />
+              <Bar 
+                dataKey="expense" 
+                fill="#f43f5e" 
+                radius={[6, 6, 6, 6]} 
+                barSize={10} 
+                opacity={0.8}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="net" 
+                stroke="#3b82f6" 
+                strokeWidth={4} 
+                dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#0F172A' }} 
+                activeDot={{ r: 6, strokeWidth: 0, fill: '#60a5fa' }} 
+                animationDuration={1500}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
