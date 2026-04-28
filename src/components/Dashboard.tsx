@@ -293,17 +293,23 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
       {/* Quick Summary of Business vs Personal */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
          {/* Business Summary Card */}
-         <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 hover:border-amber-500/20 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/[0.02] rounded-full blur-[100px] group-hover:bg-amber-500/[0.05] transition-colors duration-700"></div>
+         <div className="bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/60 backdrop-blur-3xl border border-amber-500/10 hover:border-amber-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl">
+            {/* Premium Glow Orbs */}
+            <div className="absolute -top-12 -right-12 w-64 h-64 bg-amber-500/15 rounded-full blur-[80px] group-hover:bg-amber-500/25 transition-all duration-700"></div>
+            <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
             
             <div className={`flex justify-between items-start mb-10 relative z-10 ${rtl ? 'flex-row-reverse' : ''}`}>
-              <h4 className={`text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 flex items-center gap-3 ${rtl ? 'flex-row-reverse' : ''}`}>
-                <div className="w-2 h-2 bg-amber-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.6)]"></div>
-                {t(lang, 'business')} {isUrdu ? 'کارکردگی' : 'Stream'}
-              </h4>
+              <div className="space-y-2">
+                <div className={`flex items-center gap-2 ${rtl ? 'flex-row-reverse' : ''}`}>
+                  <div className="w-1 h-4 bg-amber-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.8)]"></div>
+                  <h4 className={`text-[10px] font-black uppercase ${isUrdu ? '' : 'tracking-[0.25em]'} text-slate-500`}>
+                    {t(lang, 'business')} {isUrdu ? 'کارکردگی' : 'Stream'}
+                  </h4>
+                </div>
+              </div>
               <div className={isUrdu ? 'text-left' : 'text-right'}>
                 <p className={`text-[9px] text-slate-500 font-black uppercase mb-1.5 opacity-60 ${isUrdu ? 'tracking-normal' : 'tracking-[0.2em]'}`}>{isUrdu ? 'منافع' : 'Net Yield'}</p>
-                <div className={`text-2xl font-black tracking-tighter tabular-nums ${businessProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <div className={`text-3xl font-black tracking-tighter tabular-nums drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] ${businessProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {businessProfit >= 0 ? '+' : ''}{businessMarginPct}%
                 </div>
               </div>
@@ -313,7 +319,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
                <div>
                  <div className={`flex justify-between items-baseline mb-3 ${rtl ? 'flex-row-reverse' : ''}`}>
                    <span className={`text-[10px] font-black uppercase text-slate-400 ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>{isUrdu ? 'کل آمدنی' : 'Gross Revenue'}</span>
-                   <span className="text-xl font-black text-white tracking-tighter tabular-nums" dir="ltr">
+                   <span className="text-2xl font-black text-white tracking-tighter tabular-nums drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" dir="ltr">
                      {formatCurrency(businessRevenue)}
                    </span>
                  </div>
@@ -322,21 +328,21 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
                <div>
                  <div className={`flex justify-between items-baseline mb-3 ${rtl ? 'flex-row-reverse' : ''}`}>
                    <span className={`text-[10px] font-black uppercase text-slate-500 ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>{isUrdu ? 'اخراجات' : 'Operating Costs'}</span>
-                   <span className="text-xl font-black text-rose-400 tracking-tighter tabular-nums" dir="ltr">
+                   <span className="text-2xl font-black text-rose-400/90 tracking-tighter tabular-nums drop-shadow-[0_0_15px_rgba(244,63,94,0.2)]" dir="ltr">
                      -{formatCurrency(businessCost)}
                    </span>
                  </div>
                </div>
 
-               <div className="space-y-3 pt-4 border-t border-white/5">
+               <div className="space-y-4 pt-6 border-t border-white/5">
                  <div className={`flex justify-between text-[9px] text-slate-500 font-black uppercase ${isUrdu ? 'flex-row-reverse tracking-normal' : 'tracking-[0.2em]'}`}>
                    <span>{isUrdu ? 'اخراجات بمقابلہ آمدنی' : 'Cost-to-Revenue Index'}</span>
-                   <span className="text-amber-400">{businessCostPct}%</span>
+                   <span className="text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]">{businessCostPct}%</span>
                  </div>
-                 <div className="h-2 w-full bg-[#0f172a] rounded-full overflow-hidden p-[2px] border border-white/5 relative shadow-inner">
-                   <div className="absolute inset-0 bg-emerald-500/10"></div>
+                 <div className="h-2.5 w-full bg-black/40 rounded-full overflow-hidden p-[2px] border border-white/5 relative shadow-inner">
+                   <div className="absolute inset-0 bg-emerald-500/5"></div>
                    <div 
-                     className={`absolute top-0 bottom-0 ${isUrdu ? 'right-0' : 'left-0'} bg-gradient-to-r from-rose-600 via-rose-500 to-rose-400 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all duration-1000 ease-out`} 
+                     className={`absolute top-0 bottom-0 ${isUrdu ? 'right-0' : 'left-0'} bg-gradient-to-r from-rose-600 via-rose-500 to-rose-400 rounded-full shadow-[0_0_20px_rgba(244,63,94,0.5)] transition-all duration-1000 ease-out`} 
                      style={{ width: `${businessCostPct}%` }}
                    ></div>
                  </div>
@@ -345,17 +351,23 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
          </div>
          
          {/* Personal Summary Card */}
-         <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 hover:border-blue-500/20 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/[0.02] rounded-full blur-[100px] group-hover:bg-blue-500/[0.05] transition-colors duration-700"></div>
+         <div className="bg-gradient-to-br from-blue-950/40 via-slate-900/90 to-slate-900/60 backdrop-blur-3xl border border-blue-500/10 hover:border-blue-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl">
+            {/* Premium Glow Orbs */}
+            <div className="absolute -top-12 -right-12 w-64 h-64 bg-blue-500/15 rounded-full blur-[80px] group-hover:bg-blue-400/25 transition-all duration-700"></div>
+            <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-blue-400/50 to-transparent" />
             
             <div className={`flex justify-between items-start mb-10 relative z-10 ${rtl ? 'flex-row-reverse' : ''}`}>
-              <h4 className={`text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 flex items-center gap-3 ${rtl ? 'flex-row-reverse' : ''}`}>
-                <div className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
-                {t(lang, 'personal')} {isUrdu ? 'بیلنس' : 'Standing'}
-              </h4>
+              <div className="space-y-2">
+                <div className={`flex items-center gap-2 ${rtl ? 'flex-row-reverse' : ''}`}>
+                  <div className="w-1 h-4 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
+                  <h4 className={`text-[10px] font-black uppercase ${isUrdu ? '' : 'tracking-[0.25em]'} text-slate-500`}>
+                    {t(lang, 'personal')} {isUrdu ? 'بیلنس' : 'Standing'}
+                  </h4>
+                </div>
+              </div>
               <div className={isUrdu ? 'text-left' : 'text-right'}>
                 <p className={`text-[9px] text-slate-500 font-black uppercase mb-1.5 opacity-60 ${isUrdu ? 'tracking-normal' : 'tracking-[0.2em]'}`}>{isUrdu ? 'موجودہ سرمایہ' : 'Available Capital'}</p>
-                <div className={`text-2xl font-black tracking-tighter tabular-nums ${personalBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <div className={`text-3xl font-black tracking-tighter tabular-nums drop-shadow-[0_0_20px_rgba(96,165,250,0.3)] ${personalBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {personalBalance >= 0 ? '+' : ''}{formatCompactCurrency(personalBalance)}
                 </div>
               </div>
@@ -365,7 +377,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
                <div>
                  <div className={`flex justify-between items-baseline mb-3 ${rtl ? 'flex-row-reverse' : ''}`}>
                    <span className={`text-[10px] font-black uppercase text-slate-400 ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>{isUrdu ? 'کل آمدنی' : 'Total Inflow'}</span>
-                   <span className="text-xl font-black text-white tracking-tighter tabular-nums" dir="ltr">
+                   <span className="text-2xl font-black text-white tracking-tighter tabular-nums drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]" dir="ltr">
                      {formatCurrency(personalIncome)}
                    </span>
                  </div>
@@ -373,23 +385,23 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
                
                <div>
                  <div className={`flex justify-between items-baseline mb-3 ${rtl ? 'flex-row-reverse' : ''}`}>
-                   <span className={`text-[10px] font-black uppercase text-slate-500 ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>{isUrdu ? 'کل اخراجات' : 'Total Outflow'}</span>
-                   <span className="text-xl font-black text-rose-400 tracking-tighter tabular-nums" dir="ltr">
+                   <span className={`text-[10px] font-black uppercase text-slate-500 ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>{isUrdu ? 'اخراجات' : 'Monthly Outflow'}</span>
+                   <span className="text-2xl font-black text-rose-400/90 tracking-tighter tabular-nums drop-shadow-[0_0_15px_rgba(244,63,94,0.2)]" dir="ltr">
                      -{formatCurrency(personalExpense)}
                    </span>
                  </div>
                </div>
 
-               <div className="space-y-3 pt-4 border-t border-white/5">
+               <div className="space-y-4 pt-6 border-t border-white/5">
                  <div className={`flex justify-between text-[9px] text-slate-500 font-black uppercase ${isUrdu ? 'flex-row-reverse tracking-normal' : 'tracking-[0.2em]'}`}>
-                   <span>{isUrdu ? 'اخراجات کی شرح' : 'Burn Rate Index'}</span>
-                   <span className="text-blue-400">{personalExpensePct}%</span>
+                   <span>{isUrdu ? 'بجت بمقابلہ خرچ' : 'Liquidity Health'}</span>
+                   <span className="text-blue-400 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]">{Math.min(100, Math.max(0, Math.round((personalBalance / (personalIncome || 1)) * 100)))}%</span>
                  </div>
-                 <div className="h-2 w-full bg-[#0f172a] rounded-full overflow-hidden p-[2px] border border-white/5 relative shadow-inner">
-                   <div className="absolute inset-0 bg-blue-500/10"></div>
+                 <div className="h-2.5 w-full bg-black/40 rounded-full overflow-hidden p-[2px] border border-white/5 relative shadow-inner">
+                   <div className="absolute inset-0 bg-blue-500/5"></div>
                    <div 
-                     className={`absolute top-0 bottom-0 ${isUrdu ? 'right-0' : 'left-0'} bg-gradient-to-r from-rose-600 via-rose-500 to-rose-400 rounded-full shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all duration-1000 ease-out`} 
-                     style={{ width: `${personalExpensePct}%` }}
+                     className={`absolute top-0 bottom-0 ${isUrdu ? 'right-0' : 'left-0'} bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-400 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all duration-1000 ease-out`} 
+                     style={{ width: `${Math.min(100, Math.max(0, (personalBalance / (personalIncome || 1)) * 100))}%` }}
                    ></div>
                  </div>
                </div>
