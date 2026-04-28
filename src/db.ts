@@ -79,6 +79,8 @@ export interface AppSettings {
   ownerEmail?: string;
   ownerDob?: string;
   ownerAvatar?: string;
+  ownerPhone?: string;
+  ownerCountryCode?: string;
   activeContext?: 'personal' | 'business';
   reminderEnabled?: boolean;
   reminderTime?: string;

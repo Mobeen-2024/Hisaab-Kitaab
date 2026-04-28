@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
-import { X, Camera, Save, Download, Upload, Shield, Users, Settings } from 'lucide-react';
+import { X, Camera, Save, Download, Upload, Shield, Users, Settings, ChevronRight, Phone } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import DatePicker from './DatePicker';
 import ManageUsers from './ManageUsers';
@@ -18,17 +18,32 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [dob, setDob] = useState('');
+  const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+92');
   const [avatar, setAvatar] = useState('');
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('20:00');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backupInputRef = useRef<HTMLInputElement>(null);
 
+  const countries = [
+    { name: 'Pakistan', code: '+92', flag: '🇵🇰' },
+    { name: 'India', code: '+91', flag: '🇮🇳' },
+    { name: 'UAE', code: '+971', flag: '🇦🇪' },
+    { name: 'Saudi Arabia', code: '+966', flag: '🇸🇦' },
+    { name: 'United Kingdom', code: '+44', flag: '🇬🇧' },
+    { name: 'USA', code: '+1', flag: '🇺🇸' },
+    { name: 'Canada', code: '+1', flag: '🇨🇦' },
+    { name: 'Australia', code: '+61', flag: '🇦🇺' },
+  ];
+
   useEffect(() => {
     if (settingsObj) {
       setName(settingsObj.ownerName || '');
       setEmail(settingsObj.ownerEmail || '');
       setDob(settingsObj.ownerDob || '');
+      setPhone(settingsObj.ownerPhone || '');
+      setCountryCode(settingsObj.ownerCountryCode || '+92');
       setAvatar(settingsObj.ownerAvatar || '');
       setReminderEnabled(settingsObj.reminderEnabled || false);
       setReminderTime(settingsObj.reminderTime || '20:00');
@@ -55,6 +70,8 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
         ownerName: name,
         ownerEmail: email,
         ownerDob: dob,
+        ownerPhone: phone,
+        ownerCountryCode: countryCode,
         ownerAvatar: avatar,
         reminderEnabled,
         reminderTime
@@ -165,13 +182,67 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
                 className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none placeholder:text-slate-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-400 mb-1 z-40">Date of Birth</label>
-              <DatePicker
-                value={dob}
-                onChange={(newDate) => setDob(newDate)}
-                className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none"
-              />
+            <div className="grid grid-cols-2 gap-6">
+              <div className="col-span-2">
+                <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 ml-1">Secure Contact Line</label>
+                <div className="group relative flex items-center bg-white/[0.03] border border-white/5 rounded-[1.25rem] hover:bg-white/[0.05] hover:border-indigo-500/30 transition-all duration-500 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/50 shadow-2xl overflow-hidden backdrop-blur-md">
+                  {/* Icon Prefix */}
+                  <div className="pl-4 pr-1 text-slate-500 group-focus-within:text-indigo-400 transition-colors">
+                    <Phone size={14} />
+                  </div>
+                  
+                  {/* Country Selector */}
+                  <div className="relative shrink-0 flex items-center h-full">
+                    <select
+                      value={countryCode}
+                      onChange={(e) => setCountryCode(e.target.value)}
+                      className="appearance-none bg-transparent text-white pl-2 pr-8 py-3.5 text-xs outline-none cursor-pointer font-black tracking-tighter"
+                    >
+                      {countries.map(c => (
+                        <option key={c.code} value={c.code} className="bg-[#0F172A] text-white">
+                          {c.flag} {c.code}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-600 group-hover:text-indigo-400 transition-all duration-300">
+                      <ChevronRight size={10} className="rotate-90" />
+                    </div>
+                    <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
+                  </div>
+
+                  {/* Smart Input */}
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      const formatted = val.length > 3 ? `${val.slice(0, 3)} ${val.slice(3, 10)}` : val;
+                      setPhone(formatted);
+                    }}
+                    placeholder="300 1234567"
+                    className="flex-1 bg-transparent text-white px-4 py-3.5 text-sm outline-none placeholder:text-slate-600 font-bold tracking-widest tabular-nums"
+                  />
+
+                  {/* Pulsing Status */}
+                  <div className="pr-4">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_#10b981] animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="col-span-2">
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 ml-1">Identity: Date of Birth</label>
+                <div className="relative bg-white/[0.03] border border-white/5 rounded-[1.25rem] overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/50 transition-all duration-500 backdrop-blur-md">
+                  <DatePicker
+                    value={dob}
+                    onChange={(newDate) => setDob(newDate)}
+                    className="w-full bg-transparent border-none text-white text-xs px-10 py-3.5 font-bold"
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                    <Users size={14} />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           
