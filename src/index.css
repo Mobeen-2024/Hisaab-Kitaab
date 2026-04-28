@@ -39,9 +39,19 @@ body {
    backdrop-blur creates GPU compositor layers on every element.
    With 10+ cards + Arabic text shaping, this saturates the GPU.
    Cards still look great with their dark backgrounds. */
-.ur [class*='backdrop-blur'] {
+.ur [class*='backdrop-blur'], .ur .backdrop-blur-3xl, .ur .backdrop-blur-2xl {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  background-color: rgba(15, 23, 42, 0.95) !important; /* Solid fallback */
+}
+
+/* Force hardware acceleration for the scroll container */
+.ur .smooth-scroll-surface {
+  transform: translateZ(0);
+  will-change: transform, scroll-position;
+  backface-visibility: hidden;
+  perspective: 1000;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Custom Scrollbar */
@@ -96,9 +106,15 @@ body {
 }
 
 /* Reduce GPU strain in RTL mode to prevent font shaping lag */
-.ur .animate-liquid, .ur .animate-float-1, .ur .animate-float-2 {
-  animation-duration: 80s !important; /* Slow down to reduce re-paints */
-  opacity: 0.6 !important; /* Reduce blending cost */
+.ur .animate-liquid, .ur .animate-float-1, .ur .animate-float-2, .ur .animate-pulse {
+  animation-duration: 120s !important; /* Ultra slow to minimize layout calc */
+  opacity: 0.4 !important; /* Reduce blending math cost */
+  animation-iteration-count: 1 !important; /* Ideally static after initial move */
+}
+
+/* Optimization for blurred orbs which are heavy during scroll */
+.ur [class*='blur-'] {
+  filter: blur(20px) !important; /* Clamp blur radius to prevent shader overload */
 }
 
 .animate-float-1 {
