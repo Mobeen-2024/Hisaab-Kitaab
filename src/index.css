@@ -15,9 +15,15 @@ body {
   letter-spacing: 0 !important;
 }
 
-.ur h1, .ur h2, .ur .nastaliq {
+/* Limit heavy Nastaliq to only major headings to prevent performance lag */
+.ur h1, .ur .nastaliq-header {
   font-family: 'Noto Nastaliq Urdu', serif;
   line-height: 2.2 !important;
+}
+
+.ur h2, .ur h3, .ur h4 {
+  font-family: "Noto Sans Arabic", sans-serif;
+  font-weight: 700;
 }
 
 /* Custom Scrollbar */
@@ -67,15 +73,18 @@ body {
 }
 
 .animate-liquid {
-  animation: liquid 25s linear infinite;
+  animation: liquid 40s linear infinite;
+  will-change: transform;
 }
 
 .animate-float-1 {
-  animation: float-random-1 30s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: float-random-1 45s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
 }
 
 .animate-float-2 {
-  animation: float-random-2 35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: float-random-2 50s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
 }
 
 .animation-delay-2000 {

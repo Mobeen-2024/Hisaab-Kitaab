@@ -212,7 +212,7 @@ export default function App() {
         <div className="px-4 space-y-4 mt-2 mb-8">
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1">{t(lang, 'currency')}</label>
-            <div className="relative z-[60]">
+            <div className="relative z-[50]">
               <CurrencySelector
                 value={currency}
                 onChange={(newCurrency) => updateSetting('currency', newCurrency)}
@@ -221,7 +221,7 @@ export default function App() {
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1">{t(lang, 'language')}</label>
-            <div className="relative z-[50]">
+            <div className="relative z-[60]">
               <LanguageSelector
                 value={lang}
                 onChange={(newLang) => updateSetting('language', newLang)}
