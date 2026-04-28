@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
-import { t, Lang } from '../lib/i18n';
+import { Lang, t, isRTL } from '../lib/i18n';
 import { Wallet, TrendingUp, TrendingDown, Store, ChevronDown, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
 import { format, isToday } from 'date-fns';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
@@ -128,10 +128,11 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
   const personalBalance = personalIncome - personalExpense;
   const personalExpensePct = personalIncome > 0 ? Math.min((personalExpense / personalIncome) * 100, 100).toFixed(0) : '0';
 
-  const isUrdu = lang === 'ur';
+  const rtl = isRTL(lang);
+  const isUrdu = lang === 'ur'; // Keep isUrdu for specific font things if needed, but use rtl for layout
 
   return (
-    <div className={`space-y-10 ${isUrdu ? 'text-right' : ''}`}>
+    <div className={`space-y-10 ${rtl ? 'text-right' : ''}`}>
       {/* Welcome Header */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
@@ -139,7 +140,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         className="flex flex-col md:flex-row md:items-center justify-between gap-6"
       >
         <div>
-          <h2 className={`text-4xl font-black text-white tracking-tighter flex items-center gap-3 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+          <h2 className={`text-4xl font-black text-white tracking-tighter flex items-center gap-3 ${rtl ? 'flex-row-reverse' : ''}`}>
             {isUrdu ? '،خوش آمدید' : 'Hello,'} {settingsObj?.ownerName || 'Arsalan'} <Sparkles size={28} className="text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.5)]" />
           </h2>
           <p className="text-slate-500 font-bold uppercase tracking-[0.15em] text-[10px] mt-2 opacity-80">
@@ -159,13 +160,13 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
           <div className="group h-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] relative z-10 overflow-hidden transition-all duration-500 shadow-2xl hover:border-blue-500/30">
             <div className="absolute -top-4 -right-4 w-40 h-40 bg-blue-500/5 rounded-full blur-[80px] transition-all duration-700 group-hover:bg-blue-500/15 group-hover:scale-150"></div>
             
-            <div className={`flex justify-between items-start relative z-10 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex justify-between items-start relative z-10 ${rtl ? 'flex-row-reverse' : ''}`}>
               <p className={`text-[10px] font-black uppercase text-blue-400/80 flex items-center gap-2 ${isUrdu ? 'flex-row-reverse' : 'tracking-[0.2em]'}`}>
                 <Wallet size={14} strokeWidth={3} />
                 {activeContext === 'business' ? (isUrdu ? 'مجموعی آمدنی' : 'Cumulative Revenue') : (isUrdu ? 'کل بیلنس' : 'Net Liquidity')}
               </p>
               <div className="w-9 h-9 rounded-2xl border border-white/5 bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-blue-400 group-hover:border-blue-400/20 group-hover:bg-blue-400/10 transition-all duration-500 shrink-0">
-                <ArrowUpRight size={18} className={isUrdu ? 'scale-x-[-1]' : ''} />
+                <ArrowUpRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
               </div>
             </div>
             <div className="relative z-10 w-full mt-8 flex flex-col">
@@ -185,13 +186,13 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
           <div className="group h-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] relative overflow-hidden transition-all duration-500 shadow-2xl hover:border-rose-500/30">
               <div className="absolute -top-4 -right-4 w-40 h-40 bg-rose-500/5 rounded-full blur-[80px] transition-all duration-700 group-hover:bg-rose-500/15 group-hover:scale-150"></div>
               
-            <div className={`flex justify-between items-start relative z-10 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex justify-between items-start relative z-10 ${rtl ? 'flex-row-reverse' : ''}`}>
               <p className={`text-[10px] font-black uppercase text-rose-400/80 flex items-center gap-2 ${isUrdu ? 'flex-row-reverse' : 'tracking-[0.2em]'}`}>
                 <TrendingDown size={14} strokeWidth={3} />
                 {activeContext === 'business' ? (isUrdu ? 'آج کی خریداری' : 'Cost Basis Today') : (isUrdu ? 'آج کے اخراجات' : 'Burn Rate Today')}
               </p>
               <div className="w-9 h-9 rounded-2xl border border-white/5 bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-rose-400 group-hover:border-rose-400/20 group-hover:bg-rose-400/10 transition-all duration-500 shrink-0">
-                <ArrowDownRight size={18} className={isUrdu ? 'scale-x-[-1]' : ''} />
+                <ArrowDownRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
               </div>
             </div>
             <div className="relative z-10 w-full mt-8 flex flex-col">
@@ -210,7 +211,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
           <div className="group h-full bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-3xl border border-white/10 p-8 rounded-[2.5rem] relative z-20 overflow-visible transition-all duration-500 shadow-2xl hover:border-amber-500/30">
             <div className="absolute -top-4 -right-4 w-40 h-40 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none transition-all duration-700 group-hover:bg-amber-500/15 group-hover:scale-150"></div>
             
-            <div className={`flex justify-between items-start relative z-50 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex justify-between items-start relative z-50 ${rtl ? 'flex-row-reverse' : ''}`}>
               <div className="relative inline-block">
                 <button 
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -242,7 +243,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
               </div>
               
               <div className="w-9 h-9 rounded-2xl border border-white/5 bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-amber-400 group-hover:border-amber-400/20 group-hover:bg-amber-400/10 transition-all duration-500 shrink-0">
-                <ArrowUpRight size={18} className={isUrdu ? 'scale-x-[-1]' : ''} />
+                <ArrowUpRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
               </div>
             </div>
             
@@ -264,8 +265,8 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
          <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 hover:border-amber-500/20 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl">
             <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/[0.02] rounded-full blur-[100px] group-hover:bg-amber-500/[0.05] transition-colors duration-700"></div>
             
-            <div className={`flex justify-between items-start mb-10 relative z-10 ${isUrdu ? 'flex-row-reverse' : ''}`}>
-              <h4 className={`text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 flex items-center gap-3 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex justify-between items-start mb-10 relative z-10 ${rtl ? 'flex-row-reverse' : ''}`}>
+              <h4 className={`text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 flex items-center gap-3 ${rtl ? 'flex-row-reverse' : ''}`}>
                 <div className="w-2 h-2 bg-amber-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.6)]"></div>
                 {t(lang, 'business')} {isUrdu ? 'کارکردگی' : 'Stream'}
               </h4>
@@ -279,7 +280,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
 
             <div className="flex-1 flex flex-col justify-end space-y-8 relative z-10">
                <div>
-                 <div className={`flex justify-between items-baseline mb-3 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+                 <div className={`flex justify-between items-baseline mb-3 ${rtl ? 'flex-row-reverse' : ''}`}>
                    <span className={`text-[10px] font-black uppercase text-slate-400 ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>{isUrdu ? 'کل آمدنی' : 'Gross Revenue'}</span>
                    <span className="text-xl font-black text-white tracking-tighter tabular-nums" dir="ltr">
                      {formatCurrency(businessRevenue)}
@@ -288,7 +289,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
                </div>
                
                <div>
-                 <div className={`flex justify-between items-baseline mb-3 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+                 <div className={`flex justify-between items-baseline mb-3 ${rtl ? 'flex-row-reverse' : ''}`}>
                    <span className={`text-[10px] font-black uppercase text-slate-500 ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>{isUrdu ? 'اخراجات' : 'Operating Costs'}</span>
                    <span className="text-xl font-black text-rose-400 tracking-tighter tabular-nums" dir="ltr">
                      -{formatCurrency(businessCost)}
@@ -316,8 +317,8 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
          <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/5 hover:border-blue-500/20 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/[0.02] rounded-full blur-[100px] group-hover:bg-blue-500/[0.05] transition-colors duration-700"></div>
             
-            <div className={`flex justify-between items-start mb-10 relative z-10 ${isUrdu ? 'flex-row-reverse' : ''}`}>
-              <h4 className={`text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 flex items-center gap-3 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex justify-between items-start mb-10 relative z-10 ${rtl ? 'flex-row-reverse' : ''}`}>
+              <h4 className={`text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 flex items-center gap-3 ${rtl ? 'flex-row-reverse' : ''}`}>
                 <div className="w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
                 {t(lang, 'personal')} {isUrdu ? 'بیلنس' : 'Standing'}
               </h4>
@@ -331,7 +332,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
 
             <div className="flex-1 flex flex-col justify-end space-y-8 relative z-10">
                <div>
-                 <div className={`flex justify-between items-baseline mb-3 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+                 <div className={`flex justify-between items-baseline mb-3 ${rtl ? 'flex-row-reverse' : ''}`}>
                    <span className={`text-[10px] font-black uppercase text-slate-400 ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>{isUrdu ? 'کل آمدنی' : 'Total Inflow'}</span>
                    <span className="text-xl font-black text-white tracking-tighter tabular-nums" dir="ltr">
                      {formatCurrency(personalIncome)}
@@ -340,7 +341,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
                </div>
                
                <div>
-                 <div className={`flex justify-between items-baseline mb-3 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+                 <div className={`flex justify-between items-baseline mb-3 ${rtl ? 'flex-row-reverse' : ''}`}>
                    <span className={`text-[10px] font-black uppercase text-slate-500 ${isUrdu ? 'tracking-normal' : 'tracking-[0.15em]'}`}>{isUrdu ? 'کل اخراجات' : 'Total Outflow'}</span>
                    <span className="text-xl font-black text-rose-400 tracking-tighter tabular-nums" dir="ltr">
                      -{formatCurrency(personalExpense)}

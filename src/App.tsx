@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
-import { Lang, t } from './lib/i18n';
+import { Lang, t, isRTL } from './lib/i18n';
 import Dashboard from './components/Dashboard';
 import TransactionList from './components/TransactionList';
 import QuickEntryModal from './components/QuickEntryModal';
@@ -50,7 +50,7 @@ export default function App() {
   
   const settingsObj = useLiveQuery(() => db.settings.get(1));
   const lang = (settingsObj?.language || 'en') as Lang;
-  const isUrdu = lang === 'ur';
+  const rtl = isRTL(lang);
   const currency = settingsObj?.currency || 'PKR';
 
   const ownerName = settingsObj?.ownerName || 'Arsalan Khan';
@@ -238,8 +238,8 @@ export default function App() {
     <>
       {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       <div 
-        className={`h-screen w-full flex overflow-hidden bg-[#020617] text-slate-100 font-sans ${['ur', 'ar'].includes(lang) ? 'ur' : ''} relative`} 
-        dir={['ur', 'ar'].includes(lang) ? 'rtl' : 'ltr'}
+        className={`h-screen w-full flex overflow-hidden bg-[#020617] text-slate-100 font-sans ${rtl ? 'ur' : ''} relative`} 
+        dir={rtl ? 'rtl' : 'ltr'}
       >
         {/* Modern Liquid Glow Background */}
         <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none bg-[#020617]">
@@ -446,8 +446,8 @@ export default function App() {
         </button>
       </div>
 
-      {/* FAB - Centralized on Mobile, Bottom Right on Desktop (Bottom Left for Urdu) */}
-      <div className={`fixed bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 md:translate-x-0 z-50 ${isUrdu ? 'md:right-auto md:left-8' : 'md:left-auto md:right-8'}`}>
+      {/* FAB - Centralized on Mobile, Bottom Right on Desktop (Bottom Left for RTL) */}
+      <div className={`fixed bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 md:translate-x-0 z-50 ${rtl ? 'md:right-auto md:left-8' : 'md:left-auto md:right-8'}`}>
         {currentTab === 'dashboard' || currentTab === 'smart' || currentTab === 'intelligence' || currentTab === 'reports' || currentTab === 'planner' || currentTab === 'inventory' ? (
           <button
             onClick={() => setIsQuickEntryOpen(true)}

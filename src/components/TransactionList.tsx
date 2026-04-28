@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
-import { t, Lang } from '../lib/i18n';
+import { t, Lang, isRTL } from '../lib/i18n';
 import { format } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, Trash2, Search } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
@@ -74,6 +74,8 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
       return (b.id || 0) - (a.id || 0);
     }).slice(0, 20);
   }, [transactionsData, searchQuery, categories, lang]);
+  
+  const rtl = isRTL(lang);
 
   return (
     <div className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden relative">
@@ -88,13 +90,13 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
       <div className="p-6 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">{t(lang, 'recentTransactions')}</h3>
         <div className="relative w-full sm:w-auto">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={16} className={`absolute ${rtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-slate-500`} />
           <input
             type="text"
             placeholder={t(lang, 'searchTransactions')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#0F172A]/50 border border-white/10 text-white rounded-xl pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-blue-500/50 outline-none placeholder:text-slate-600"
+            className={`w-full bg-[#0F172A]/50 border border-white/10 text-white rounded-xl ${rtl ? 'pr-9 pl-4' : 'pl-9 pr-4'} py-2 text-sm focus:ring-2 focus:ring-blue-500/50 outline-none placeholder:text-slate-600`}
           />
         </div>
       </div>

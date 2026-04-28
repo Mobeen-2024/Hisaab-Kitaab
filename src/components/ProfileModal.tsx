@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db } from '../db';
-import { Lang, t } from '../lib/i18n';
+import { Lang, t, isRTL } from '../lib/i18n';
 import { X, Camera, Save, Download, Upload, Shield, Users, Settings, ChevronRight, Phone } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import DatePicker from './DatePicker';
@@ -119,15 +119,16 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
     }
   };
 
+  const rtl = isRTL(lang);
   const isUrdu = lang === 'ur';
 
   return (
-    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 ${isUrdu ? 'text-right' : 'text-left'}`}>
+    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 ${rtl ? 'text-right' : 'text-left'}`}>
       <div 
         className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 hide-scrollbar"
-        dir={isUrdu ? 'rtl' : 'ltr'}
+        dir={rtl ? 'rtl' : 'ltr'}
       >
-        <div className={`flex justify-between items-center p-6 border-b border-white/10 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex justify-between items-center p-6 border-b border-white/10 ${rtl ? 'flex-row-reverse' : ''}`}>
           <h2 className="text-xl font-bold text-white">{t(lang, 'ownerProfile')}</h2>
           <button 
             onClick={onClose}
@@ -191,18 +192,18 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
                 <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-2 ml-1">
                   {t(lang, 'secureContactLine')}
                 </label>
-                <div className={`group relative flex items-center bg-white/[0.03] border border-white/5 rounded-[1.25rem] hover:bg-white/[0.05] hover:border-indigo-500/30 transition-all duration-500 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/50 shadow-2xl overflow-hidden backdrop-blur-md ${isUrdu ? 'flex-row-reverse' : ''}`}>
+                <div className={`group relative flex items-center bg-white/[0.03] border border-white/5 rounded-[1.25rem] hover:bg-white/[0.05] hover:border-indigo-500/30 transition-all duration-500 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/50 shadow-2xl overflow-hidden backdrop-blur-md ${rtl ? 'flex-row-reverse' : ''}`}>
                   {/* Icon Prefix */}
-                  <div className={`${isUrdu ? 'pr-4 pl-1' : 'pl-4 pr-1'} text-slate-500 group-focus-within:text-indigo-400 transition-colors`}>
+                  <div className={`${rtl ? 'pr-4 pl-1' : 'pl-4 pr-1'} text-slate-500 group-focus-within:text-indigo-400 transition-colors`}>
                     <Phone size={14} />
                   </div>
                   
                   {/* Country Selector */}
-                  <div className={`relative shrink-0 flex items-center h-full ${isUrdu ? 'flex-row-reverse' : ''}`}>
+                  <div className={`relative shrink-0 flex items-center h-full ${rtl ? 'flex-row-reverse' : ''}`}>
                     <select
                       value={countryCode}
                       onChange={(e) => setCountryCode(e.target.value)}
-                      className={`appearance-none bg-transparent text-white ${isUrdu ? 'pr-2 pl-8' : 'pl-2 pr-8'} py-3.5 text-xs outline-none cursor-pointer font-black tracking-tighter`}
+                      className={`appearance-none bg-transparent text-white ${rtl ? 'pr-2 pl-8' : 'pl-2 pr-8'} py-3.5 text-xs outline-none cursor-pointer font-black tracking-tighter`}
                       dir="ltr"
                     >
                       {countries.map(c => (
@@ -211,8 +212,8 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
                         </option>
                       ))}
                     </select>
-                    <div className={`absolute ${isUrdu ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 pointer-events-none text-slate-600 group-hover:text-indigo-400 transition-all duration-300`}>
-                      <ChevronRight size={10} className={`${isUrdu ? 'rotate-[270deg]' : 'rotate-90'}`} />
+                    <div className={`absolute ${rtl ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 pointer-events-none text-slate-600 group-hover:text-indigo-400 transition-all duration-300`}>
+                      <ChevronRight size={10} className={`${rtl ? 'rotate-[270deg]' : 'rotate-90'}`} />
                     </div>
                     <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
                   </div>
@@ -227,12 +228,12 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
                       setPhone(formatted);
                     }}
                     placeholder="300 1234567"
-                    className={`flex-1 bg-transparent text-white px-4 py-3.5 text-sm outline-none placeholder:text-slate-600 font-bold tracking-widest tabular-nums ${isUrdu ? 'text-right' : ''}`}
+                    className={`flex-1 bg-transparent text-white px-4 py-3.5 text-sm outline-none placeholder:text-slate-600 font-bold tracking-widest tabular-nums ${rtl ? 'text-right' : ''}`}
                     dir="ltr"
                   />
 
                   {/* Pulsing Status */}
-                  <div className={isUrdu ? 'pl-4' : 'pr-4'}>
+                  <div className={rtl ? 'pl-4' : 'pr-4'}>
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_#10b981] animate-pulse"></div>
                   </div>
                 </div>
@@ -246,9 +247,9 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
                   <DatePicker
                     value={dob}
                     onChange={(newDate) => setDob(newDate)}
-                    className={`w-full bg-transparent border-none text-white text-xs py-3.5 font-bold ${isUrdu ? 'pr-10' : 'pl-10'}`}
+                    className={`w-full bg-transparent border-none text-white text-xs py-3.5 font-bold ${rtl ? 'pr-10' : 'pl-10'}`}
                   />
-                  <div className={`absolute ${isUrdu ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none`}>
+                  <div className={`absolute ${rtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none`}>
                     <Users size={14} />
                   </div>
                 </div>
@@ -256,7 +257,7 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
             </div>
           </div>
           
-          <div className={`flex gap-3 pt-2 ${isUrdu ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex gap-3 pt-2 ${rtl ? 'flex-row-reverse' : ''}`}>
             <button
               type="button"
               onClick={onClose}

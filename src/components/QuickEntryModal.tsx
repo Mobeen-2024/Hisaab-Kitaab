@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db } from "../db";
-import { t, Lang } from "../lib/i18n";
+import { t, Lang, isRTL } from "../lib/i18n";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   X,
@@ -135,6 +135,7 @@ export default function QuickEntryModal({
 
   // Customers for Udhaar
   const customers = useLiveQuery(() => db.customers.toArray()) || [];
+  const rtl = isRTL(lang);
 
   if (!isOpen) return null;
 
@@ -328,8 +329,8 @@ export default function QuickEntryModal({
     <div className="fixed inset-0 bg-[#0F172A]/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-[#1E293B] border-t sm:border border-white/20 sm:rounded-3xl rounded-t-3xl w-full max-w-md overflow-hidden relative shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95">
         {/* Header */}
-        <div className="flex justify-between items-center px-6 pt-6 pb-2">
-          <div className="flex items-center gap-2">
+        <div className={`flex justify-between items-center px-6 pt-6 pb-2 ${rtl ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex items-center gap-2 ${rtl ? 'flex-row-reverse' : ''}`}>
             <h2 className="text-xl font-black text-white tracking-tight">
               Quick Add
             </h2>
@@ -341,7 +342,7 @@ export default function QuickEntryModal({
                   : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30"
               }`}
             >
-              <Sparkles size={12} /> AI Voice Focus
+              <Sparkles size={12} /> {rtl ? 'AI وائس فوکس' : 'AI Voice Focus'}
             </button>
           </div>
           <button
@@ -451,7 +452,7 @@ export default function QuickEntryModal({
               </div>
 
               {/* MULTI-CURRENCY SELECTOR */}
-              <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 gap-2 items-center">
+              <div className={`flex bg-white/5 border border-white/10 rounded-xl p-1 gap-2 items-center ${rtl ? 'flex-row-reverse' : ''}`}>
                 <select
                   value={transactionCurrency}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
@@ -519,7 +520,7 @@ export default function QuickEntryModal({
             </div>
 
             {/* 2. TYPE SELECTION */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className={`grid grid-cols-4 gap-2 ${rtl ? 'flex-row-reverse' : ''}`}>
               <button
                 type="button"
                 onClick={() => setType("expense")}
@@ -553,7 +554,7 @@ export default function QuickEntryModal({
             {/* 3. CATEGORY / PERSON SELECTION */}
             <div>
               {type === "expense" || type === "income" ? (
-                <div className="flex gap-2">
+                <div className={`flex gap-2 ${rtl ? 'flex-row-reverse' : ''}`}>
                   <select
                     required
                     value={categoryId}
@@ -605,8 +606,8 @@ export default function QuickEntryModal({
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setDescription(e.target.value)
                 }
-                className="w-full pl-4 pr-12 py-3 bg-[#0F172A] border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none placeholder:text-slate-500"
-                placeholder="Optional Note..."
+                className={`w-full ${rtl ? 'pr-4 pl-12' : 'pl-4 pr-12'} py-3 bg-[#0F172A] border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none placeholder:text-slate-500`}
+                placeholder={rtl ? "اختیاری نوٹ..." : "Optional Note..."}
               />
               <button
                 type="button"
@@ -650,7 +651,7 @@ export default function QuickEntryModal({
                     alert("Voice input is not supported in your browser.");
                   }
                 }}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 transition-colors ${
+                className={`absolute ${rtl ? 'left-2' : 'right-2'} top-1/2 -translate-y-1/2 p-2 transition-colors ${
                   isRecording
                     ? "text-rose-500 animate-pulse"
                     : "text-slate-400 hover:text-blue-400"
@@ -662,22 +663,22 @@ export default function QuickEntryModal({
             </div>
 
             {/* 5. Date & Options */}
-            <div className="flex gap-2 items-center text-slate-400 relative z-40">
-              <Calendar size={18} className="shrink-0 ml-1" />
+            <div className={`flex gap-2 items-center text-slate-400 relative z-40 ${rtl ? 'flex-row-reverse' : ''}`}>
+              <Calendar size={18} className={`shrink-0 ${rtl ? 'mr-1' : 'ml-1'}`} />
               <DatePicker
                 value={date}
                 onChange={(newDate) => setDate(newDate)}
               />
-              <div className="text-xs ml-auto italic">Auto-saved</div>
+              <div className={`text-xs ${rtl ? 'mr-auto' : 'ml-auto'} italic`}>{rtl ? 'خودکار محفوظ' : 'Auto-saved'}</div>
             </div>
 
             {/* 6. SAVE ACTIONS */}
-            <div className="flex gap-2 pt-2">
+            <div className={`flex gap-2 pt-2 ${rtl ? 'flex-row-reverse' : ''}`}>
               <button
                 type="submit"
                 className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-blue-500/20"
               >
-                Save Details
+                {rtl ? 'محفوظ کریں' : 'Save Details'}
               </button>
               <button
                 type="button"

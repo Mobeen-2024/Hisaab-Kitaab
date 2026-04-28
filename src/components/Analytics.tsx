@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
-import { t, Lang } from '../lib/i18n';
+import { t, Lang, isRTL } from '../lib/i18n';
 import { ComposedChart, Bar, Line, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { startOfWeek, addDays, getDay, isSameDay, startOfMonth, endOfMonth, endOfWeek, isSameMonth, isToday, addMonths, subMonths, format } from 'date-fns';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
@@ -16,6 +16,7 @@ export default function Analytics({ lang, currency, activeContext }: { lang: Lan
 
   const now = new Date();
   const [currentDisplayMonth, setCurrentDisplayMonth] = useState(startOfMonth(now));
+  const rtl = isRTL(lang);
   
   // -- Calendar Widget Logic --
   const calendarStart = startOfWeek(startOfMonth(currentDisplayMonth));
@@ -108,12 +109,12 @@ export default function Analytics({ lang, currency, activeContext }: { lang: Lan
               <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Monthly Summary</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-[#0F172A]/60 backdrop-blur-md border border-white/10 rounded-xl p-1">
+          <div className={`flex items-center gap-2 bg-[#0F172A]/60 backdrop-blur-md border border-white/10 rounded-xl p-1 ${rtl ? 'flex-row-reverse' : ''}`}>
             <button 
               onClick={() => setCurrentDisplayMonth(subMonths(currentDisplayMonth, 1))}
               className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
             >
-              <ChevronLeft size={18} />
+              {rtl ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
             </button>
             <span className="text-xs font-black text-white min-w-[90px] text-center uppercase tracking-widest tabular-nums">
               {format(currentDisplayMonth, 'MMM yyyy')}
@@ -122,7 +123,7 @@ export default function Analytics({ lang, currency, activeContext }: { lang: Lan
               onClick={() => setCurrentDisplayMonth(addMonths(currentDisplayMonth, 1))}
               className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
             >
-              <ChevronRight size={18} />
+              {rtl ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
             </button>
           </div>
         </div>
