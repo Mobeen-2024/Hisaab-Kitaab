@@ -227,14 +227,14 @@ export default function App() {
         }}
       >
       {/* Sidebar - Rail on tablet, full on desktop */}
-      <nav className="hidden md:flex flex-col z-50 w-20 lg:w-64 border-r border-white/10 bg-white/5 backdrop-blur-xl shrink-0 transition-all duration-300 overflow-x-hidden">
-        <div className="h-20 flex items-center justify-center lg:justify-start px-0 lg:px-6 gap-3 border-b border-white/5 shrink-0">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0 mt-3 md:mt-0">
-            <span className="font-bold text-white">HK</span>
+      <nav className="hidden md:flex flex-col z-50 w-20 lg:w-64 border-r border-white/10 bg-white/10 backdrop-blur-3xl shrink-0 transition-all duration-300 overflow-x-hidden shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
+        <div className="h-24 flex items-center justify-center lg:justify-start px-0 lg:px-6 gap-3 border-b border-white/5 shrink-0 bg-gradient-to-b from-white/5 to-transparent">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-700 rounded-2xl flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.4)] transform rotate-3 hover:rotate-0 transition-transform duration-500 shrink-0">
+            <span className="font-black text-white text-xl">HK</span>
           </div>
           <div className="hidden lg:block shrink-0">
-            <h1 className="text-lg font-bold tracking-tight text-white leading-tight">Hisaab-Kitab</h1>
-            <span className="text-xs text-blue-400 font-normal">حساب کتاب</span>
+            <h1 className="text-xl font-black tracking-tighter text-white leading-none">Hisaab-Kitab</h1>
+            <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1 block">حساب کتاب</span>
           </div>
         </div>
 
@@ -244,16 +244,16 @@ export default function App() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Top Header */}
-        <header className="h-20 bg-white/5 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-4 md:px-8 shrink-0 z-20">
+        <header className="h-20 bg-[#0F172A]/80 backdrop-blur-2xl border-b border-white/10 flex items-center justify-between px-4 md:px-8 shrink-0 z-20">
           <div className="flex items-center gap-4 flex-1">
             {/* Mobile Title */}
             <div className={`flex md:hidden items-center gap-3 transition-opacity duration-300`}>
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-                <span className="font-bold text-white text-xs">HK</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 shrink-0">
+                <span className="font-black text-white text-sm">HK</span>
               </div>
               <div className="shrink-0 flex flex-col justify-center">
-                <h1 className="text-base font-bold tracking-tight text-white leading-tight">Hisaab-Kitab</h1>
-                <span className="text-[10px] text-blue-400 font-normal leading-none">حساب کتاب</span>
+                <h1 className="text-lg font-black tracking-tighter text-white leading-none">Hisaab-Kitab</h1>
+                <span className="text-[9px] text-blue-400 font-bold uppercase tracking-wider leading-none mt-0.5">حساب کتاب</span>
               </div>
             </div>
             
