@@ -87,76 +87,78 @@ export default function Analytics({ lang, currency, activeContext }: { lang: Lan
 
   return (
     <div className="space-y-6">
-      {/* Calendar Widget */}
-      <div className="bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] relative overflow-hidden group hover:border-blue-500/30 transition-colors duration-500" id="calendar-widget">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-500"></div>
-        <div className="flex items-center justify-between mb-6 relative">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <CalendarIcon size={14} className="text-blue-400" />
-            Calendar
-          </h3>
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg p-1">
+      {/* Calendar Widget Preview */}
+      <div className="bg-[#1E293B]/40 backdrop-blur-3xl border border-white/10 p-8 rounded-[3rem] relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500 shadow-2xl" id="calendar-widget">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-[80px] group-hover:bg-blue-500/20 transition-all duration-500"></div>
+        <div className="flex items-center justify-between mb-8 relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center text-blue-400">
+              <CalendarIcon size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white tracking-tight">Calendar</h3>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Monthly Summary</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-[#0F172A]/60 backdrop-blur-md border border-white/10 rounded-xl p-1">
             <button 
               onClick={() => setCurrentDisplayMonth(subMonths(currentDisplayMonth, 1))}
-              className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={18} />
             </button>
-            <span className="text-xs font-medium text-white min-w-[80px] text-center">
+            <span className="text-xs font-black text-white min-w-[90px] text-center uppercase tracking-widest tabular-nums">
               {format(currentDisplayMonth, 'MMM yyyy')}
             </span>
             <button 
               onClick={() => setCurrentDisplayMonth(addMonths(currentDisplayMonth, 1))}
-              className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
         
         <div className="relative">
           {/* Day Headers */}
-          <div className="grid grid-cols-7 mb-2">
+          <div className="grid grid-cols-7 mb-4">
             {DAYS.map((day, i) => (
-              <div key={i} className="text-center text-[10px] font-bold uppercase tracking-widest text-slate-500">
+              <div key={i} className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
                 {day}
               </div>
             ))}
           </div>
           
           {/* Month Grid */}
-          <div className="grid grid-cols-7 gap-px border border-white/10 bg-white/5 rounded-xl overflow-hidden shadow-inner">
+          <div className="grid grid-cols-7 gap-2 bg-white/5 p-2 rounded-2xl border border-white/5 shadow-inner">
             {calendarDays.map((date, i) => {
               const isCurrentMonth = isSameMonth(date, currentDisplayMonth);
               const isTodayDate = isToday(date);
               const summary = getDaySummary(date);
               
-              // short currency formatter
               const formatShortCurrency = (val: number) => {
-                if (val >= 1000) {
-                  return (val / 1000).toFixed(1) + 'k';
-                }
+                if (val >= 1000) return (val / 1000).toFixed(0) + 'k';
                 return val.toString();
               };
 
               return (
                 <div 
                   key={i} 
-                  className={`flex flex-col p-1 aspect-square border-r border-b border-white/5 transition-all hover:bg-white/5 relative group/day
-                    ${isCurrentMonth ? 'bg-white/[0.02] text-slate-200' : 'bg-transparent text-slate-600'}
-                    ${isTodayDate ? 'ring-1 ring-inset ring-blue-500 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]' : ''}
+                  className={`flex flex-col p-1.5 aspect-square rounded-xl transition-all duration-300 relative group/day
+                    ${isCurrentMonth ? 'bg-white/[0.03] text-slate-200' : 'bg-transparent text-slate-700'}
+                    ${isTodayDate ? 'bg-blue-600/20 ring-1 ring-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'hover:bg-white/10'}
                   `}
                 >
                   <div className={`
-                    text-[10px] font-semibold mb-0.5 w-5 h-5 flex items-center justify-center rounded-md shrink-0 mx-auto
-                    ${isTodayDate ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'group-hover/day:bg-white/10'}
+                    text-[10px] font-black mb-1 w-5 h-5 flex items-center justify-center rounded-lg mx-auto
+                    ${isTodayDate ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30 scale-110' : 'group-hover/day:text-blue-400'}
                   `}>
                     {format(date, 'd')}
                   </div>
                   
-                  <div className="flex flex-col gap-[1px] mt-auto text-[7px] sm:text-[9px] md:text-[10px] font-semibold tracking-tight pb-[1px] text-center w-full">
-                    {summary.income > 0 && <div className="text-emerald-400 bg-emerald-500/10 px-0.5 py-px rounded-[2px] truncate leading-none text-center" title={'+' + summary.income}>+{formatShortCurrency(summary.income)}</div>}
-                    {summary.expense > 0 && <div className="text-rose-400 bg-rose-500/10 px-0.5 py-px rounded-[2px] truncate leading-none text-center" title={'-' + summary.expense}>-{formatShortCurrency(summary.expense)}</div>}
+                  <div className="flex flex-col gap-0.5 mt-auto w-full">
+                    {summary.income > 0 && <div className="h-1 bg-emerald-400/30 rounded-full w-full" />}
+                    {summary.expense > 0 && <div className="h-1 bg-rose-400/30 rounded-full w-full" />}
                   </div>
                 </div>
               );
