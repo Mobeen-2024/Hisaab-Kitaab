@@ -23,6 +23,7 @@ import ReminderSystem from './components/ReminderSystem';
 import SettingsComponent from './components/Settings';
 import TransactionCalendar from './components/TransactionCalendar';
 import NotificationsModal from './components/NotificationsModal';
+import MessagesModal from './components/MessagesModal';
 import { Plus, Settings, WalletCards, Users, FileText, PieChart, Sparkles, Package, Activity, Calendar } from 'lucide-react';
 import Toast, { ToastType } from './components/Toast';
 
@@ -32,6 +33,7 @@ export default function App() {
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState<'dashboard' | 'menu' | 'customers' | 'reports' | 'planner' | 'smart' | 'inventory' | 'settings' | 'intelligence' | 'calendar'>('dashboard');
   
@@ -292,7 +294,8 @@ export default function App() {
           <div className="flex items-center gap-3 md:gap-5">
             {/* Notifications & Messages */}
             <button
-               onClick={() => showToast('Messages feature coming soon!', 'info')}
+               onClick={() => setIsMessagesOpen(true)}
+               title="Messages"
                className="hidden sm:flex p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 relative cursor-pointer"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
@@ -473,6 +476,11 @@ export default function App() {
         onClose={() => setIsNotificationsOpen(false)}
         lang={lang}
         currency={currency}
+      />
+      <MessagesModal
+        isOpen={isMessagesOpen}
+        onClose={() => setIsMessagesOpen(false)}
+        lang={lang}
       />
       <ReminderSystem settingsObj={settingsObj} />
       {/* Global Search Modal */}

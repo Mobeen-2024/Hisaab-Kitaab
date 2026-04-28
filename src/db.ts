@@ -95,6 +95,14 @@ export interface AppUser {
   avatar?: string;
 }
 
+export interface Message {
+  id?: number;
+  chatId: string; // Could be 'ai' or customerId
+  sender: 'user' | 'ai' | 'system';
+  content: string;
+  timestamp: string;
+}
+
 export interface AuditLog {
   id?: number;
   entityType: 'transaction' | 'customer' | 'udhaar' | 'goal' | 'budget' | 'inventory';
@@ -116,6 +124,7 @@ export class PaisaTrackDB extends Dexie {
   inventory!: Table<InventoryItem, number>;
   auditLogs!: Table<AuditLog, number>;
   appUsers!: Table<AppUser, number>;
+  messages!: Table<Message, number>;
 
   constructor() {
     super('PaisaTrackDB');
@@ -146,6 +155,9 @@ export class PaisaTrackDB extends Dexie {
     });
     this.version(7).stores({
       appUsers: '++id, role, contextAccess'
+    });
+    this.version(8).stores({
+      messages: '++id, chatId, sender, timestamp'
     });
 
     this.on('ready', () => {
