@@ -30,7 +30,7 @@ export default function App() {
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'menu' | 'customers' | 'reports' | 'planner' | 'smart' | 'inventory' | 'settings'>('dashboard');
+  const [currentTab, setCurrentTab] = useState<'dashboard' | 'menu' | 'customers' | 'reports' | 'planner' | 'smart' | 'inventory' | 'settings' | 'intelligence'>('dashboard');
   
   // Toast State
   const [toast, setToast] = useState<{ isVisible: boolean; message: string; type: ToastType }>({
