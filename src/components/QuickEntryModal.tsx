@@ -426,7 +426,9 @@ export default function QuickEntryModal({
                   required
                   autoFocus
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setAmount(e.target.value)
+                  }
                   className="w-full bg-transparent text-center text-5xl font-black text-white focus:outline-none placeholder:text-white/20 py-4"
                   placeholder="0"
                 />
@@ -434,7 +436,7 @@ export default function QuickEntryModal({
                 {/* Frequent Amounts Suggestion */}
                 {frequentAmounts.length > 0 && (
                   <div className="flex gap-2 justify-center pb-2">
-                    {frequentAmounts.map((amt) => (
+                    {frequentAmounts.map((amt: number) => (
                       <button
                         key={amt}
                         type="button"
@@ -452,7 +454,9 @@ export default function QuickEntryModal({
               <div className="flex bg-white/5 border border-white/10 rounded-xl p-1 gap-2 items-center">
                 <select
                   value={transactionCurrency}
-                  onChange={(e) => setTransactionCurrency(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setTransactionCurrency(e.target.value)
+                  }
                   className="bg-transparent text-white font-medium px-3 py-2 outline-none appearance-none cursor-pointer"
                 >
                   <option value="PKR" className="text-slate-900">
@@ -499,7 +503,9 @@ export default function QuickEntryModal({
                       min="0.0001"
                       required
                       value={exchangeRate}
-                      onChange={(e) => setExchangeRate(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setExchangeRate(e.target.value)
+                      }
                       className="w-full bg-transparent text-white font-medium text-sm focus:outline-none placeholder:text-slate-500"
                       placeholder={`1 ${transactionCurrency} to PKR`}
                     />
@@ -551,7 +557,9 @@ export default function QuickEntryModal({
                   <select
                     required
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setCategoryId(e.target.value)
+                    }
                     className="flex-1 px-4 py-3 bg-[#0F172A] border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none appearance-none font-medium text-ellipsis overflow-hidden"
                   >
                     <option value="">Choose Category...</option>
@@ -574,7 +582,9 @@ export default function QuickEntryModal({
                 <select
                   required
                   value={customerId}
-                  onChange={(e) => setCustomerId(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setCustomerId(e.target.value)
+                  }
                   className="w-full px-4 py-3 bg-[#0F172A] border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none appearance-none font-medium"
                 >
                   <option value="">Choose Person...</option>
@@ -592,7 +602,9 @@ export default function QuickEntryModal({
               <input
                 type="text"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setDescription(e.target.value)
+                }
                 className="w-full pl-4 pr-12 py-3 bg-[#0F172A] border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-blue-500/50 outline-none placeholder:text-slate-500"
                 placeholder="Optional Note..."
               />
@@ -614,7 +626,7 @@ export default function QuickEntryModal({
 
                     recognition.onresult = (event: any) => {
                       setDescription(
-                        (prev) =>
+                        (prev: string) =>
                           prev +
                           (prev ? " " : "") +
                           event.results[0][0].transcript,
