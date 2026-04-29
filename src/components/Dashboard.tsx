@@ -176,10 +176,10 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8" style={{ perspective: '1200px' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8" style={{ perspective: '1200px' }}>
 
         {/* Total Balance Card */}
-        <div className="group h-full will-change-transform">
+        <div className="group h-full will-change-transform xl:col-span-1 md:col-span-2">
           <div className="group h-full bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-slate-900/60 border border-blue-500/10 hover:border-blue-400/40 p-8 rounded-[2.5rem] relative z-10 overflow-hidden transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
             {/* Multi-layer glow orb - Optimized for Urdu */}
             <div className={`absolute -top-8 -right-8 w-52 h-52 bg-blue-500/20 rounded-full ${isUrdu ? 'blur-[30px] opacity-30' : 'blur-[60px]'} transition-all duration-700 group-hover:bg-blue-400/35 group-hover:scale-125`} />
@@ -197,7 +197,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
               </div>
             </div>
             <div className="relative z-10 w-full mt-8 flex flex-col">
-              <h3 className={`text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] ${isUrdu ? 'text-right' : ''}`} style={{ color: '#e0eaff' }} dir="ltr">
+              <h3 className={`text-4xl sm:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] ${isUrdu ? 'text-right' : ''}`} style={{ color: '#e0eaff' }} dir="ltr">
                 {formatCompactCurrency(totalBalancePKR)}
               </h3>
             </div>
@@ -225,7 +225,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
               </div>
             </div>
             <div className="relative z-10 w-full mt-8 flex flex-col">
-              <h3 className={`text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] ${isUrdu ? 'text-right' : ''}`} style={{ color: '#ffe0e6' }} dir="ltr">
+              <h3 className={`text-4xl sm:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] ${isUrdu ? 'text-right' : ''}`} style={{ color: '#ffe0e6' }} dir="ltr">
                 {formatCompactCurrency(todayExpensePKR)}
               </h3>
             </div>
@@ -280,7 +280,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
             </div>
             
             <div className="relative z-10 w-full mt-8 flex flex-col">
-              <h3 className={`text-5xl font-black tracking-tighter text-white drop-shadow-[0_4px_20px_rgba(245,158,11,0.3)] tabular-nums leading-none ${isUrdu ? 'text-right' : ''}`} dir="ltr">
+              <h3 className={`text-4xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-[0_4px_20px_rgba(245,158,11,0.3)] tabular-nums leading-none ${isUrdu ? 'text-right' : ''}`} dir="ltr">
                 {formatCompactCurrency(todayHighlightedSalesPKR)}
               </h3>
             </div>
@@ -292,7 +292,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
       </div>
       
       {/* Quick Summary of Business vs Personal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 relative z-10">
          {/* Business Summary Card */}
          <div className="bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/60 backdrop-blur-3xl border border-amber-500/10 hover:border-amber-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl [backface-visibility:hidden] will-change-transform">
             {/* Premium Glow Orbs - Optimized for performance in Urdu */}

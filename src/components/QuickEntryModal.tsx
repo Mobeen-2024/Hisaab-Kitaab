@@ -327,7 +327,7 @@ export default function QuickEntryModal({
 
   return (
     <div className="fixed inset-0 bg-[#0F172A]/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-[#1E293B] border-t sm:border border-white/20 sm:rounded-3xl rounded-t-3xl w-full max-w-md overflow-hidden relative shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95">
+      <div className="bg-[#1E293B] border-t sm:border border-white/20 sm:rounded-3xl rounded-t-3xl w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar relative shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95">
         {/* Header */}
         <div className={`flex justify-between items-center px-6 pt-6 pb-2 ${rtl ? 'flex-row-reverse' : ''}`}>
           <div className={`flex items-center gap-2 ${rtl ? 'flex-row-reverse' : ''}`}>
