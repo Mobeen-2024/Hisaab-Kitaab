@@ -132,7 +132,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
   const isUrdu = lang === 'ur'; // Keep isUrdu for specific font things if needed, but use rtl for layout
 
   return (
-    <div className={`space-y-10 scroll-section ${rtl ? 'text-right' : ''}`}>
+    <div className={`space-y-10 scroll-section ${rtl ? 'text-right' : ''} max-w-full overflow-x-hidden`}>
       {/* Welcome Header */}
       <motion.div 
         initial={{ opacity: 0, y: -16 }}

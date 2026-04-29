@@ -78,7 +78,7 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
   const rtl = isRTL(lang);
 
   return (
-    <div className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden relative">
+    <div className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden relative max-w-full">
       <ConfirmDialog
         isOpen={confirmDeleteId !== null}
         onClose={() => setConfirmDeleteId(null)}
