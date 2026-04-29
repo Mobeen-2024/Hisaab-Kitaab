@@ -87,7 +87,7 @@ export default function Settings({ lang, currency, onOpenImport }: { lang: Lang,
   return (
     <>
       <div className="space-y-6 animate-in slide-in-from-right-4 duration-300 pb-20 md:pb-0">
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-30 relative">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 sm:p-8 md:p-10 relative overflow-hidden">
           <div className="relative z-10">
             <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3 mb-6">
               <SettingsIcon className="text-slate-400" />

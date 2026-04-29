@@ -239,7 +239,7 @@ export default function App() {
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         >
           {/* Modern Liquid Glow Background */}
-          <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none bg-[#020617]">
+          <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none">
             {rtl ? (
               /* Lightweight static background for RTL/Urdu mode to prevent scroll lag */
               <>
@@ -260,8 +260,8 @@ export default function App() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-indigo-500/[0.02] rounded-full blur-[150px]"></div>
             {/* Technical Overlays */}
             <div className="absolute inset-0 bg-noise opacity-[0.03]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#020617_100%)] opacity-40"></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#020617]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#020617_100%)] opacity-30"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#020617] opacity-60"></div>
           </div>
         {/* Sidebar - Rail on tablet, full on desktop */}
         <nav className="hidden md:flex flex-col z-50 w-20 lg:w-64 border-r border-white/10 bg-white/10 backdrop-blur-3xl shrink-0 transition-all duration-300 overflow-x-hidden shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
@@ -279,7 +279,7 @@ export default function App() {
         </nav>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+        <div className={`flex-1 flex flex-col h-screen overflow-hidden relative bg-transparent min-w-0 ${rtl ? 'order-1' : 'order-2'}`}>
           {/* Top Header */}
           <header className="h-20 bg-[#0F172A]/80 backdrop-blur-2xl border-b border-white/10 flex items-center justify-between px-4 md:px-8 shrink-0 z-20">
             <div className="flex items-center gap-4 flex-1">
@@ -350,8 +350,8 @@ export default function App() {
           </header>
 
           {/* Scalable Main Content Wrapper */}
-          <main className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-8 relative custom-scrollbar smooth-scroll-surface">
-            <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-24 md:pb-8">
+          <main className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-8 relative custom-scrollbar bg-transparent min-w-0">
+            <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-24 md:pb-8 bg-transparent">
               {currentTab === 'menu' && (
                 <div className="md:hidden">
                   <h2 className="text-2xl font-bold text-white mb-6">Menu</h2>
@@ -364,7 +364,7 @@ export default function App() {
               {currentTab === 'dashboard' ? (
                 <>
                   <Dashboard lang={lang} currency={currency} activeContext={activeContext} />
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full">
                     <div className="lg:col-span-7 space-y-8">
                       <TransactionList lang={lang} currency={currency} activeContext={activeContext} />
                     </div>

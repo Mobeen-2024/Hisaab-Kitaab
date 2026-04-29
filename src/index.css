@@ -61,7 +61,7 @@ body {
 .ur [class*='backdrop-blur'], .ur .backdrop-blur-3xl, .ur .backdrop-blur-2xl {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  background-color: rgba(15, 23, 42, 0.95) !important; /* Solid fallback */
+  background-color: rgba(15, 23, 42, 0.75) !important; /* Semi-transparent fallback */
 }
 
 /* Force hardware acceleration for the scroll container globally */

@@ -132,7 +132,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
   const isUrdu = lang === 'ur'; // Keep isUrdu for specific font things if needed, but use rtl for layout
 
   return (
-    <div className={`space-y-10 scroll-section ${rtl ? 'text-right' : ''} max-w-full overflow-x-hidden`}>
+    <div className={`space-y-10 scroll-section ${rtl ? 'text-right' : ''} max-w-full bg-transparent`}>
       {/* Welcome Header */}
       <motion.div 
         initial={{ opacity: 0, y: -16 }}
@@ -141,7 +141,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative"
       >
         {/* Subtle aurora behind greeting */}
-        <div className="absolute -inset-6 bg-[radial-gradient(ellipse_60%_40%_at_30%_50%,rgba(59,130,246,0.08)_0%,transparent_70%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_30%_50%,rgba(59,130,246,0.08)_0%,transparent_70%)] pointer-events-none" />
         <div>
           <div className="flex items-center gap-2 mb-1">
             <div className={`w-1.5 h-6 bg-gradient-to-b from-blue-400 to-indigo-600 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.8)]`} />
@@ -176,11 +176,11 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8" style={{ perspective: '1200px' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8" style={{ perspective: '1200px' }}>
 
         {/* Total Balance Card */}
-        <div className="group h-full will-change-transform xl:col-span-1 md:col-span-2">
-          <div className="group h-full bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-slate-900/60 border border-blue-500/10 hover:border-blue-400/40 p-8 rounded-[2.5rem] relative z-10 overflow-hidden transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
+        <div className="group h-full will-change-transform lg:col-span-1 md:col-span-2">
+          <div className="group h-full bg-gradient-to-br from-blue-950/60 via-slate-900/60 to-slate-900/60 border border-blue-500/10 hover:border-blue-400/40 p-8 rounded-[2.5rem] relative z-10 overflow-hidden transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
             {/* Multi-layer glow orb - Optimized for Urdu */}
             <div className={`absolute -top-8 -right-8 w-52 h-52 bg-blue-500/20 rounded-full ${isUrdu ? 'blur-[30px] opacity-30' : 'blur-[60px]'} transition-all duration-700 group-hover:bg-blue-400/35 group-hover:scale-125`} />
             <div className={`absolute -top-4 -right-4 w-28 h-28 bg-blue-400/15 rounded-full ${isUrdu ? 'blur-[15px] opacity-20' : 'blur-[30px]'} transition-all duration-500 group-hover:bg-blue-300/25`} />
@@ -209,8 +209,8 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         </div>
 
         {/* Today's Expenses Card */}
-        <div className="group h-full will-change-transform">
-          <div className="group h-full bg-gradient-to-br from-rose-950/50 via-slate-900/80 to-slate-900/60 border border-rose-500/10 hover:border-rose-400/40 p-8 rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
+        <div className="group h-full">
+          <div className="group h-full bg-gradient-to-br from-rose-950/50 via-slate-900/60 to-slate-900/60 border border-rose-500/10 hover:border-rose-400/40 p-8 rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
             <div className={`absolute -top-8 -right-8 w-52 h-52 bg-rose-500/20 rounded-full ${isUrdu ? 'blur-[30px] opacity-30' : 'blur-[60px]'} transition-all duration-700 group-hover:bg-rose-400/35 group-hover:scale-125`} />
             <div className={`absolute -top-4 -right-4 w-28 h-28 bg-rose-400/15 rounded-full ${isUrdu ? 'blur-[15px] opacity-20' : 'blur-[30px]'} transition-all duration-500 group-hover:bg-rose-300/25`} />
             <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-rose-400/60 to-transparent" />
@@ -236,8 +236,8 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         </div>
 
         {/* Highlighted Category Card */}
-        <div className="group h-full will-change-transform">
-          <div className="group h-full bg-gradient-to-br from-amber-950/40 via-slate-900/80 to-slate-900/60 border border-amber-500/10 hover:border-amber-400/40 p-8 rounded-[2.5rem] relative z-20 overflow-visible transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
+        <div className="group h-full">
+          <div className="group h-full bg-gradient-to-br from-amber-950/40 via-slate-900/60 to-slate-900/60 border border-amber-500/10 hover:border-amber-400/40 p-8 rounded-[2.5rem] relative z-20 overflow-visible transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
             {/* Premium Glow Orbs - Optimized for Urdu */}
             <div className={`absolute -top-8 -right-8 w-52 h-52 bg-amber-500/20 rounded-full ${isUrdu ? 'blur-[30px] opacity-30' : 'blur-[60px]'} transition-all duration-700 group-hover:bg-amber-400/35 group-hover:scale-125`} />
             <div className={`absolute -top-4 -right-4 w-28 h-28 bg-amber-400/15 rounded-full ${isUrdu ? 'blur-[15px] opacity-20' : 'blur-[30px]'} transition-all duration-500 group-hover:bg-amber-300/25`} />
@@ -294,7 +294,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
       {/* Quick Summary of Business vs Personal */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 relative z-10">
          {/* Business Summary Card */}
-         <div className="bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/60 backdrop-blur-3xl border border-amber-500/10 hover:border-amber-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl [backface-visibility:hidden] will-change-transform">
+         <div className="bg-gradient-to-br from-amber-950/40 via-slate-900/70 to-slate-900/60 backdrop-blur-3xl border border-amber-500/10 hover:border-amber-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl [backface-visibility:hidden] will-change-transform">
             {/* Premium Glow Orbs - Optimized for performance in Urdu */}
             <div className={`absolute -top-12 -right-12 w-64 h-64 bg-amber-500/15 rounded-full ${isUrdu ? 'blur-[40px] opacity-30' : 'blur-[80px]'} group-hover:bg-amber-500/25 transition-all duration-700`}></div>
             <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
@@ -352,7 +352,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
          </div>
          
          {/* Personal Summary Card */}
-         <div className="bg-gradient-to-br from-blue-950/40 via-slate-900/90 to-slate-900/60 backdrop-blur-3xl border border-blue-500/10 hover:border-blue-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl [backface-visibility:hidden] will-change-transform">
+         <div className="bg-gradient-to-br from-blue-950/40 via-slate-900/70 to-slate-900/60 backdrop-blur-3xl border border-blue-500/10 hover:border-blue-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl [backface-visibility:hidden] will-change-transform">
             {/* Premium Glow Orbs - Optimized for performance in Urdu */}
             <div className={`absolute -top-12 -right-12 w-64 h-64 bg-blue-500/15 rounded-full ${isUrdu ? 'blur-[40px] opacity-30' : 'blur-[80px]'} group-hover:bg-blue-400/25 transition-all duration-700`}></div>
             <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-blue-400/50 to-transparent" />
