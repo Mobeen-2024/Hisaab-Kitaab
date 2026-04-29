@@ -132,14 +132,6 @@ export default function App() {
               <Users size={20} className="shrink-0" />
               <span className="block md:hidden lg:block whitespace-nowrap">{t(lang, 'customers') || 'Contacts (Khata)'}</span>
             </button>
-            <button
-              onClick={() => setCurrentTab('calendar')}
-              className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${currentTab === 'calendar' ? 'bg-blue-500/20 text-blue-400 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-              title="Calendar"
-            >
-              <Calendar size={20} className="shrink-0" />
-              <span className="block md:hidden lg:block whitespace-nowrap">Calendar</span>
-            </button>
             {canViewReports && (
               <button
                 onClick={() => setCurrentTab('reports')}
@@ -401,8 +393,6 @@ export default function App() {
               <BusinessHealth lang={lang} currency={currency} activeContext={activeContext} />
             ) : currentTab === 'inventory' ? (
               <Inventory lang={lang} currency={currency} activeContext={activeContext} />
-            ) : currentTab === 'calendar' ? (
-              <TransactionCalendar lang={lang} currency={currency} activeContext={activeContext} />
             ) : currentTab === 'settings' ? (
               <SettingsComponent lang={lang} currency={currency} />
             ) : null}
@@ -425,13 +415,6 @@ export default function App() {
         >
           <FileText size={20} />
           <span className="text-[10px] font-medium">Reports</span>
-        </button>
-        <button 
-          onClick={() => setCurrentTab('calendar')} 
-          className={`flex-1 flex flex-col items-center justify-center gap-1 ${currentTab === 'calendar' ? 'text-blue-400' : 'text-slate-500 hover:text-white'}`}
-        >
-          <Calendar size={20} />
-          <span className="text-[10px] font-medium">Calendar</span>
         </button>
         
         {/* FAB Spacer */}

@@ -7,6 +7,7 @@ import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'da
 import jsPDF from 'jspdf';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import autoTable from 'jspdf-autotable';
+import TransactionCalendar from './TransactionCalendar';
 
 export default function Reports({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
   const allTransactions = useLiveQuery(() => db.transactions.toArray()) || [];
@@ -15,6 +16,7 @@ export default function Reports({ lang, currency, activeContext }: { lang: Lang,
   const transactions = allTransactions.filter(t => t.context === activeContext);
 
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [activeView, setActiveView] = useState<'summary' | 'calendar'>('summary');
 
   const filteredTransactions = useMemo(() => {
     if (!selectedMonth) return [];
@@ -111,8 +113,29 @@ export default function Reports({ lang, currency, activeContext }: { lang: Lang,
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem]">
-        <div className="flex items-center gap-4">
+      <div className="flex bg-[#0F172A]/80 backdrop-blur-md border border-white/10 rounded-2xl p-1 mb-6 self-start w-fit shadow-xl">
+        <button
+          onClick={() => setActiveView('summary')}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeView === 'summary' ? 'bg-indigo-500/20 text-indigo-400 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+        >
+          <FileText size={16} />
+          Monthly Summary
+        </button>
+        <button
+          onClick={() => setActiveView('calendar')}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeView === 'calendar' ? 'bg-blue-500/20 text-blue-400 shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+        >
+          <Calendar size={16} />
+          Interactive Calendar
+        </button>
+      </div>
+
+      {activeView === 'calendar' ? (
+        <TransactionCalendar lang={lang} currency={currency} activeContext={activeContext} />
+      ) : (
+        <>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem]">
+            <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
             <FileText size={24} />
           </div>
@@ -232,6 +255,8 @@ export default function Reports({ lang, currency, activeContext }: { lang: Lang,
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }
