@@ -20,12 +20,15 @@ export default function SmartAssistant({ lang, currency, activeContext }: { lang
     setError(null);
     try {
       const settings = await db.settings.get(1);
-      const apiKey = settings?.geminiApiKey || process.env.GEMINI_API_KEY;
+      const apiKey = settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
         throw new Error("Gemini API key is not configured. Please add it in App Settings.");
       }
 
-      const ai = new GoogleGenAI({ apiKey });
+      // Sanitize key - strip invisible/non-ASCII chars that break HTTP headers
+      const cleanKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
+      if (!cleanKey) throw new Error('API key is invalid. Please re-paste it in Settings.');
+      const ai = new GoogleGenAI({ apiKey: cleanKey });
       
       const oneMonthAgo = subMonths(new Date(), 1);
       const recentTxs = transactions.filter(t => isAfter(new Date(t.date), oneMonthAgo));
@@ -62,15 +65,15 @@ export default function SmartAssistant({ lang, currency, activeContext }: { lang
       `;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
         contents: prompt,
-        config: {
-          responseMimeType: "application/json"
-        }
       });
 
       if (response.text) {
-        setInsights(response.text);
+        // Strip markdown code fences if present
+        const rawText = response.text.trim();
+        const jsonText = rawText.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
+        setInsights(jsonText);
       } else {
         throw new Error("Received empty response from AI.");
       }

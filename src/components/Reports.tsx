@@ -2,14 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
-import { FileText, Download, FileSpreadsheet, Calendar, ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import { FileText, Download, FileSpreadsheet, Calendar, ArrowUpRight, ArrowDownRight, Wallet, Upload } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import jsPDF from 'jspdf';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import autoTable from 'jspdf-autotable';
 import TransactionCalendar from './TransactionCalendar';
 
-export default function Reports({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
+export default function Reports({ lang, currency, activeContext, onOpenImport }: { lang: Lang, currency: string, activeContext: 'business' | 'personal', onOpenImport?: () => void }) {
   const allTransactions = useLiveQuery(() => db.transactions.toArray()) || [];
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
 
@@ -141,11 +141,20 @@ export default function Reports({ lang, currency, activeContext }: { lang: Lang,
           </div>
           <div>
             <h2 className="text-xl font-bold tracking-tight text-white">{t(lang, 'monthlyReports')}</h2>
-            <p className="text-sm text-slate-400">View and export your monthly financials</p>
+            <p className="text-sm text-slate-400">View reports or import Bank Statements (PDF/CSV)</p>
           </div>
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          {onOpenImport && (
+            <button 
+              onClick={onOpenImport}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-xl text-sm font-bold transition-colors border border-blue-500/30 shadow-lg shadow-blue-500/10 mr-2"
+            >
+              <Upload size={16} />
+              <span>Import Data</span>
+            </button>
+          )}
           <div className="relative w-full sm:w-auto">
             <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
             <input 

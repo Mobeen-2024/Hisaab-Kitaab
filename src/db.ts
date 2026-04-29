@@ -38,6 +38,8 @@ export interface Transaction {
   originalCurrency?: string;
   originalAmount?: number;
   exchangeRate?: number;
+  source?: 'manual' | 'voice' | 'easypaisa' | 'jazzcash' | 'bank_import' | 'pdf' | 'ai';
+  importReferenceId?: string;
 }
 
 export interface UdhaarEntry {
@@ -160,6 +162,9 @@ export class PaisaTrackDB extends Dexie {
     });
     this.version(8).stores({
       messages: '++id, chatId, sender, timestamp'
+    });
+    this.version(9).stores({
+      transactions: '++id, type, categoryId, context, date, customerId, source, importReferenceId'
     });
 
     this.on('ready', () => {

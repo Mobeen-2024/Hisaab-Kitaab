@@ -20,11 +20,12 @@ import GlobalSearchModal from './components/GlobalSearchModal';
 import CurrencySelector from './components/CurrencySelector';
 import LanguageSelector from './components/LanguageSelector';
 import ReminderSystem from './components/ReminderSystem';
-import SettingsComponent from './components/Settings';
+import Settings from './components/Settings';
 import TransactionCalendar from './components/TransactionCalendar';
 import NotificationsModal from './components/NotificationsModal';
 import MessagesModal from './components/MessagesModal';
-import { Plus, Settings, WalletCards, Users, FileText, PieChart, Sparkles, Package, Activity, Calendar } from 'lucide-react';
+import ImportStatementModal from './components/ImportStatementModal';
+import { Plus, Settings as SettingsIcon, WalletCards, Users, FileText, PieChart, Sparkles, Package, Activity, Calendar, Upload } from 'lucide-react';
 import Toast, { ToastType } from './components/Toast';
 
 export default function App() {
@@ -35,6 +36,7 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isMessagesOpen, setIsMessagesOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState<'dashboard' | 'menu' | 'customers' | 'reports' | 'planner' | 'smart' | 'inventory' | 'settings' | 'intelligence' | 'calendar'>('dashboard');
   
   // Toast State
@@ -187,14 +189,14 @@ export default function App() {
         )}
       </div>
 
-      <div className="block shrink-0 mt-auto px-2 pb-4">
+      <div className="block shrink-0 mt-auto px-2 pb-2">
         {/* Settings button at bottom of navbar */}
         <button
           onClick={() => setCurrentTab('settings')}
           className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${currentTab === 'settings' ? 'bg-slate-800 text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
           title="Settings"
         >
-          <Settings size={20} className="shrink-0" />
+          <SettingsIcon size={20} className="shrink-0" />
           <span className="block md:hidden lg:block whitespace-nowrap">App Settings</span>
         </button>
       </div>
@@ -387,7 +389,7 @@ export default function App() {
               ) : currentTab === 'customers' ? (
                 <Customers lang={lang} currency={currency} onAddCustomer={() => setIsAddCustomerModalOpen(true)} activeContext={activeContext} />
               ) : currentTab === 'reports' ? (
-                <Reports lang={lang} currency={currency} activeContext={activeContext} />
+                <Reports lang={lang} currency={currency} activeContext={activeContext} onOpenImport={() => setIsImportModalOpen(true)} />
               ) : currentTab === 'planner' ? (
                 <Planner lang={lang} currency={currency} activeContext={activeContext} />
               ) : currentTab === 'smart' ? (
@@ -397,7 +399,11 @@ export default function App() {
               ) : currentTab === 'inventory' ? (
                 <Inventory lang={lang} currency={currency} activeContext={activeContext} />
               ) : currentTab === 'settings' ? (
-                <SettingsComponent lang={lang} currency={currency} />
+                <Settings 
+                  lang={lang} 
+                  currency={currency} 
+                  onOpenImport={() => setIsImportModalOpen(true)}
+                />
               ) : null}
             </div>
           </main>
@@ -500,6 +506,11 @@ export default function App() {
           lang={lang}
           currency={currency}
           activeContext={activeContext || 'personal'}
+        />
+
+        <ImportStatementModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
         />
 
         <Toast

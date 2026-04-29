@@ -1,20 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { db } from '../db';
 import { t, Lang } from '../lib/i18n';
-import { Shield, Users, Settings as SettingsIcon, Download, Upload, Sparkles } from 'lucide-react';
+import { Shield, Users, Settings as SettingsIcon, Download, Upload, Sparkles, Smartphone, Trash2, AlertTriangle } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import ManageUsers from './ManageUsers';
 
-export default function Settings({ lang, currency }: { lang: Lang, currency: string }) {
+export default function Settings({ lang, currency, onOpenImport }: { lang: Lang, currency: string, onOpenImport: () => void }) {
   const settingsObj = useLiveQuery(() => db.settings.get(1));
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('20:00');
+  const [tempApiKey, setTempApiKey] = useState('');
+  const [isKeySaved, setIsKeySaved] = useState(false);
   const backupInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (settingsObj) {
       setReminderEnabled(settingsObj.reminderEnabled || false);
       setReminderTime(settingsObj.reminderTime || '20:00');
+      if (settingsObj.geminiApiKey && !tempApiKey) {
+        setTempApiKey(settingsObj.geminiApiKey);
+      }
     }
   }, [settingsObj]);
 
@@ -146,23 +151,98 @@ export default function Settings({ lang, currency }: { lang: Lang, currency: str
                 
                 <div className="space-y-3">
                   <label className="block text-xs font-medium text-slate-400">Gemini API Key</label>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      value={settingsObj?.geminiApiKey || ''}
-                      onChange={async (e) => {
-                        if (settingsObj?.id) {
-                          await db.settings.update(settingsObj.id, { geminiApiKey: e.target.value });
-                        }
-                      }}
-                      className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none placeholder:text-slate-600"
-                      placeholder="Paste your API key here..."
-                    />
-                    <p className="text-[10px] text-slate-500 mt-2">
-                      Used for AI voice entry and smart insights. Get one from <a href="https://ai.google.dev/" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">Google Gemini</a>.
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={tempApiKey}
+                        onChange={(e) => {
+                          const clean = e.target.value.replace(/[^\x20-\x7E]/g, '').trim();
+                          setTempApiKey(clean);
+                          setIsKeySaved(false);
+                        }}
+                        className="flex-1 bg-[#1E293B] border border-white/10 text-white rounded-xl px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none placeholder:text-slate-600"
+                        placeholder="AIzaSy..."
+                      />
+                      <button
+                        onClick={async () => {
+                          try {
+                            const cleanKey = tempApiKey.replace(/[^\x20-\x7E]/g, '').trim();
+                            if (!cleanKey.startsWith('AIza')) {
+                              alert('This does not look like a valid Google API key. It should start with "AIza".');
+                              return;
+                            }
+                            if (settingsObj?.id) {
+                              await db.settings.update(settingsObj.id, { geminiApiKey: cleanKey });
+                            } else {
+                              await db.settings.put({ id: 1, language: 'en', currency: 'PKR', geminiApiKey: cleanKey });
+                            }
+                            setTempApiKey(cleanKey);
+                            setIsKeySaved(true);
+                            setTimeout(() => setIsKeySaved(false), 3000);
+                          } catch (e) {
+                            console.error('Failed to save API key:', e);
+                            alert('Failed to save API key. Please try again.');
+                          }
+                        }}
+                        className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors whitespace-nowrap"
+                      >
+                        {isKeySaved ? '✓ Saved!' : 'Save Key'}
+                      </button>
+                    </div>
+                    {/* Show currently saved key preview */}
+                    {settingsObj?.geminiApiKey && (
+                      <p className="text-[11px] text-emerald-400 font-mono">
+                        Active key: {settingsObj.geminiApiKey.slice(0, 8)}...{settingsObj.geminiApiKey.slice(-4)}
+                        <span className="text-slate-500 ml-2">(length: {settingsObj.geminiApiKey.length})</span>
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <p className="text-[10px] text-slate-500 flex-1">
+                        Get a free key from <a href="https://ai.google.dev/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">Google AI Studio → Get API Key</a>. Key must start with "AIza".
+                      </p>
+                      {settingsObj?.geminiApiKey && (
+                        <button
+                          onClick={async () => {
+                            if (confirm('Clear saved API key and use default from .env?')) {
+                              await db.settings.update(settingsObj.id!, { geminiApiKey: undefined });
+                              setTempApiKey('');
+                              alert('Settings reset! Refreshing...');
+                              window.location.reload();
+                            }
+                          }}
+                          className="text-[10px] text-rose-400 hover:text-rose-300 transition-colors"
+                        >
+                          Reset to Default
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Statement Import Section */}
+              <div className="bg-[#0F172A]/50 p-4 lg:p-5 rounded-xl border border-blue-500/10 space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-2.5 bg-blue-500/20 text-blue-400 border border-blue-500/20 rounded-xl shrink-0">
+                    <Smartphone size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white mb-1">Import Statements</h3>
+                    <p className="text-sm text-slate-400 leading-relaxed">
+                      Upload .csv files from Easypaisa, JazzCash, or your Bank to automatically fill your ledger history.
                     </p>
                   </div>
                 </div>
+                
+                <button
+                  type="button"
+                  onClick={onOpenImport}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-white rounded-xl text-sm font-bold transition-colors"
+                >
+                  <Upload size={18} className="text-blue-400" />
+                  <span>Import Bank/Wallet Data</span>
+                </button>
               </div>
 
               {/* Trust and Professionalism: Backup Data */}
@@ -227,6 +307,53 @@ export default function Settings({ lang, currency }: { lang: Lang, currency: str
                   onClose={() => {}}
                   activeContext={settingsObj?.activeContext || 'personal'}
                 />
+              </div>
+            </div>
+            
+            {/* Danger Zone */}
+            <div className="bg-rose-500/5 p-4 lg:p-6 rounded-2xl border border-rose-500/10 space-y-6">
+              <div className="flex items-center gap-3 border-b border-rose-500/10 pb-4">
+                <div className="p-3 bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl shrink-0">
+                  <AlertTriangle size={24} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-rose-400 mb-1">Danger Zone</h3>
+                  <p className="text-sm text-rose-500/60">Manage permanent data removal</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  onClick={async () => {
+                    if (confirm('⚠️ Are you sure? This will delete ALL transactions from your ledger permanently! This cannot be undone.')) {
+                      if (confirm('FINAL CONFIRMATION: Type "DELETE" in your mind and click OK to confirm.')) {
+                        await db.transactions.clear();
+                        alert('All transactions cleared! 🧹');
+                        window.location.reload();
+                      }
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-4 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 rounded-xl text-sm font-bold transition-all"
+                >
+                  <Trash2 size={18} />
+                  Clear Transactions
+                </button>
+
+                <button
+                  onClick={async () => {
+                    if (confirm('🚨 FACTORY RESET: This will delete everything—including Categories, API Keys, and Transactions. Are you absolutely sure?')) {
+                      if (confirm('THIS WILL WIPE THE ENTIRE APP. Proceed?')) {
+                        await db.delete();
+                        alert('App data wiped. The app will now restart.');
+                        window.location.reload();
+                      }
+                    }
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-4 bg-rose-600 text-white hover:bg-rose-500 border border-rose-600 rounded-xl text-sm font-bold transition-all shadow-lg shadow-rose-600/20"
+                >
+                  <Trash2 size={18} />
+                  Full Factory Reset
+                </button>
               </div>
             </div>
 
