@@ -179,7 +179,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8" style={{ perspective: '1200px' }}>
 
         {/* Total Balance Card */}
-        <div className={`group h-full ${isUrdu ? 'will-change-transform' : ''}`}>
+        <div className="group h-full will-change-transform">
           <div className="group h-full bg-gradient-to-br from-blue-950/60 via-slate-900/80 to-slate-900/60 border border-blue-500/10 hover:border-blue-400/40 p-8 rounded-[2.5rem] relative z-10 overflow-hidden transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
             {/* Multi-layer glow orb - Optimized for Urdu */}
             <div className={`absolute -top-8 -right-8 w-52 h-52 bg-blue-500/20 rounded-full ${isUrdu ? 'blur-[30px] opacity-30' : 'blur-[60px]'} transition-all duration-700 group-hover:bg-blue-400/35 group-hover:scale-125`} />
@@ -209,7 +209,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         </div>
 
         {/* Today's Expenses Card */}
-        <div className={`group h-full ${isUrdu ? 'will-change-transform' : ''}`}>
+        <div className="group h-full will-change-transform">
           <div className="group h-full bg-gradient-to-br from-rose-950/50 via-slate-900/80 to-slate-900/60 border border-rose-500/10 hover:border-rose-400/40 p-8 rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
             <div className={`absolute -top-8 -right-8 w-52 h-52 bg-rose-500/20 rounded-full ${isUrdu ? 'blur-[30px] opacity-30' : 'blur-[60px]'} transition-all duration-700 group-hover:bg-rose-400/35 group-hover:scale-125`} />
             <div className={`absolute -top-4 -right-4 w-28 h-28 bg-rose-400/15 rounded-full ${isUrdu ? 'blur-[15px] opacity-20' : 'blur-[30px]'} transition-all duration-500 group-hover:bg-rose-300/25`} />
@@ -236,7 +236,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         </div>
 
         {/* Highlighted Category Card */}
-        <div className={`group h-full ${isUrdu ? 'will-change-transform' : ''}`}>
+        <div className="group h-full will-change-transform">
           <div className="group h-full bg-gradient-to-br from-amber-950/40 via-slate-900/80 to-slate-900/60 border border-amber-500/10 hover:border-amber-400/40 p-8 rounded-[2.5rem] relative z-20 overflow-visible transition-all duration-700 shadow-2xl [backface-visibility:hidden]">
             {/* Premium Glow Orbs - Optimized for Urdu */}
             <div className={`absolute -top-8 -right-8 w-52 h-52 bg-amber-500/20 rounded-full ${isUrdu ? 'blur-[30px] opacity-30' : 'blur-[60px]'} transition-all duration-700 group-hover:bg-amber-400/35 group-hover:scale-125`} />
@@ -294,7 +294,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
       {/* Quick Summary of Business vs Personal */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
          {/* Business Summary Card */}
-         <div className={`bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/60 backdrop-blur-3xl border border-amber-500/10 hover:border-amber-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl [backface-visibility:hidden] ${isUrdu ? 'will-change-transform' : ''}`}>
+         <div className="bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900/60 backdrop-blur-3xl border border-amber-500/10 hover:border-amber-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl [backface-visibility:hidden] will-change-transform">
             {/* Premium Glow Orbs - Optimized for performance in Urdu */}
             <div className={`absolute -top-12 -right-12 w-64 h-64 bg-amber-500/15 rounded-full ${isUrdu ? 'blur-[40px] opacity-30' : 'blur-[80px]'} group-hover:bg-amber-500/25 transition-all duration-700`}></div>
             <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
@@ -352,7 +352,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
          </div>
          
          {/* Personal Summary Card */}
-         <div className={`bg-gradient-to-br from-blue-950/40 via-slate-900/90 to-slate-900/60 backdrop-blur-3xl border border-blue-500/10 hover:border-blue-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl [backface-visibility:hidden] ${isUrdu ? 'will-change-transform' : ''}`}>
+         <div className="bg-gradient-to-br from-blue-950/40 via-slate-900/90 to-slate-900/60 backdrop-blur-3xl border border-blue-500/10 hover:border-blue-400/40 transition-all duration-700 rounded-[2.5rem] p-8 flex flex-col flex-1 relative overflow-hidden group shadow-2xl [backface-visibility:hidden] will-change-transform">
             {/* Premium Glow Orbs - Optimized for performance in Urdu */}
             <div className={`absolute -top-12 -right-12 w-64 h-64 bg-blue-500/15 rounded-full ${isUrdu ? 'blur-[40px] opacity-30' : 'blur-[80px]'} group-hover:bg-blue-400/25 transition-all duration-700`}></div>
             <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-blue-400/50 to-transparent" />

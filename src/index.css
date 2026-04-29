@@ -45,8 +45,8 @@ body {
   background-color: rgba(15, 23, 42, 0.95) !important; /* Solid fallback */
 }
 
-/* Force hardware acceleration for the scroll container */
-.ur .smooth-scroll-surface {
+/* Force hardware acceleration for the scroll container globally */
+.smooth-scroll-surface {
   transform: translateZ(0);
   will-change: transform, scroll-position;
   backface-visibility: hidden;
@@ -112,10 +112,7 @@ body {
   animation-iteration-count: 1 !important; /* Ideally static after initial move */
 }
 
-/* Optimization for blurred orbs which are heavy during scroll */
-.ur [class*='blur-'] {
-  filter: blur(20px) !important; /* Clamp blur radius to prevent shader overload */
-}
+
 
 .animate-float-1 {
   animation: float-random-1 45s cubic-bezier(0.4, 0, 0.2, 1) infinite;
