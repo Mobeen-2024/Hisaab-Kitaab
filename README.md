@@ -87,6 +87,32 @@ Open [http://localhost:3000](http://localhost:3000) (or the port provided by Vit
 Hisaab-Kitab is fully **Progressive Web App (PWA)** ready. 
 You can install it directly to your mobile home screen or desktop application folder for a seamless, native-like experience—complete with offline capabilities and custom app icons.
 
+## 📱 Native Android Build (APK)
+
+Hisaab-Kitab is configured with **Capacitor** to compile into a native Android APK, complete with custom splash screens and icons.
+
+**1. Install Capacitor Assets**
+*(Used to generate your icon and splash screen)*
+```bash
+npm install -D @capacitor/assets
+npx capacitor-assets generate
+```
+
+**2. Build & Sync**
+Compile your web assets and sync them to the Android project:
+```bash
+npm run build
+npx cap sync android
+```
+
+**3. Generate the APK**
+You can open Android Studio (`npx cap open android`) to build the project visually, or build it directly from your terminal:
+```bash
+cd android
+.\gradlew assembleDebug
+```
+*Your final compiled APK will be available in the `android/app/build/outputs/apk/debug/` folder.*
+
 ---
 
 <div align="center">
