@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, MessageSquare, Send, User, Sparkles, Clock, Trash2, Phone, ExternalLink, Share2 } from 'lucide-react';
+import { X, MessageSquare, Send, User, Sparkles, Clock, Trash2, Phone, ExternalLink, Share2, Camera } from 'lucide-react';
+import QrScanModal from './QrScanModal';
+
 import { motion, AnimatePresence } from 'motion/react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
@@ -17,6 +19,8 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
   const [activeChatId, setActiveChatId] = useState<string>('ai');
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isQrScanOpen, setIsQrScanOpen] = useState(false);
+
 
   const messages = useLiveQuery(
     () => db.messages.where('chatId').equals(activeChatId).toArray(),
@@ -251,7 +255,17 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
                   onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                   className="flex items-center gap-4"
                 >
+                  <button 
+                    type="button"
+                    onClick={() => setIsQrScanOpen(true)}
+                    className="p-5 text-slate-400 hover:text-blue-400 bg-white/5 border border-white/5 rounded-2xl transition-all hover:bg-blue-500/10 hover:border-blue-500/20"
+                    title="Scan QR or Screenshot"
+                  >
+                    <Camera size={20} />
+                  </button>
+
                   <div className="flex-1 relative group">
+
                     <input 
                       type="text" 
                       value={inputText}
@@ -281,6 +295,14 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
           </motion.div>
         </div>
       )}
+
+      <QrScanModal 
+        isOpen={isQrScanOpen} 
+        onClose={() => setIsQrScanOpen(false)} 
+        lang={lang} 
+        activeContext="personal" // Default to personal or get from settings if needed
+      />
     </AnimatePresence>
+
   );
 }
