@@ -4,7 +4,7 @@ import { X, Upload, FileText, Smartphone, Banknote, CheckCircle2, AlertCircle, L
 import { db, Transaction, Category } from '../db';
 import { GoogleGenAI } from '@google/genai';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { parseJazzCashCSV, parseEasypaisaCSV, parseGenericCSV, ParsedTransaction } from '../utils/statementParsers';
+import { parseJazzCashCSV, parseEasypaisaCSV, parseGenericCSV, ParsedTransaction, generateDeterministicId } from '../utils/statementParsers';
 
 interface ImportStatementModalProps {
   isOpen: boolean;
@@ -15,9 +15,12 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   const [step, setStep] = useState<'select' | 'preview' | 'success' | 'ai_paste'>('select');
   const [source, setSource] = useState<'easypaisa' | 'jazzcash' | 'bank' | 'pdf' | 'ai'>('easypaisa');
   const [pastedText, setPastedText] = useState('');
-  const [parsedData, setParsedData] = useState<ParsedTransaction[]>([]);
+  const [parsedData, setParsedData] = useState<(ParsedTransaction & { categoryId?: number; isSelected: boolean })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [duplicatesSkipped, setDuplicatesSkipped] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const extractTextFromPDF = async (file: File): Promise<string> => {
@@ -91,13 +94,60 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       setParsedData([]);
       setError(null);
       setIsLoading(false);
+      setDuplicatesSkipped(0);
     }
   }, [isOpen]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const enhanceAndSetResults = async (rawResults: ParsedTransaction[]) => {
+    const settings = await db.settings.get(1);
+    const currentCategories = await db.categories.toArray();
+    const currentContext = settings?.activeContext || 'business';
 
+    const defaultIncomeCat = currentCategories.find(c => c.type === 'income' && c.context === currentContext)?.id || 
+                            currentCategories.find(c => c.type === 'income')?.id || 0;
+    const defaultExpenseCat = currentCategories.find(c => c.type === 'expense' && c.context === currentContext)?.id || 
+                             currentCategories.find(c => c.type === 'expense')?.id || 0;
+
+    const enhancedResults = rawResults.map(pt => {
+      const lowerDesc = pt.description.toLowerCase();
+      let matchedCat = pt.type === 'income' ? defaultIncomeCat : defaultExpenseCat;
+      
+      const catMap: Record<string, string[]> = {
+        'salary': ['salary', 'paycheck', 'payroll', 'stipend', 'bonus', 'wage'],
+        'groceries': ['grocery', 'supermarket', 'mart', 'karyana', 'milk', 'bread', 'imtiyaz', 'metro', 'carrefour', 'food', 'meat', 'bakers'],
+        'utility bills (bijli/sui gas)': ['bill', 'electric', 'gas', 'water', 'internet', 'ptcl', 'wapda', 'lesco', 'kelectric', 'nayatel', 'sui northern'],
+        'transport': ['uber', 'careem', 'petrol', 'fuel', 'bike', 'bus', 'train', 'ticket', 'indrive', 'yango', 'bykea', 'hascol', 'pso', 'shell'],
+        'dining out': ['restaurant', 'cafe', 'foodpanda', 'cheetay', 'kfc', 'mcdonalds', 'hardees', 'pizza', 'burger', 'eatery'],
+        'shopping': ['daraz', 'aliexpress', 'amazon', 'clothing', 'shoes', 'boutique', 'outfitters', 'khaadi', 'sapphire', 'alkaram', 'store'],
+        'medical': ['pharmacy', 'hospital', 'clinic', 'doctor', 'chughtai', 'shaukat khanum', 'agha khan', 'medicine', 'health'],
+        'entertainment': ['netflix', 'spotify', 'cinema', 'movie', 'game', 'steam', 'subscription'],
+        'transfer': ['transfer', 'ibft', 'raast', 'nayapay', 'sadapay', 'easypaisa', 'jazzcash', 'sent to', 'received from'],
+        'cattle feed (chara)': ['feed', 'chara', 'khal', 'banola', 'fodder'],
+        'daily milk sales': ['milk sale', 'doodh', 'client payment'],
+      };
+
+      for (const [catName, keywords] of Object.entries(catMap)) {
+        if (keywords.some(k => lowerDesc.includes(k))) {
+          const found = currentCategories.find(c => c.name.toLowerCase() === catName && c.context === currentContext);
+          if (found) {
+            matchedCat = found.id!;
+            break;
+          }
+        }
+      }
+
+      return {
+        ...pt,
+        categoryId: matchedCat,
+        isSelected: true
+      };
+    });
+
+    setParsedData(enhancedResults);
+    setStep('preview');
+  };
+
+  const processFile = async (file: File) => {
     setIsLoading(true);
     setError(null);
 
@@ -105,8 +155,12 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       if (file.type === 'application/pdf') {
         const text = await extractTextFromPDF(file);
         setPastedText(text);
-        setSource('ai');
-        setStep('select');
+        
+        if (source === 'ai') {
+          setStep('select');
+        } else {
+          await handleLocalParsing(text);
+        }
         setIsLoading(false);
         return;
       }
@@ -122,12 +176,27 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
         throw new Error("No transactions found in this file.");
       }
 
-      setParsedData(results);
-      setStep('preview');
+      await enhanceAndSetResults(results);
     } catch (err: any) {
       setError(err.message || "Failed to parse file.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await processFile(file);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await processFile(file);
     }
   };
 
@@ -186,14 +255,13 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       const rawText = response.text.trim();
       const jsonText = rawText.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
 
-      const results: ParsedTransaction[] = JSON.parse(jsonText);
+      const rawResults: ParsedTransaction[] = JSON.parse(jsonText);
 
-      if (!Array.isArray(results) || results.length === 0) {
+      if (!Array.isArray(rawResults) || rawResults.length === 0) {
         throw new Error("AI could not find any transactions in the text.");
       }
 
-      setParsedData(results);
-      setStep('preview');
+      await enhanceAndSetResults(rawResults);
     } catch (err: any) {
       const msg = err.message || '';
       const keyPreview = cleanKey ? `${cleanKey.slice(0, 6)}...${cleanKey.slice(-4)}` : 'none';
@@ -210,37 +278,34 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
     }
   };
 
-  const handleLocalParsing = () => {
+  const handleLocalParsing = async (textToParse?: string | React.MouseEvent) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const lines = pastedText.split('\n');
+      const text = typeof textToParse === 'string' ? textToParse : pastedText;
+      const lines = text.split('\n');
       const results: ParsedTransaction[] = [];
       
       // Robust Regex for various formats
       // Date: Supports 10-Oct-2024, 10/10/2024, Oct 10, 2024, 2024-10-10, etc.
-      const dateRegex = /(\d{1,4}[-/.\s]([A-Za-z]{3}|\d{1,2})[-/.\s]\d{2,4})|(([A-Za-z]{3}|\d{1,2})[-/.\s]\d{1,2}[-/.\s]\d{2,4})/;
+      const dateRegex = /(\d{1,4}[-/.\s](?:[A-Za-z]{3}|\d{1,2})[-/.\s]\d{2,4})|((?:[A-Za-z]{3}|\d{1,2})[-/.\s]\d{1,2}[-/.\s]\d{2,4})/;
       
-      // Amount: Supports 1,234.56, 1234, Rs. 100, PKR 500.00, etc.
-      const amountRegex = /(?:Rs\.?|PKR|[\$€£])?\s*([\d,]+\.\d{2}|[\d,]+)/i;
-
       lines.forEach(line => {
         const trimmedLine = line.trim();
         if (trimmedLine.length < 5) return;
 
         const dateMatch = trimmedLine.match(dateRegex);
-        // Look for the last number-looking thing in the line for the amount
-        const amountMatches = trimmedLine.match(/[\d,]+\.\d{2}|[\d,]{2,}/g);
+        // Improved amount matching: look for decimal amounts or large numbers with commas
+        const amountMatches = trimmedLine.match(/[\d,]+\.\d{2}|[\d,]{4,}/g);
         
         if (dateMatch && amountMatches && amountMatches.length > 0) {
-          // Take the most likely amount (usually the one with a decimal or the last one)
           const amountStr = amountMatches.find(m => m.includes('.')) || amountMatches[amountMatches.length - 1];
           const amount = parseFloat(amountStr.replace(/,/g, ''));
           
           if (isNaN(amount) || amount === 0) return;
 
-          const description = trimmedLine
+          let description = trimmedLine
             .replace(dateMatch[0], '')
             .replace(amountStr, '')
             .replace(/[Rr]s\.?|PKR|[\$€£]/g, '')
@@ -250,17 +315,27 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
           // Heuristic for type
           let type: 'income' | 'expense' = 'expense';
           const lowerLine = trimmedLine.toLowerCase();
-          const incomeKeywords = ['received', 'credited', 'inward', 'deposit', 'transfer-in', 'cr'];
-          if (incomeKeywords.some(k => lowerLine.includes(k))) {
-            type = 'income';
+          
+          if (lowerLine.includes(' cr') || lowerLine.endsWith('cr')) {
+             type = 'income';
+             description = description.replace(/cr$/i, '').trim();
+          } else if (lowerLine.includes(' dr') || lowerLine.endsWith('dr')) {
+             type = 'expense';
+             description = description.replace(/dr$/i, '').trim();
+          } else {
+             const incomeKeywords = ['received', 'credited', 'inward', 'deposit', 'transfer-in', 'salary', 'profit'];
+             if (incomeKeywords.some(k => lowerLine.includes(k))) {
+               type = 'income';
+             }
           }
 
+          let finalDesc = description || "Transaction";
           results.push({
             date: dateMatch[0],
-            description: description || "Transaction",
+            description: finalDesc,
             amount: amount,
             type: type,
-            referenceId: `local-${Math.random().toString(36).substr(2, 9)}`
+            referenceId: generateDeterministicId(dateMatch[0], amount, finalDesc)
           });
         }
       });
@@ -269,38 +344,38 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
         throw new Error("Local parser couldn't find transactions. Please check the text format.");
       }
 
-      setParsedData(results);
-      setStep('preview');
+      await enhanceAndSetResults(results);
     } catch (err: any) {
       setError(`Local parsing failed: ${err.message}. Try adjusting the text or use AI Scan when quota resets.`);
+      // If we failed during a direct file upload, push them back to select so they see the error
+      if (step === 'select' && source !== 'ai') {
+         setSource('ai');
+         // Text is already set in state from handleFileUpload
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleImport = async () => {
-    if (!parsedData.length) return;
+    const selectedData = parsedData.filter(d => d.isSelected);
+    if (!selectedData.length) {
+      setError("Please select at least one transaction to import.");
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
     try {
-      // Fetch latest data to ensure we are using current state
       const settings = await db.settings.get(1);
-      const currentCategories = await db.categories.toArray();
       const currentContext = settings?.activeContext || 'business';
 
-      const defaultIncomeCat = currentCategories.find(c => c.type === 'income' && c.context === currentContext)?.id || 
-                              currentCategories.find(c => c.type === 'income')?.id || 0;
-      const defaultExpenseCat = currentCategories.find(c => c.type === 'expense' && c.context === currentContext)?.id || 
-                               currentCategories.find(c => c.type === 'expense')?.id || 0;
-
-      // Map 'bank' source to 'bank_import' for database consistency
       const mappedSource = source === 'bank' ? 'bank_import' : source;
 
-      const transactionsToSave: Transaction[] = parsedData.map(pt => ({
+      const transactionsToSave: Transaction[] = selectedData.map(pt => ({
         amount: Math.abs(pt.amount),
         type: pt.type,
-        categoryId: pt.type === 'income' ? defaultIncomeCat : defaultExpenseCat,
+        categoryId: pt.categoryId || 0,
         context: currentContext as any,
         date: pt.date,
         description: pt.description,
@@ -313,7 +388,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       const existingRefs = new Set(
         (await db.transactions
           .where('importReferenceId')
-          .anyOf(parsedData.map(d => d.referenceId).filter(Boolean))
+          .anyOf(selectedData.map(d => d.referenceId).filter(Boolean))
           .toArray()
         ).map(t => t.importReferenceId)
       );
@@ -321,6 +396,8 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       const newTransactions = transactionsToSave.filter(t => 
         !t.importReferenceId || !existingRefs.has(t.importReferenceId)
       );
+
+      setDuplicatesSkipped(transactionsToSave.length - newTransactions.length);
 
       if (newTransactions.length > 0) {
         await db.transactions.bulkAdd(newTransactions);
@@ -371,7 +448,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                 </div>
               ) : step === 'select' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                     <button
                       onClick={() => setSource('easypaisa')}
                       className={`p-4 rounded-2xl border flex flex-col items-center gap-3 transition-all ${
@@ -400,13 +477,22 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                       <span className="text-[10px] font-bold uppercase tracking-wider text-center">Bank (CSV)</span>
                     </button>
                     <button
+                      onClick={() => setSource('pdf')}
+                      className={`p-4 rounded-2xl border flex flex-col items-center gap-3 transition-all ${
+                        source === 'pdf' ? 'bg-purple-500/10 border-purple-500 text-purple-400' : 'bg-white/5 border-white/10 text-slate-400'
+                      }`}
+                    >
+                      <FileStack size={24} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-center">PDF (Offline)</span>
+                    </button>
+                    <button
                       onClick={() => setSource('ai')}
                       className={`p-4 rounded-2xl border flex flex-col items-center gap-3 transition-all ${
                         source === 'ai' ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-white/5 border-white/10 text-slate-400'
                       }`}
                     >
                       <Sparkles size={24} />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-center">AI Scan (PDF)</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-center">AI Scan</span>
                     </button>
                   </div>
 
@@ -447,13 +533,20 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                   ) : (
                     <div 
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-white/10 rounded-3xl p-12 flex flex-col items-center gap-4 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer group"
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                      onDrop={handleDrop}
+                      className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center gap-4 transition-all cursor-pointer group ${
+                        isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5'
+                      }`}
                     >
-                      <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-transform ${
+                        isDragging ? 'bg-blue-500/20 text-blue-300 scale-110' : 'bg-blue-500/10 text-blue-400 group-hover:scale-110'
+                      }`}>
                         {isLoading ? <Loader2 size={32} className="animate-spin" /> : <Upload size={32} />}
                       </div>
                       <div className="text-center">
-                        <p className="text-white font-medium">Click to upload statement</p>
+                        <p className="text-white font-medium">Click or Drag to upload statement</p>
                         <p className="text-slate-500 text-sm mt-1">Supports .csv or .pdf statements</p>
                       </div>
                       <input 
@@ -477,34 +570,139 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
 
               {step === 'preview' && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <h3 className="text-white font-bold">Preview Transactions</h3>
-                    <span className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-xs font-bold uppercase">
-                      {parsedData.length} Found
-                    </span>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="relative flex-1 sm:w-48">
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+                      <span className="bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap">
+                        {parsedData.filter(d => d.isSelected).length} / {parsedData.length} Selected
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="border border-white/5 rounded-2xl overflow-hidden bg-slate-950/50">
-                    <table className="w-full text-left text-sm">
-                      <thead className="bg-white/5 text-slate-400 font-medium">
-                        <tr>
-                          <th className="p-3">Date</th>
-                          <th className="p-3">Description</th>
-                          <th className="p-3 text-right">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {parsedData.slice(0, 50).map((row, i) => (
-                          <tr key={i} className="text-slate-300">
-                            <td className="p-3 text-xs">{row.date}</td>
-                            <td className="p-3 font-medium truncate max-w-[200px]">{row.description}</td>
-                            <td className={`p-3 text-right font-bold ${row.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
-                              {row.type === 'income' ? '+' : '-'}{row.amount}
-                            </td>
-                          </tr>
+                  {parsedData.some(d => d.isSelected) && (
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex flex-wrap items-center gap-3">
+                      <span className="text-xs text-blue-300 font-bold uppercase tracking-wider">Bulk Actions:</span>
+                      <select
+                        onChange={(e) => {
+                          const catId = parseInt(e.target.value);
+                          if (catId === -1) return;
+                          setParsedData(prev => prev.map(d => d.isSelected ? { ...d, categoryId: catId } : d));
+                          e.target.value = "-1";
+                        }}
+                        className="bg-slate-900 border border-white/10 text-xs text-white rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value="-1">Assign Category to Selected...</option>
+                        {categories?.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name} ({cat.type})</option>
                         ))}
-                      </tbody>
-                    </table>
+                      </select>
+                    </div>
+                  )}
+
+                  <div className="border border-white/5 rounded-2xl overflow-hidden bg-slate-950/50">
+                    <div className="max-h-[40vh] overflow-y-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-white/5 text-slate-400 font-medium sticky top-0 z-10 backdrop-blur-md">
+                          <tr>
+                            <th className="p-3 w-10">
+                              <input 
+                                type="checkbox" 
+                                checked={parsedData.length > 0 && parsedData.every(d => d.isSelected)}
+                                onChange={(e) => setParsedData(prev => prev.map(d => ({ ...d, isSelected: e.target.checked })))}
+                                className="rounded border-white/10 bg-white/5 text-blue-500 focus:ring-0"
+                              />
+                            </th>
+                            <th className="p-3">Date</th>
+                            <th className="p-3">Description / Category</th>
+                            <th className="p-3 text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {parsedData
+                            .filter(d => 
+                              d.description.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              d.date.includes(searchQuery) ||
+                              d.amount.toString().includes(searchQuery)
+                            )
+                            .map((row, i) => {
+                              // Find index in original array to update it correctly
+                              const originalIndex = parsedData.findIndex(d => d.referenceId === row.referenceId);
+                              return (
+                                <tr key={row.referenceId || i} className={`text-slate-300 transition-colors ${row.isSelected ? 'bg-blue-500/5' : 'opacity-40'}`}>
+                                  <td className="p-3">
+                                    <input 
+                                      type="checkbox" 
+                                      checked={row.isSelected}
+                                      onChange={(e) => {
+                                        const newData = [...parsedData];
+                                        newData[originalIndex].isSelected = e.target.checked;
+                                        setParsedData(newData);
+                                      }}
+                                      className="rounded border-white/10 bg-white/5 text-blue-500 focus:ring-0"
+                                    />
+                                  </td>
+                                  <td className="p-3 text-[10px] whitespace-nowrap">{row.date}</td>
+                                  <td className="p-3">
+                                    <div className="space-y-1">
+                                      <input
+                                        type="text"
+                                        value={row.description}
+                                        onChange={(e) => {
+                                          const newData = [...parsedData];
+                                          newData[originalIndex].description = e.target.value;
+                                          setParsedData(newData);
+                                        }}
+                                        className="bg-transparent border-b border-transparent hover:border-white/20 focus:border-blue-500 outline-none w-full font-medium truncate max-w-[150px] sm:max-w-[200px]"
+                                        title={row.description}
+                                      />
+                                      <select
+                                        value={row.categoryId}
+                                        onChange={(e) => {
+                                          const newData = [...parsedData];
+                                          newData[originalIndex].categoryId = parseInt(e.target.value);
+                                          setParsedData(newData);
+                                        }}
+                                        className="bg-white/5 border-none text-[10px] text-slate-400 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500/50 w-full max-w-[140px]"
+                                      >
+                                        <option value={0}>Uncategorized</option>
+                                        {categories?.filter(c => c.type === row.type).map(cat => (
+                                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </td>
+                                  <td className={`p-3 text-right whitespace-nowrap`}>
+                                    <div className="flex items-center justify-end gap-1">
+                                      <span className={row.type === 'income' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                                        {row.type === 'income' ? '+' : '-'}
+                                      </span>
+                                      <input
+                                        type="number"
+                                        value={row.amount}
+                                        onChange={(e) => {
+                                          const newData = [...parsedData];
+                                          newData[originalIndex].amount = parseFloat(e.target.value) || 0;
+                                          setParsedData(newData);
+                                        }}
+                                        className={`bg-transparent border-b border-transparent hover:border-white/20 focus:border-blue-500 outline-none w-20 text-right ${row.type === 'income' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}`}
+                                      />
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
 
                   <div className="flex gap-3 pt-4">
@@ -538,8 +736,13 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                   <div>
                     <h2 className="text-2xl font-bold text-white">Import Successful!</h2>
                     <p className="text-slate-400 mt-2">
-                      Successfully imported {parsedData.length} transactions into your ledger.
+                      Successfully imported {parsedData.length - duplicatesSkipped} new transactions into your ledger.
                     </p>
+                    {duplicatesSkipped > 0 && (
+                      <p className="text-amber-400/80 text-sm mt-2 bg-amber-500/10 py-1.5 px-3 rounded-full inline-block border border-amber-500/20">
+                        Skipped {duplicatesSkipped} duplicate {duplicatesSkipped === 1 ? 'transaction' : 'transactions'}
+                      </p>
+                    )}
                   </div>
                   <button
                     onClick={onClose}
