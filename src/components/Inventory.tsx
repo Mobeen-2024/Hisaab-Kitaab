@@ -6,7 +6,10 @@ import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import { t, Lang } from '../lib/i18n';
 import ConfirmDialog from './ConfirmDialog';
 
-export default function Inventory({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
+import { useSettings } from '../contexts/SettingsContext';
+
+export default function Inventory() {
+  const { lang, currency, activeContext } = useSettings();
   const items = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);

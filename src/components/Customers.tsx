@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Customer } from '../db';
-import { t, Lang } from '../lib/i18n';
+import { t } from '../lib/i18n';
 import { Plus, Users, Search, Phone, ChevronRight, Trash2, UserRound, Truck } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import CustomerDetail from './CustomerDetail';
 import ConfirmDialog from './ConfirmDialog';
+import { useSettings } from '../contexts/SettingsContext';
+import { useUI } from '../contexts/UIContext';
 
-export default function Customers({ lang, currency, onAddCustomer, activeContext }: { lang: Lang, currency: string, onAddCustomer: () => void, activeContext: 'personal' | 'business' }) {
+export default function Customers() {
+  const { lang, currency, activeContext } = useSettings();
+  const { setIsAddCustomerModalOpen } = useUI();
   const customers = useLiveQuery(() => db.customers.toArray()) || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -88,7 +92,7 @@ export default function Customers({ lang, currency, onAddCustomer, activeContext
               />
             </div>
             <button
-              onClick={onAddCustomer}
+              onClick={() => setIsAddCustomerModalOpen(true)}
               className="hidden lg:flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 transition-colors"
             >
               <Plus size={16} />

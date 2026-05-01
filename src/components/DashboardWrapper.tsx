@@ -3,15 +3,11 @@ import Dashboard from './Dashboard';
 import TransactionList from './TransactionList';
 import Analytics from './Analytics';
 import CustomersSummary from './CustomersSummary';
-import { Lang } from '../lib/i18n';
+import { useSettings } from '../contexts/SettingsContext';
 
-interface DashboardWrapperProps {
-  lang: Lang;
-  currency: string;
-  activeContext: 'business' | 'personal';
-}
-
-export default function DashboardWrapper({ lang, currency, activeContext }: DashboardWrapperProps) {
+export default function DashboardWrapper() {
+  const { lang, currency, activeContext } = useSettings();
+  
   return (
     <>
       <Dashboard lang={lang} currency={currency} activeContext={activeContext} />

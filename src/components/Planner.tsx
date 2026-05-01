@@ -9,7 +9,10 @@ import ConfirmDialog from './ConfirmDialog';
 import DatePicker from './DatePicker';
 import RetentionCards from './RetentionCards';
 
-export default function Planner({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
+import { useSettings } from '../contexts/SettingsContext';
+
+export default function Planner() {
+  const { lang, currency, activeContext } = useSettings();
   const currentMonth = format(new Date(), 'yyyy-MM');
   const monthStart = startOfMonth(new Date());
   const monthEnd = endOfMonth(new Date());

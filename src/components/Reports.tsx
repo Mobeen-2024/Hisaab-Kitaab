@@ -9,7 +9,12 @@ import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import autoTable from 'jspdf-autotable';
 import TransactionCalendar from './TransactionCalendar';
 
-export default function Reports({ lang, currency, activeContext, onOpenImport }: { lang: Lang, currency: string, activeContext: 'business' | 'personal', onOpenImport?: () => void }) {
+import { useSettings } from '../contexts/SettingsContext';
+import { useUI } from '../contexts/UIContext';
+
+export default function Reports() {
+  const { lang, currency, activeContext } = useSettings();
+  const { setIsImportModalOpen } = useUI();
   const allTransactions = useLiveQuery(() => db.transactions.toArray()) || [];
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
 
@@ -146,15 +151,13 @@ export default function Reports({ lang, currency, activeContext, onOpenImport }:
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-          {onOpenImport && (
-            <button 
-              onClick={onOpenImport}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-xl text-sm font-bold transition-colors border border-blue-500/30 shadow-lg shadow-blue-500/10 mr-2"
-            >
-              <Upload size={16} />
-              <span>Import Data</span>
-            </button>
-          )}
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-xl text-sm font-bold transition-colors border border-blue-500/30 shadow-lg shadow-blue-500/10 mr-2"
+          >
+            <Upload size={16} />
+            <span>Import Data</span>
+          </button>
           <div className="relative w-full sm:w-auto">
             <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
             <input 

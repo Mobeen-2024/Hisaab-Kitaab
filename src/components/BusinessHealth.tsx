@@ -6,7 +6,10 @@ import { formatCurrency } from '../lib/currency';
 import { Activity, TrendingUp, TrendingDown, ShieldAlert, DollarSign, Target, PieChart, ShieldCheck } from 'lucide-react';
 import { subMonths, isAfter, startOfMonth } from 'date-fns';
 
-export default function BusinessHealth({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
+import { useSettings } from '../contexts/SettingsContext';
+
+export default function BusinessHealth() {
+  const { lang, currency, activeContext } = useSettings();
   const transactions = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
   const customers = useLiveQuery(() => db.customers.toArray()) || [];
 

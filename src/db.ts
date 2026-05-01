@@ -175,40 +175,35 @@ export class PaisaTrackDB extends Dexie {
         const table = this.table(tableName);
         
         table.hook('creating', (primKey, obj, transaction) => {
-          transaction.on('complete', () => {
-            this.auditLogs.add({
-              entityType: tableName as any,
-              entityId: primKey || obj.id || 0,
-              action: 'create',
-              timestamp: new Date().toISOString(),
-              context: obj.context || undefined
-            }).catch(console.error);
-          });
+          // Add to auditLogs within the same transaction for atomicity
+          this.auditLogs.add({
+            entityType: tableName as any,
+            entityId: primKey || obj.id || 0,
+            action: 'create',
+            timestamp: new Date().toISOString(),
+            context: obj.context || undefined
+          }).catch(console.error);
         });
 
         table.hook('updating', (modifications, primKey, obj, transaction) => {
-          transaction.on('complete', () => {
-            this.auditLogs.add({
-              entityType: tableName as any,
-              entityId: primKey || obj.id || 0,
-              action: 'update',
-              timestamp: new Date().toISOString(),
-              details: JSON.stringify(Object.keys(modifications)),
-              context: obj.context || undefined
-            }).catch(console.error);
-          });
+          this.auditLogs.add({
+            entityType: tableName as any,
+            entityId: primKey || obj.id || 0,
+            action: 'update',
+            timestamp: new Date().toISOString(),
+            details: JSON.stringify(Object.keys(modifications)),
+            context: obj.context || undefined
+          }).catch(console.error);
         });
 
         table.hook('deleting', (primKey, obj, transaction) => {
-          transaction.on('complete', () => {
-            this.auditLogs.add({
-              entityType: tableName as any,
-              entityId: primKey || obj.id || 0,
-              action: 'delete',
-              timestamp: new Date().toISOString(),
-              context: obj.context || undefined
-            }).catch(console.error);
-          });
+          this.auditLogs.add({
+            entityType: tableName as any,
+            entityId: primKey || obj.id || 0,
+            action: 'delete',
+            timestamp: new Date().toISOString(),
+            context: obj.context || undefined
+          }).catch(console.error);
         });
       }
     });
@@ -220,20 +215,31 @@ export class PaisaTrackDB extends Dexie {
       data[table.name] = await table.toArray();
     }
     
-    // Create encrypted-like wrapper or just serialize
     const payload = JSON.stringify({
       version: 1,
       timestamp: new Date().toISOString(),
       data
     });
     
-    // We could apply AES encryption here using SubtleCrypto, but base64 encoding it provides a simple binary-like format
-    return btoa(unescape(encodeURIComponent(payload)));
+    // Modern UTF-8 to Base64 serialization
+    const uint8Array = new TextEncoder().encode(payload);
+    let binary = '';
+    const len = uint8Array.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+    }
+    return btoa(binary);
   }
 
   async importData(base64Payload: string) {
     try {
-      const payload = decodeURIComponent(escape(atob(base64Payload)));
+      // Modern Base64 to UTF-8 deserialization
+      const binary = atob(base64Payload);
+      const uint8Array = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+          uint8Array[i] = binary.charCodeAt(i);
+      }
+      const payload = new TextDecoder().decode(uint8Array);
       const parsed = JSON.parse(payload);
       
       if (!parsed.data) throw new Error("Invalid backup file");

@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../db';
-import { t, Lang } from '../lib/i18n';
+import { t } from '../lib/i18n';
 import { Shield, Users, Settings as SettingsIcon, Download, Upload, Sparkles, Smartphone, Trash2, AlertTriangle } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import ManageUsers from './ManageUsers';
+import { useSettings } from '../contexts/SettingsContext';
+import { useUI } from '../contexts/UIContext';
 
-export default function Settings({ lang, currency, onOpenImport }: { lang: Lang, currency: string, onOpenImport: () => void }) {
+export default function Settings() {
+  const { lang, currency, updateSetting } = useSettings();
+  const { setIsImportModalOpen } = useUI();
   const settingsObj = useLiveQuery(() => db.settings.get(1));
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('20:00');
@@ -243,7 +247,7 @@ export default function Settings({ lang, currency, onOpenImport }: { lang: Lang,
 
                   <button
                     type="button"
-                    onClick={onOpenImport}
+                    onClick={() => setIsImportModalOpen(true)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-white rounded-xl text-sm font-bold transition-colors"
                   >
                     <Upload size={18} className="text-blue-400" />

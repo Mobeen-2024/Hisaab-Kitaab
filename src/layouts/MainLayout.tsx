@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import { useUI } from '../contexts/UIContext';
 import Sidebar from '../components/Sidebar';
 import TopHeader from '../components/TopHeader';
 import BottomNav from '../components/BottomNav';
@@ -12,20 +13,20 @@ import GlobalSearchModal from '../components/GlobalSearchModal';
 import ImportStatementModal from '../components/ImportStatementModal';
 import ReminderSystem from '../components/ReminderSystem';
 import { Plus } from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const { rtl, lang, currency, activeContext, ownerName } = useSettings();
+  const { rtl, lang, currency, activeContext } = useSettings();
+  const {
+    isQuickEntryOpen, setIsQuickEntryOpen,
+    isAddCustomerModalOpen, setIsAddCustomerModalOpen,
+    isProfileModalOpen, setIsProfileModalOpen,
+    isNotificationsOpen, setIsNotificationsOpen,
+    isMessagesOpen, setIsMessagesOpen,
+    isSearchOpen, setIsSearchOpen,
+    isImportModalOpen, setIsImportModalOpen
+  } = useUI();
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
-  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -36,7 +37,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [setIsSearchOpen]);
 
   // This would normally come from a hook, but for now we'll keep it simple
   const hasAlerts = false; 

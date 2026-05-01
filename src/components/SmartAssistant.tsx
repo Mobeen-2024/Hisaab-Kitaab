@@ -5,7 +5,10 @@ import { GoogleGenAI } from '@google/genai';
 import { Sparkles, Brain, AlertTriangle, Lightbulb, Activity, ArrowRight, RefreshCw } from 'lucide-react';
 import { format, subMonths, isAfter } from 'date-fns';
 
-export default function SmartAssistant({ lang, currency, activeContext }: { lang: any, currency: string, activeContext: 'business' | 'personal' }) {
+import { useSettings } from '../contexts/SettingsContext';
+
+export default function SmartAssistant() {
+  const { lang, currency, activeContext } = useSettings();
   const transactions = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray()) || [];
   const categories = useLiveQuery(() => db.categories.where('context').equals(activeContext).toArray()) || [];
   const budgets = useLiveQuery(() => db.budgets.where('context').equals(activeContext).toArray()) || [];
