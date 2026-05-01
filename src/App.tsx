@@ -16,6 +16,7 @@ const SmartAssistant = lazy(() => import('./components/SmartAssistant'));
 const BusinessHealth = lazy(() => import('./components/BusinessHealth'));
 const Inventory = lazy(() => import('./components/Inventory'));
 const Settings = lazy(() => import('./components/Settings'));
+const MobileMenu = lazy(() => import('./components/MobileMenu'));
 
 // Loading component
 const PageLoader = () => (
@@ -42,6 +43,7 @@ function AppRoutes() {
             <Route path="/intelligence" element={<BusinessHealth />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/menu" element={<MobileMenu />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

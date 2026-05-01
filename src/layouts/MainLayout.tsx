@@ -88,7 +88,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <BottomNav />
 
       {/* FAB */}
-      <div className={`fixed bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 md:translate-x-0 z-50 ${rtl ? 'md:right-auto md:left-8' : 'md:left-auto md:right-8'}`}>
+      <div 
+        className={`fixed left-1/2 -translate-x-1/2 md:translate-x-0 z-50 ${rtl ? 'md:right-auto md:left-8' : 'md:left-auto md:right-8'}`}
+        style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+      >
         <button
           onClick={() => isDashboardOrSimilar ? setIsQuickEntryOpen(true) : setIsAddCustomerModalOpen(true)}
           className={`${isDashboardOrSimilar ? 'bg-blue-600' : 'bg-emerald-600'} text-white h-14 w-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer`}
