@@ -20,7 +20,7 @@ export default function TopHeader({
   const { ownerName, ownerAvatar, rtl } = useSettings();
 
   return (
-    <header className="h-20 bg-[#0F172A]/80 backdrop-blur-2xl border-b border-white/10 flex items-center justify-between px-4 md:px-8 shrink-0 z-20">
+    <header className="h-[calc(5rem+var(--safe-top))] pt-[var(--safe-top)] bg-[#0F172A]/80 backdrop-blur-2xl border-b border-white/10 flex items-center justify-between px-4 md:px-8 shrink-0 z-20">
       <div className="flex items-center gap-4 flex-1">
         {/* Mobile Title */}
         <div className={`flex md:hidden items-center gap-3 transition-opacity duration-300`}>

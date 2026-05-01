@@ -79,7 +79,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         />
 
         <main className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-8 relative custom-scrollbar bg-transparent min-w-0">
-          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-24 md:pb-8 bg-transparent">
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-[calc(6rem+var(--safe-bottom))] md:pb-8 bg-transparent">
             {children}
           </div>
         </main>
@@ -90,7 +90,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       {/* FAB */}
       <div 
         className={`fixed left-1/2 -translate-x-1/2 md:translate-x-0 z-50 ${rtl ? 'md:right-auto md:left-8' : 'md:left-auto md:right-8'}`}
-        style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+        style={{ bottom: 'calc(1.5rem + var(--safe-bottom))' }}
       >
         <button
           onClick={() => isDashboardOrSimilar ? setIsQuickEntryOpen(true) : setIsAddCustomerModalOpen(true)}

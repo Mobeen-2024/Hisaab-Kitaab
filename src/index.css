@@ -3,6 +3,8 @@
 
 :root {
   --font-sans: "Inter", "Noto Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 html, body {
@@ -157,6 +159,7 @@ body {
 }
 
 /* Safe area insets for mobile devices */
-.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-.pt-safe { padding-top: env(safe-area-inset-top); }
-.mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+.pb-safe { padding-bottom: var(--safe-bottom); }
+.pt-safe { padding-top: var(--safe-top); }
+.mb-safe { margin-bottom: var(--safe-bottom); }
+.mt-safe { margin-top: var(--safe-top); }

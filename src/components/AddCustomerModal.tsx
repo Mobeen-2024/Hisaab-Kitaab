@@ -51,7 +51,7 @@ export default function AddCustomerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"
@@ -59,7 +59,7 @@ export default function AddCustomerModal({
       ></div>
 
       {/* Modal */}
-      <div className={`relative w-full max-w-md bg-[#0F172A] border border-white/10 rounded-3xl shadow-2xl overflow-hidden ${lang === 'ur' ? 'ur' : ''}`} dir={lang === 'ur' ? 'rtl' : 'ltr'}>
+      <div className={`relative w-full max-w-md bg-[#0F172A] border-t sm:border border-white/10 rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95 ${lang === 'ur' ? 'ur' : ''}`} dir={lang === 'ur' ? 'rtl' : 'ltr'}>
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <h2 className="text-xl font-bold text-white tracking-tight">{contactType === 'customer' ? t(lang, 'addCustomer') : 'Add Supplier'}</h2>
