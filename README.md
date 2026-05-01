@@ -39,11 +39,14 @@ Hisaab-Kitab is built with a modern, high-performance web stack focused on relia
 
 <div align="center">
   
-  `Frontend` <br/> **React 19** • **Vite** • **TypeScript**
+  `Frontend` <br/> **React 19** • **React Router** • **Vite** • **TypeScript**
+  <br/><br/>
+  `Architecture` <br/> **Context API (Global State)** • **Lazy Loading / Code Splitting** • **Modular Component Design**
   <br/><br/>
   `Styling` <br/> **Tailwind CSS 4** • **Deep Aurora Glassmorphism** • **Lucide Icons**
   <br/><br/>
-  `Data Layer` <br/> **Dexie.js (IndexedDB)** • **Offline-First Architecture**
+  `Data Layer` <br/> **Dexie.js (IndexedDB)** • **Offline-First**
+
   <br/><br/>
   `Intelligence` <br/> **Google Gemini 1.5 Flash**
   

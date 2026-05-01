@@ -24,5 +24,13 @@ export default defineConfig(({mode}) => {
       emptyOutDir: true,
       chunkSizeWarningLimit: 2000,
     },
+    server: {
+      watch: {
+        ignored: ['**/android/**'],
+      },
+    },
+    optimizeDeps: {
+      exclude: ['@emotion/is-prop-valid'],
+    },
   };
 });
