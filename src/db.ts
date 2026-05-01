@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie';
+import { Lang } from './lib/i18n';
 
 export interface Category {
   id?: number;
@@ -74,8 +75,8 @@ export interface Budget {
 
 export interface AppSettings {
   id?: number;
-  language: 'en' | 'ur' | 'ru';
-  currency: 'PKR' | 'USD' | 'EUR';
+  language: Lang;
+  currency: string;
   highlightedCategoryId?: number;
   ownerName?: string;
   ownerEmail?: string;

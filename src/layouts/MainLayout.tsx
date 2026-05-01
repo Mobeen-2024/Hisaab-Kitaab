@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import { useSettings } from '../contexts/SettingsContext';
+import Sidebar from '../components/Sidebar';
+import TopHeader from '../components/TopHeader';
+import BottomNav from '../components/BottomNav';
+import QuickEntryModal from '../components/QuickEntryModal';
+import AddCustomerModal from '../components/AddCustomerModal';
+import ProfileModal from '../components/ProfileModal';
+import NotificationsModal from '../components/NotificationsModal';
+import MessagesModal from '../components/MessagesModal';
+import GlobalSearchModal from '../components/GlobalSearchModal';
+import ImportStatementModal from '../components/ImportStatementModal';
+import ReminderSystem from '../components/ReminderSystem';
+import { Plus } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+
+export default function MainLayout({ children }: { children: React.ReactNode }) {
+  const { rtl, lang, currency, activeContext, ownerName } = useSettings();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // This would normally come from a hook, but for now we'll keep it simple
+  const hasAlerts = false; 
+
+  const isDashboardOrSimilar = ['/', '/smart', '/intelligence', '/reports', '/planner', '/inventory'].includes(location.pathname);
+
+  return (
+    <div
+      className={`h-screen w-full flex overflow-hidden bg-[#020617] text-slate-100 font-sans ${rtl ? 'ur' : ''} relative`}
+      dir={rtl ? 'rtl' : 'ltr'}
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      {/* Background Glows */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none">
+        {rtl ? (
+          <>
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_80%_80%_at_20%_20%,rgba(37,99,235,0.08)_0%,transparent_60%)]" />
+            <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(ellipse_60%_60%_at_80%_80%,rgba(99,102,241,0.08)_0%,transparent_60%)]" />
+          </>
+        ) : (
+          <>
+            <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[120px] animate-float-1 mix-blend-screen"></div>
+            <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-indigo-600/15 rounded-full blur-[140px] animate-float-2 mix-blend-screen"></div>
+            <div className="absolute top-[20%] right-[-5%] w-[45%] h-[45%] bg-purple-600/10 rounded-full blur-[110px] animate-liquid mix-blend-screen"></div>
+            <div className="absolute bottom-[10%] left-[10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[130px] animate-float-1 animation-delay-2000 mix-blend-screen"></div>
+          </>
+        )}
+      </div>
+
+      <Sidebar />
+
+      <div className={`flex-1 flex flex-col h-screen overflow-hidden relative bg-transparent min-w-0 ${rtl ? 'order-1' : 'order-2'}`}>
+        <TopHeader 
+          onSearchOpen={() => setIsSearchOpen(true)}
+          onNotificationsOpen={() => setIsNotificationsOpen(true)}
+          onMessagesOpen={() => setIsMessagesOpen(true)}
+          onProfileOpen={() => setIsProfileModalOpen(true)}
+          hasAlerts={hasAlerts}
+        />
+
+        <main className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-8 relative custom-scrollbar bg-transparent min-w-0">
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-24 md:pb-8 bg-transparent">
+            {children}
+          </div>
+        </main>
+      </div>
+
+      <BottomNav />
+
+      {/* FAB */}
+      <div className={`fixed bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 md:translate-x-0 z-50 ${rtl ? 'md:right-auto md:left-8' : 'md:left-auto md:right-8'}`}>
+        <button
+          onClick={() => isDashboardOrSimilar ? setIsQuickEntryOpen(true) : setIsAddCustomerModalOpen(true)}
+          className={`${isDashboardOrSimilar ? 'bg-blue-600' : 'bg-emerald-600'} text-white h-14 w-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer`}
+        >
+          <Plus size={28} />
+        </button>
+      </div>
+
+      {/* Modals */}
+      <QuickEntryModal isOpen={isQuickEntryOpen} onClose={() => setIsQuickEntryOpen(false)} lang={lang} activeContext={activeContext} />
+      <AddCustomerModal isOpen={isAddCustomerModalOpen} onClose={() => setIsAddCustomerModalOpen(false)} lang={lang} />
+      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} lang={lang} />
+      <NotificationsModal isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} lang={lang} currency={currency} />
+      <MessagesModal isOpen={isMessagesOpen} onClose={() => setIsMessagesOpen(false)} lang={lang} currency={currency} />
+      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} lang={lang} currency={currency} activeContext={activeContext} />
+      <ImportStatementModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
+      
+      {/* Systems */}
+      <ReminderSystem settingsObj={{ language: lang, currency }} />
+    </div>
+  );
+}
