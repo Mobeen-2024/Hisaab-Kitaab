@@ -113,7 +113,7 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                     : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
                 }`}>
-                  {tx.type === 'income' ? <ArrowUpRight size={18} className="sm:w-5 sm:h-5" /> : <ArrowDownRight size={18} className="sm:w-5 sm:h-5" />}
+                  {tx.type === 'income' ? <ArrowDownRight size={18} className="sm:w-5 sm:h-5" /> : <ArrowUpRight size={18} className="sm:w-5 sm:h-5" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-white text-sm sm:text-base truncate">{getCategoryName(tx.categoryId)}</p>

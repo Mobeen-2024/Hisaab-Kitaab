@@ -193,7 +193,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
                 {activeContext === 'business' ? (isUrdu ? 'مجموعی آمدنی' : 'Cumulative Revenue') : (isUrdu ? 'کل بیلنس' : 'Net Liquidity')}
               </p>
               <div className="w-9 h-9 rounded-2xl border border-blue-400/20 bg-blue-500/10 flex items-center justify-center text-blue-400 group-hover:bg-blue-400/20 group-hover:border-blue-400/40 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-500 shrink-0">
-                <ArrowUpRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
+                <ArrowDownRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
               </div>
             </div>
             <div className="relative z-10 w-full mt-8 flex flex-col">
@@ -221,7 +221,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
                 {activeContext === 'business' ? (isUrdu ? 'آج کی خریداری' : 'Cost Basis Today') : (isUrdu ? 'آج کے اخراجات' : 'Burn Rate Today')}
               </p>
               <div className="w-9 h-9 rounded-2xl border border-rose-400/20 bg-rose-500/10 flex items-center justify-center text-rose-400 group-hover:bg-rose-400/20 group-hover:border-rose-400/40 group-hover:shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all duration-500 shrink-0">
-                <ArrowDownRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
+                <ArrowUpRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
               </div>
             </div>
             <div className="relative z-10 w-full mt-8 flex flex-col">
@@ -275,7 +275,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
               </div>
               
               <div className="w-9 h-9 rounded-2xl border border-white/5 bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-amber-400 group-hover:border-amber-400/20 group-hover:bg-amber-400/10 transition-all duration-500 shrink-0">
-                <ArrowUpRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
+                <ArrowDownRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
               </div>
             </div>
             

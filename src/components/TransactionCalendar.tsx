@@ -285,7 +285,7 @@ export default function TransactionCalendar({ lang, currency, activeContext }: T
                           <div key={tx.id} className="group bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl p-4 transition-all duration-300">
                             <div className="flex items-center gap-4">
                               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${tx.type === 'income' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                                {tx.type === 'income' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+                                {tx.type === 'income' ? <ArrowDownRight size={20} /> : <ArrowUpRight size={20} />}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start">

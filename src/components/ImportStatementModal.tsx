@@ -99,6 +99,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   }, [isOpen]);
 
   const enhanceAndSetResults = async (rawResults: ParsedTransaction[]) => {
+    if (!db.isOpen()) await db.open();
     const settings = await db.settings.get(1);
     const currentCategories = await db.categories.toArray();
     const currentContext = settings?.activeContext || 'business';
@@ -201,6 +202,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   };
 
   const handleAIParsing = async () => {
+    if (!db.isOpen()) await db.open();
     const settings = await db.settings.get(1);
     const rawKey = settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
 
@@ -288,38 +290,98 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       const results: ParsedTransaction[] = [];
       
       // Robust Regex for various formats
-      // Date: Supports 10-Oct-2024, 10/10/2024, Oct 10, 2024, 2024-10-10, etc.
       const dateRegex = /(\d{1,4}[-/.\s](?:[A-Za-z]{3}|\d{1,2})[-/.\s]\d{2,4})|((?:[A-Za-z]{3}|\d{1,2})[-/.\s]\d{1,2}[-/.\s]\d{2,4})/;
       
+      const rawTxns: { date: string, lines: string[] }[] = [];
+      let currentTxn: { date: string, lines: string[] } | null = null;
+
+      // Group multiline transactions
       lines.forEach(line => {
-        const trimmedLine = line.trim();
-        if (trimmedLine.length < 5) return;
+        const trimmed = line.trim();
+        if (trimmed.length < 3) return;
 
-        const dateMatch = trimmedLine.match(dateRegex);
-        // Improved amount matching: look for decimal amounts or large numbers with commas
-        const amountMatches = trimmedLine.match(/[\d,]+\.\d{2}|[\d,]{4,}/g);
+        const dateMatch = trimmed.match(dateRegex);
+        // Check if the line begins with a date (or close to it) to start a new transaction block
+        if (dateMatch && trimmed.indexOf(dateMatch[0]) < 20) {
+          if (currentTxn) rawTxns.push(currentTxn);
+          currentTxn = { date: dateMatch[0], lines: [trimmed] };
+        } else if (currentTxn) {
+          currentTxn.lines.push(trimmed);
+        }
+      });
+      if (currentTxn) rawTxns.push(currentTxn);
+
+      rawTxns.forEach(txn => {
+        const fullText = txn.lines.join(' ');
         
-        if (dateMatch && amountMatches && amountMatches.length > 0) {
-          const amountStr = amountMatches.find(m => m.includes('.')) || amountMatches[amountMatches.length - 1];
-          const amount = parseFloat(amountStr.replace(/,/g, ''));
-          
-          if (isNaN(amount) || amount === 0) return;
+        // Extract all numbers to find Debit, Credit, Balance at the end
+        const numRegex = /(?:^|\s)([\d,]+(?:\.\d+)?)(?=\s|$)/g;
+        let match;
+        const numbers: string[] = [];
+        while ((match = numRegex.exec(fullText)) !== null) {
+          numbers.push(match[1]);
+        }
 
-          let description = trimmedLine
-            .replace(dateMatch[0], '')
-            .replace(amountStr, '')
-            .replace(/[Rr]s\.?|PKR|[\$€£]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
+        let amount = 0;
+        let type: 'income' | 'expense' = 'expense';
+        let foundAmount = false;
 
-          // Heuristic for type
-          let type: 'income' | 'expense' = 'expense';
-          const lowerLine = trimmedLine.toLowerCase();
+        // Pattern: ... DEBIT CREDIT BALANCE
+        if (numbers.length >= 3) {
+          const balStr = numbers[numbers.length - 1];
+          const cdtStr = numbers[numbers.length - 2];
+          const dbtStr = numbers[numbers.length - 3];
           
-          if (lowerLine.includes(' cr') || lowerLine.endsWith('cr')) {
+          const bal = parseFloat(balStr.replace(/,/g, ''));
+          const cdt = parseFloat(cdtStr.replace(/,/g, ''));
+          const dbt = parseFloat(dbtStr.replace(/,/g, ''));
+
+          if (!isNaN(bal) && !isNaN(cdt) && !isNaN(dbt)) {
+            if (dbt > 0) {
+              amount = dbt;
+              type = 'expense';
+              foundAmount = true;
+            } else if (cdt > 0) {
+              amount = cdt;
+              type = 'income';
+              foundAmount = true;
+            }
+          }
+        }
+
+        // Fallback amount matching if Debit/Credit pattern didn't work
+        if (!foundAmount) {
+          const amountMatches = fullText.match(/[\d,]+\.\d{2}|[\d,]{4,}/g);
+          if (amountMatches && amountMatches.length > 0) {
+            const amountStr = amountMatches.find(m => m.includes('.')) || amountMatches[amountMatches.length - 1];
+            amount = parseFloat(amountStr.replace(/,/g, ''));
+            foundAmount = true;
+          }
+        }
+
+        if (!foundAmount || isNaN(amount) || amount === 0) return;
+
+        let description = fullText
+          .replace(txn.date, '')
+          .replace(/[Rr]s\.?|PKR|[\$€£]/g, '');
+
+        if (numbers.length >= 3 && foundAmount) {
+          // Remove the extracted numbers from description
+          description = description
+            .replace(new RegExp(`\\b${numbers[numbers.length - 1].replace(/\./g, '\\.')}\\b`), '')
+            .replace(new RegExp(`\\b${numbers[numbers.length - 2].replace(/\./g, '\\.')}\\b`), '')
+            .replace(new RegExp(`\\b${numbers[numbers.length - 3].replace(/\./g, '\\.')}\\b`), '');
+        }
+
+        description = description.replace(/\s+/g, ' ').trim();
+
+        // Heuristic for type if not determined by Debit/Credit columns
+        if (type === 'expense' && numbers.length < 3) {
+          const lowerLine = fullText.toLowerCase();
+          if (lowerLine.includes(' cr') || lowerLine.endsWith('cr') || lowerLine.includes('deposited')) {
              type = 'income';
              description = description.replace(/cr$/i, '').trim();
-          } else if (lowerLine.includes(' dr') || lowerLine.endsWith('dr')) {
+          } else if (lowerLine.includes(' dr') || lowerLine.endsWith('dr') || lowerLine.includes('withdrawn')) {
              type = 'expense';
              description = description.replace(/dr$/i, '').trim();
           } else {
@@ -328,16 +390,16 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                type = 'income';
              }
           }
-
-          let finalDesc = description || "Transaction";
-          results.push({
-            date: dateMatch[0],
-            description: finalDesc,
-            amount: amount,
-            type: type,
-            referenceId: generateDeterministicId(dateMatch[0], amount, finalDesc)
-          });
         }
+
+        let finalDesc = description || "Transaction";
+        results.push({
+          date: txn.date,
+          description: finalDesc,
+          amount: amount,
+          type: type,
+          referenceId: generateDeterministicId(txn.date, amount, finalDesc)
+        });
       });
 
       if (results.length === 0) {
@@ -367,6 +429,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
     setError(null);
 
     try {
+      if (!db.isOpen()) await db.open();
       const settings = await db.settings.get(1);
       const currentContext = settings?.activeContext || 'business';
 
@@ -671,7 +734,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                                           newData[originalIndex].categoryId = parseInt(e.target.value);
                                           setParsedData(newData);
                                         }}
-                                        className="bg-white/5 border-none text-[10px] text-slate-400 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500/50 w-full max-w-[140px]"
+                                        className="bg-white/5 border-none text-[10px] text-slate-400 rounded px-2 py-1 pr-6 outline-none focus:ring-1 focus:ring-blue-500/50 w-full max-w-[140px]"
                                       >
                                         <option value={0}>Uncategorized</option>
                                         {categories?.filter(c => c.type === row.type).map(cat => (
@@ -693,7 +756,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                                           newData[originalIndex].amount = parseFloat(e.target.value) || 0;
                                           setParsedData(newData);
                                         }}
-                                        className={`bg-transparent border-b border-transparent hover:border-white/20 focus:border-blue-500 outline-none w-20 text-right ${row.type === 'income' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}`}
+                                        className={`[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent border-b border-transparent hover:border-white/20 focus:border-blue-500 outline-none w-20 text-right ${row.type === 'income' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}`}
                                       />
                                     </div>
                                   </td>
