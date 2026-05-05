@@ -1,11 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Lang, t, isRTL } from '../lib/i18n';
-import { Wallet, TrendingUp, TrendingDown, Store, ChevronDown, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Store, ChevronDown, ArrowUpRight, ArrowDownRight, Sparkles, Plus, HandCoins, Target, PieChart, AlertTriangle, Package } from 'lucide-react';
 import { format, isToday } from 'date-fns';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
+import TransactionList from './TransactionList';
+import QuickEntryModal from './QuickEntryModal';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 function TiltCard({ children, className, glowColor = "rgba(59,130,246,0.5)" }: { children: React.ReactNode, className?: string, glowColor?: string }) {
   const x = useMotionValue(0);
@@ -66,6 +69,18 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
   const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
+
+  const udhaarEntries = useLiveQuery(() => db.udhaarEntries.toArray(), []) || [];
+  const udhaarToReceive = udhaarEntries.filter(u => u.type === 'give' && !u.isCompleted).reduce((sum, u) => sum + u.amount, 0);
+  const udhaarToGive = udhaarEntries.filter(u => u.type === 'receive' && !u.isCompleted).reduce((sum, u) => sum + u.amount, 0);
+
+  const goals = useLiveQuery(() => db.goals.where('context').equals(activeContext).toArray(), [activeContext]) || [];
+  const currentMonth = format(new Date(), 'yyyy-MM');
+  const budget = useLiveQuery(() => db.budgets.where({ month: currentMonth, context: activeContext }).first(), [activeContext, currentMonth]);
+
+  const inventory = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
+  const lowStockItems = inventory.filter(item => item.quantity <= item.minQuantity);
 
   const transactions = useLiveQuery(
     () => db.transactions.where('context').equals(activeContext).toArray(),
@@ -123,6 +138,28 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
   const businessMarginPct = businessRevenue > 0 ? ((businessProfit / businessRevenue) * 100).toFixed(0) : '0';
   const businessCostPct = businessRevenue > 0 ? Math.min((businessCost / businessRevenue) * 100, 100).toFixed(0) : '0';
 
+  // Generate data for Cash Flow Chart (Last 7 Days)
+  const chartData = useMemo(() => {
+    const data = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateStr = format(d, 'yyyy-MM-dd');
+      
+      const dayTransactions = transactions.filter(t => t.date.startsWith(dateStr));
+      const income = dayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const expense = dayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      
+      data.push({
+        name: format(d, 'EEE'),
+        income,
+        expense
+      });
+    }
+    return data;
+  }, [transactions]);
+
   const personalIncome = allTransactions.filter(t => t.context === 'personal' && t.type === 'income').reduce((a, b) => a + b.amount, 0);
   const personalExpense = allTransactions.filter(t => t.context === 'personal' && t.type === 'expense').reduce((a, b) => a + b.amount, 0);
   const personalBalance = personalIncome - personalExpense;
@@ -175,6 +212,29 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
           </div>
         </div>
       </motion.div>
+
+      {/* Critical Alerts Bar */}
+      {lowStockItems.length > 0 && (
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl flex items-center justify-between gap-4 relative overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-rose-500/0 via-rose-500/5 to-rose-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+              <AlertTriangle size={20} className="animate-bounce" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-rose-300 uppercase tracking-widest">{isUrdu ? 'توجہ فرمائیں' : 'Inventory Alert'}</p>
+              <p className="text-white text-sm font-bold">{lowStockItems.length} {isUrdu ? 'چیزیں اسٹاک میں کم ہیں' : 'items are running low on stock'}</p>
+            </div>
+          </div>
+          <button className="text-[10px] font-black uppercase tracking-widest bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-400 transition-colors relative z-10">
+            {isUrdu ? 'چیک کریں' : 'View Stock'}
+          </button>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8" style={{ perspective: '1200px' }}>
 
@@ -288,6 +348,173 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
               {isUrdu ? 'کارکردگی' : 'Performance Focus'}
             </div>
           </div>
+        </div>
+      </div>
+      
+      {/* Udhaar & Debt Summary Mini-Cards */}
+      <div className="grid grid-cols-2 gap-6 relative z-10">
+        <div className="bg-gradient-to-br from-emerald-900/30 to-slate-900/60 border border-emerald-500/20 p-5 rounded-3xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+            <HandCoins size={24} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isUrdu ? 'وصول کرنا ہے' : 'To Receive'}</p>
+            <p className="text-xl font-black text-emerald-400 tabular-nums">{formatCompactCurrency(udhaarToReceive)}</p>
+          </div>
+        </div>
+        <div className="bg-gradient-to-br from-rose-900/30 to-slate-900/60 border border-rose-500/20 p-5 rounded-3xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20">
+            <HandCoins size={24} className="rotate-180" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{isUrdu ? 'ادا کرنا ہے' : 'To Pay'}</p>
+            <p className="text-xl font-black text-rose-400 tabular-nums">{formatCompactCurrency(udhaarToGive)}</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Cash Flow Trend & Recent Transactions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
+        
+        {/* Weekly Trend Chart */}
+        <div className="lg:col-span-2 bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 lg:p-8 flex flex-col shadow-2xl">
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+            <TrendingUp size={16} className="text-blue-400" />
+            {isUrdu ? 'ہفتہ وار کیش فلو' : '7-Day Cash Flow'}
+          </h3>
+          <div className="flex-1 w-full h-[250px] min-h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#fff' }}
+                  itemStyle={{ fontSize: '14px', fontWeight: 'bold' }}
+                />
+                <Area type="monotone" dataKey="income" name={isUrdu ? 'آمدنی' : 'Income'} stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
+                <Area type="monotone" dataKey="expense" name={isUrdu ? 'اخراجات' : 'Expense'} stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        
+        {/* Quick Recent Transactions */}
+        <div className="lg:col-span-1 flex flex-col h-full max-h-[400px] overflow-hidden">
+           <TransactionList lang={lang} currency={currency} activeContext={activeContext} />
+        </div>
+      </div>
+
+      {/* Goals & Budget Progress Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 relative z-10">
+        
+        {/* Goals Progress */}
+        <div className="bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
+          <div className={`flex justify-between items-center mb-6 ${rtl ? 'flex-row-reverse' : ''}`}>
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <Target size={16} className="text-purple-400" />
+              {isUrdu ? 'مالی اہداف' : 'Financial Goals'}
+            </h3>
+            <span className="text-[10px] font-black text-slate-500 uppercase bg-white/5 px-3 py-1 rounded-full border border-white/5">
+              {goals.length} {isUrdu ? 'فعال' : 'Active'}
+            </span>
+          </div>
+          
+          <div className="space-y-6">
+            {goals.length === 0 ? (
+              <div className="py-10 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{isUrdu ? 'کوئی فعال اہداف نہیں' : 'No active goals yet'}</p>
+              </div>
+            ) : (
+              goals.map(goal => {
+                const progress = Math.min(100, (goal.currentAmount / goal.targetAmount) * 100);
+                return (
+                  <div key={goal.id} className="space-y-3">
+                    <div className={`flex justify-between items-end ${rtl ? 'flex-row-reverse' : ''}`}>
+                      <div>
+                        <p className="text-white font-bold text-sm">{goal.title}</p>
+                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">
+                          {formatCompactCurrency(goal.currentAmount)} / {formatCompactCurrency(goal.targetAmount)}
+                        </p>
+                      </div>
+                      <span className="text-purple-400 text-sm font-black tabular-nums">{Math.round(progress)}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                        className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-purple-600 to-indigo-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Monthly Budget Progress */}
+        <div className="bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
+          <div className={`flex justify-between items-center mb-6 ${rtl ? 'flex-row-reverse' : ''}`}>
+            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <PieChart size={16} className="text-blue-400" />
+              {isUrdu ? 'ماہانہ بجٹ' : 'Monthly Budget'}
+            </h3>
+            <span className="text-[10px] font-black text-slate-500 uppercase bg-white/5 px-3 py-1 rounded-full border border-white/5">
+              {format(new Date(), 'MMMM yyyy')}
+            </span>
+          </div>
+
+          {!budget ? (
+            <div className="py-10 text-center border-2 border-dashed border-white/5 rounded-3xl">
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{isUrdu ? 'کوئی بجٹ مقرر نہیں کیا گیا' : 'No budget set for this month'}</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <div className="flex flex-col items-center justify-center py-4">
+                <div className="relative w-32 h-32 flex items-center justify-center">
+                  {/* Simple SVG progress circle */}
+                  <svg className="w-full h-full -rotate-90">
+                    <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+                    <motion.circle 
+                      cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" 
+                      strokeDasharray={364.4}
+                      initial={{ strokeDashoffset: 364.4 }}
+                      animate={{ strokeDashoffset: 364.4 - (364.4 * Math.min(1, totalExpensePKR / budget.amount)) }}
+                      transition={{ duration: 2, ease: "easeInOut" }}
+                      className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-black text-white tabular-nums">{Math.round((totalExpensePKR / budget.amount) * 100)}%</span>
+                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{isUrdu ? 'استعمال شدہ' : 'Used'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <p className="text-slate-500 text-[8px] font-black uppercase tracking-widest mb-1">{isUrdu ? 'مجموعی بجٹ' : 'Total Budget'}</p>
+                  <p className="text-white font-black tabular-nums text-lg">{formatCompactCurrency(budget.amount)}</p>
+                </div>
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <p className="text-slate-500 text-[8px] font-black uppercase tracking-widest mb-1">{isUrdu ? 'بقیہ' : 'Remaining'}</p>
+                  <p className={`font-black tabular-nums text-lg ${budget.amount - totalExpensePKR > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {formatCompactCurrency(Math.max(0, budget.amount - totalExpensePKR))}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
@@ -409,6 +636,13 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
             </div>
          </div>
       </div>
+
+      <QuickEntryModal 
+        isOpen={isQuickEntryOpen} 
+        onClose={() => setIsQuickEntryOpen(false)} 
+        lang={lang} 
+        activeContext={activeContext} 
+      />
     </div>
   );
 }
