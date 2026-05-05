@@ -27,6 +27,8 @@
 | 🐄 **Dairy Sales Ledger** | One-tap logging of daily milk extraction, distribution, and sales. |
 | 📓 **Udhaar Management** | Track customer credit, advance payments, and outstanding balances effortlessly. |
 | 🎙️ **Smart AI Assistant** | Speak your transactions! Voice-to-text entry and financial insights powered by **Google Gemini**. |
+| 📸 **Smart Capture (OCR)** | Scan payment QR codes or upload screenshots of receipts to auto-log transactions (Offline OCR support). |
+| 📊 **Statement Importer** | Batch import history from Bank PDFs or Mobile Wallets (Easypaisa/JazzCash) with auto-categorization. |
 | 👥 **Multi-User Access** | Role-Based Access Control (RBAC) with specific views for Owners, Spouses, and Workers. |
 | 📶 **Offline-First** | No internet? No problem. All data is securely stored locally via IndexedDB with backup capabilities. |
 | 🌐 **Bilingual Support** | Native interfaces available in English, Urdu (اردو), and Roman Urdu. |
@@ -109,7 +111,13 @@ npx cap sync android
 ```
 
 **3. Generate the APK**
-You can open Android Studio (`npx cap open android`) to build the project visually, or build it directly from your terminal:
+
+You can use the **One-Click Build Script** I've created to automate the entire process:
+```bash
+.\build_apk.bat
+```
+
+Alternatively, you can run the steps manually:
 ```bash
 cd android
 .\gradlew assembleDebug
