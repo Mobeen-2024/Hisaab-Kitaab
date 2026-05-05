@@ -20,6 +20,7 @@ export interface Customer {
 export interface InventoryItem {
   id?: number;
   name: string;
+  category: string;
   quantity: number;
   minQuantity: number;
   unitPrice: number;
@@ -118,7 +119,7 @@ export interface AuditLog {
   context?: 'personal' | 'business';
 }
 
-export class PaisaTrackDB extends Dexie {
+export class HisaabKitaabDB extends Dexie {
   transactions!: Table<Transaction, number>;
   categories!: Table<Category, number>;
   settings!: Table<AppSettings, number>;
@@ -132,7 +133,7 @@ export class PaisaTrackDB extends Dexie {
   messages!: Table<Message, number>;
 
   constructor() {
-    super('PaisaTrackDB');
+    super('HisaabKitaabDB');
     this.version(1).stores({
       transactions: '++id, type, categoryId, context, date',
       categories: '++id, type, context',
@@ -175,7 +176,6 @@ export class PaisaTrackDB extends Dexie {
         const table = this.table(tableName);
         
         table.hook('creating', (primKey, obj, transaction) => {
-          // Add to auditLogs within the same transaction for atomicity
           this.auditLogs.add({
             entityType: tableName as any,
             entityId: primKey || obj.id || 0,
@@ -221,7 +221,6 @@ export class PaisaTrackDB extends Dexie {
       data
     });
     
-    // Modern UTF-8 to Base64 serialization
     const uint8Array = new TextEncoder().encode(payload);
     let binary = '';
     const len = uint8Array.byteLength;
@@ -233,7 +232,6 @@ export class PaisaTrackDB extends Dexie {
 
   async importData(base64Payload: string) {
     try {
-      // Modern Base64 to UTF-8 deserialization
       const binary = atob(base64Payload);
       const uint8Array = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) {
@@ -275,9 +273,8 @@ export class PaisaTrackDB extends Dexie {
   }
 }
 
-export const db = new PaisaTrackDB();
+export const db = new HisaabKitaabDB();
 
-// Populate initial categories and settings
 db.on('populate', async () => {
   await db.categories.bulkAdd([
     { name: 'Daily Milk Sales', type: 'income', context: 'business' },

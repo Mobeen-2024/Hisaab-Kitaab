@@ -12,8 +12,10 @@ import MessagesModal from '../components/MessagesModal';
 import GlobalSearchModal from '../components/GlobalSearchModal';
 import ImportStatementModal from '../components/ImportStatementModal';
 import ReminderSystem from '../components/ReminderSystem';
-import { Plus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db';
+import { Plus } from 'lucide-react';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { rtl, lang, currency, activeContext } = useSettings();
@@ -39,9 +41,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setIsSearchOpen]);
 
-  // This would normally come from a hook, but for now we'll keep it simple
-  const hasAlerts = false; 
-
+  // Reactive alerts for inventory
+  const inventory = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
+  const hasAlerts = inventory.some(item => item.quantity <= item.minQuantity);
   const isDashboardOrSimilar = ['/', '/smart', '/intelligence', '/reports', '/planner', '/inventory'].includes(location.pathname);
 
   return (

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Goal, Budget } from '../db';
 import { Lang, t } from '../lib/i18n';
-import { Target, PieChart, TrendingUp, AlertCircle, Plus, X, Pencil, PiggyBank, Calendar, Trash2 } from 'lucide-react';
+import { Target, PieChart, TrendingUp, AlertCircle, Plus, X, Pencil, PiggyBank, Calendar, Trash2, Wallet } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
@@ -31,6 +31,7 @@ export default function Planner() {
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [deletingGoalId, setDeletingGoalId] = useState<number | null>(null);
+  const [addFundsGoal, setAddFundsGoal] = useState<Goal | null>(null);
 
   const formatCurrency = (val: number) => {
     return formatSharedCurrency(val, currency, lang);
@@ -233,14 +234,7 @@ export default function Planner() {
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-slate-400">{progress}% complete</span>
                     <button 
-                      onClick={() => {
-                        const amt = prompt('Amount to add:');
-                        if (amt && !isNaN(Number(amt))) {
-                          db.goals.update(goal.id!, {
-                            currentAmount: goal.currentAmount + Number(amt)
-                          });
-                        }
-                      }}
+                      onClick={() => setAddFundsGoal(goal)}
                       className="text-purple-400 font-bold hover:text-purple-300 transition-colors flex items-center gap-1"
                     >
                       <Plus size={12} /> Add Funds
@@ -309,6 +303,14 @@ export default function Planner() {
         activeContext={activeContext}
         currency={currency}
       />
+
+      {addFundsGoal && (
+        <AddFundsModal
+          goal={addFundsGoal}
+          currency={currency}
+          onClose={() => setAddFundsGoal(null)}
+        />
+      )}
 
     </div>
   );
@@ -439,6 +441,50 @@ function GoalModal({ isOpen, onClose, activeContext, currency }: any) {
           <div className="flex gap-3 pt-4">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-colors">Cancel</button>
             <button type="submit" className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-bold transition-colors">Create Goal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AddFundsModal({ goal, currency, onClose }: { goal: Goal, currency: string, onClose: () => void }) {
+  const [amount, setAmount] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amount || isNaN(Number(amount))) return;
+
+    await db.goals.update(goal.id!, {
+      currentAmount: (goal.currentAmount || 0) + Number(amount)
+    });
+
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+      <div className="bg-[#0F172A] border border-white/10 rounded-[2rem] w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200 p-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 mx-auto mb-4">
+          <Wallet size={32} />
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">Add Funds</h3>
+        <p className="text-sm text-slate-400 mb-6">Adding to: <span className="text-white font-bold">{goal.title}</span></p>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">{currency === 'PKR' ? 'Rs' : currency === 'USD' ? '$' : '€'}</span>
+            <input
+              type="number" autoFocus value={amount} onChange={e => setAmount(e.target.value)} min="1"
+              className="w-full bg-[#1E293B] border border-white/10 text-white text-2xl rounded-2xl pl-12 pr-4 py-4 focus:ring-2 focus:ring-purple-500/50 outline-none text-center"
+              placeholder="0"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-colors">Cancel</button>
+            <button type="submit" className="flex-1 px-4 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-lg shadow-purple-900/20">
+              Confirm
+            </button>
           </div>
         </form>
       </div>
