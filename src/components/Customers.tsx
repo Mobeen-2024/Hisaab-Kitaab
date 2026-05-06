@@ -128,33 +128,19 @@ export default function Customers() {
       />
 
       {/* Stats Bar */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-emerald-900/30 to-slate-900/60 border border-emerald-500/20 p-4 rounded-2xl flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
-            <ArrowDownLeft size={20} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">To Receive</p>
-            <p className="text-lg font-black text-emerald-400 tabular-nums">{formatCurrency(totalReceivable)}</p>
-          </div>
+      <div className="bg-[#1E293B]/80 backdrop-blur-md rounded-3xl border border-white/10 p-3 sm:p-4 flex flex-row divide-x divide-white/10 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex-1 py-2 px-1 sm:px-2 flex flex-col items-center justify-center text-center">
+          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1"><ArrowDownLeft size={14} className="text-emerald-400 hidden sm:block"/> <span className="truncate">To Receive</span></p>
+          <p className="text-sm sm:text-2xl font-black text-emerald-400 tabular-nums leading-none truncate w-full px-1" title={formatCurrency(totalReceivable)}>{formatCurrency(totalReceivable)}</p>
         </div>
-        <div className="bg-gradient-to-br from-rose-900/30 to-slate-900/60 border border-rose-500/20 p-4 rounded-2xl flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center shrink-0">
-            <ArrowUpRight size={20} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">To Pay</p>
-            <p className="text-lg font-black text-rose-400 tabular-nums">{formatCurrency(totalPayable)}</p>
-          </div>
+        <div className="flex-1 py-2 px-1 sm:px-2 flex flex-col items-center justify-center text-center">
+          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1"><ArrowUpRight size={14} className="text-rose-400 hidden sm:block"/> <span className="truncate">To Pay</span></p>
+          <p className="text-sm sm:text-2xl font-black text-rose-400 tabular-nums leading-none truncate w-full px-1" title={formatCurrency(totalPayable)}>{formatCurrency(totalPayable)}</p>
         </div>
-        <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-white/10 p-4 rounded-2xl flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/10 text-slate-400 flex items-center justify-center shrink-0">
-            <Users size={18} />
-          </div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacts</p>
-            <p className="text-lg font-black text-white tabular-nums">{customers.length} <span className="text-xs text-slate-500 font-medium">({settledCount} settled)</span></p>
-          </div>
+        <div className="flex-1 py-2 px-1 sm:px-2 flex flex-col items-center justify-center text-center">
+          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1"><Users size={14} className="text-blue-400 hidden sm:block"/> <span className="truncate">Contacts</span></p>
+          <p className="text-sm sm:text-2xl font-black text-white tabular-nums leading-none truncate w-full px-1">{customers.length} <span className="text-[9px] sm:text-[11px] text-slate-500 font-medium block sm:inline">({settledCount})</span></p>
         </div>
       </div>
 

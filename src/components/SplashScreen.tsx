@@ -146,8 +146,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               style={{ transformStyle: "preserve-3d" }}
             >
               <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white flex gap-3 justify-center drop-shadow-lg">
-                <span className="text-blue-500">Hisaab</span>
-                <span>Kitab</span>
+                <span className="text-blue-500">Hisaab-</span>
+                <span>Kitaab</span>
               </h1>
 
               <motion.div
