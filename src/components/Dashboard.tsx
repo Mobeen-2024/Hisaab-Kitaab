@@ -2,8 +2,8 @@ import React, { useState, useRef, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Lang, t, isRTL } from '../lib/i18n';
-import { Wallet, TrendingUp, TrendingDown, Store, ChevronDown, ArrowUpRight, ArrowDownRight, Sparkles, Plus, HandCoins, Target, PieChart, AlertTriangle, Package } from 'lucide-react';
-import { format, isToday } from 'date-fns';
+import { format, isToday, startOfWeek, addDays, isSameDay, startOfMonth, endOfMonth, endOfWeek, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { Wallet, TrendingUp, TrendingDown, Store, ChevronDown, ArrowUpRight, ArrowDownRight, Sparkles, Plus, HandCoins, Target, PieChart, AlertTriangle, Package, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
 import TransactionList from './TransactionList';
@@ -70,6 +70,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
+  const [currentDisplayMonth, setCurrentDisplayMonth] = useState(startOfMonth(new Date()));
 
   const udhaarEntries = useLiveQuery(() => db.udhaarEntries.toArray(), []) || [];
   const udhaarToReceive = udhaarEntries.filter(u => u.type === 'give' && !u.isCompleted).reduce((sum, u) => sum + u.amount, 0);
@@ -166,7 +167,40 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
   const personalExpensePct = personalIncome > 0 ? Math.min((personalExpense / personalIncome) * 100, 100).toFixed(0) : '0';
 
   const rtl = isRTL(lang);
-  const isUrdu = lang === 'ur'; // Keep isUrdu for specific font things if needed, but use rtl for layout
+  const isUrdu = lang === 'ur'; 
+
+  // -- Calendar Widget Logic --
+  const calendarStart = startOfWeek(startOfMonth(currentDisplayMonth));
+  const calendarEnd = endOfWeek(endOfMonth(currentDisplayMonth));
+  
+  const calendarDays = useMemo(() => {
+    const days = [];
+    let currentDay = calendarStart;
+    while (currentDay <= calendarEnd) {
+      days.push(currentDay);
+      currentDay = addDays(currentDay, 1);
+    }
+    return days;
+  }, [currentDisplayMonth]);
+
+  const getDaySummary = (date: Date) => {
+    const dayTxs = transactions.filter(t => isSameDay(new Date(t.date), date));
+    const income = dayTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const expense = dayTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    return { income, expense };
+  };
+
+  const maxDailyValue = useMemo(() => {
+    return Math.max(
+      ...calendarDays.map(date => {
+        const s = getDaySummary(date);
+        return Math.max(s.income, s.expense);
+      }),
+      1
+    );
+  }, [calendarDays, transactions]);
+
+  const DAYS_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   return (
     <div className={`space-y-10 scroll-section ${rtl ? 'text-right' : ''} max-w-full bg-transparent`}>
@@ -372,19 +406,134 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
           </div>
         </div>
       </div>
-      
-      {/* Cash Flow Trend & Recent Transactions */}
+
+      {/* Calendar & Recent Records - Responsive Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
+        {/* Calendar Widget */}
+        <div className="lg:col-span-1 bg-[#1E293B]/40 backdrop-blur-3xl border border-white/10 p-6 sm:p-8 rounded-[2.5rem] relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500 shadow-2xl h-full" id="calendar-widget">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-[80px] group-hover:bg-blue-500/20 transition-all duration-500"></div>
+        <div className="flex items-center justify-between mb-8 relative">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center text-blue-400">
+              <CalendarIcon size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-white tracking-tight">{isUrdu ? 'کیلنڈر' : 'Calendar'}</h3>
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{isUrdu ? 'ماہانہ خلاصہ' : 'Monthly Summary'}</div>
+            </div>
+          </div>
+          <div className={`flex items-center gap-2 bg-[#0F172A]/60 backdrop-blur-md border border-white/10 rounded-xl p-1 ${rtl ? 'flex-row-reverse' : ''}`}>
+            <button 
+              onClick={() => setCurrentDisplayMonth(subMonths(currentDisplayMonth, 1))}
+              className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+            >
+              {rtl ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
+            <span className="text-xs font-black text-white min-w-[90px] text-center uppercase tracking-widest tabular-nums">
+              {format(currentDisplayMonth, 'MMM yyyy')}
+            </span>
+            <button 
+              onClick={() => setCurrentDisplayMonth(addMonths(currentDisplayMonth, 1))}
+              className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+            >
+              {rtl ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+            </button>
+          </div>
+        </div>
+        
+        <div className="relative">
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 mb-4">
+            {DAYS_SHORT.map((day, i) => (
+              <div key={i} className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
+                {day}
+              </div>
+            ))}
+          </div>
+          
+          {/* Month Grid */}
+          <div className="grid grid-cols-7 gap-2 bg-white/5 p-2 rounded-2xl border border-white/5 shadow-inner">
+            {calendarDays.map((date, i) => {
+              const isCurrentMonth = isSameMonth(date, currentDisplayMonth);
+              const isTodayDate = isToday(date);
+              const summary = getDaySummary(date);
+              
+              return (
+                <div 
+                  key={i} 
+                  className={`flex flex-col p-1.5 aspect-square rounded-2xl transition-all duration-300 relative group/day border
+                    ${isCurrentMonth ? 'bg-white/[0.03] border-white/5 text-slate-200' : 'bg-transparent border-transparent text-slate-700'}
+                    ${isTodayDate ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)] scale-105 z-10' : 'hover:bg-white/10 hover:border-white/10'}
+                  `}
+                >
+                  <div className={`
+                    text-[10px] font-black mb-1 w-5 h-5 flex items-center justify-center rounded-lg mx-auto transition-colors
+                    ${isTodayDate ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'group-hover/day:text-blue-400'}
+                  `}>
+                    {format(date, 'd')}
+                  </div>
+                  
+                  <div className="flex flex-col gap-1 mt-auto items-center">
+                    {summary.income > 0 && (
+                      <div 
+                        className="w-full h-1 bg-emerald-500/20 rounded-full overflow-hidden relative group/income"
+                        title={`Income: ${summary.income}`}
+                      >
+                        <div 
+                          className="absolute inset-y-0 left-0 bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-500" 
+                          style={{ width: `${Math.max(10, (summary.income / maxDailyValue) * 100)}%` }}
+                        ></div>
+                      </div>
+                    )}
+                    {summary.expense > 0 && (
+                      <div 
+                        className="w-full h-1 bg-rose-500/20 rounded-full overflow-hidden relative group/expense"
+                        title={`Expense: ${summary.expense}`}
+                      >
+                        <div 
+                          className="absolute inset-y-0 left-0 bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.5)] transition-all duration-500" 
+                          style={{ width: `${Math.max(10, (summary.expense / maxDailyValue) * 100)}%` }}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+        {/* Recent Records - Moved right of calendar for Desktop */}
+        <div className="lg:col-span-2 flex flex-col h-full">
+          <div className="flex-1 bg-[#0F172A]/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-6 pb-2 flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-600/20 rounded-xl flex items-center justify-center text-blue-400">
+                <TrendingUp size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white tracking-tight uppercase">{isUrdu ? 'حالیہ ریکارڈز' : 'Recent Records'}</h3>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar max-h-[380px]">
+              <TransactionList lang={lang} currency={currency} activeContext={activeContext} hideTitle compact />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Financial Overview Row - Cash Flow, Goals, Budget */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10 mb-8">
         
         {/* Weekly Trend Chart */}
-        <div className="lg:col-span-2 bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 lg:p-8 flex flex-col shadow-2xl">
-          <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-            <TrendingUp size={16} className="text-blue-400" />
+        <div className="bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 lg:p-7 flex flex-col shadow-2xl h-full">
+          <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+            <TrendingUp size={14} className="text-blue-400" />
             {isUrdu ? 'ہفتہ وار کیش فلو' : '7-Day Cash Flow'}
           </h3>
-          <div className="flex-1 w-full h-[250px] min-h-[250px]">
+          <div className="flex-1 w-full min-h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
@@ -395,64 +544,53 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
                     <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#fff' }}
-                  itemStyle={{ fontSize: '14px', fontWeight: 'bold' }}
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', fontSize: '12px' }}
                 />
-                <Area type="monotone" dataKey="income" name={isUrdu ? 'آمدنی' : 'Income'} stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
-                <Area type="monotone" dataKey="expense" name={isUrdu ? 'اخراجات' : 'Expense'} stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
+                <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2} fill="url(#colorIncome)" />
+                <Area type="monotone" dataKey="expense" stroke="#f43f5e" strokeWidth={2} fill="url(#colorExpense)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
         
-        {/* Quick Recent Transactions */}
-        <div className="lg:col-span-1 flex flex-col h-full max-h-[400px] overflow-hidden">
-           <TransactionList lang={lang} currency={currency} activeContext={activeContext} />
-        </div>
-      </div>
-
-      {/* Goals & Budget Progress Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 relative z-10">
-        
         {/* Goals Progress */}
-        <div className="bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
+        <div className="bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 lg:p-7 shadow-2xl flex flex-col h-full">
           <div className={`flex justify-between items-center mb-6 ${rtl ? 'flex-row-reverse' : ''}`}>
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-              <Target size={16} className="text-purple-400" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <Target size={14} className="text-purple-400" />
               {isUrdu ? 'مالی اہداف' : 'Financial Goals'}
             </h3>
-            <span className="text-[10px] font-black text-slate-500 uppercase bg-white/5 px-3 py-1 rounded-full border border-white/5">
-              {goals.length} {isUrdu ? 'فعال' : 'Active'}
+            <span className="text-[9px] font-black text-slate-500 uppercase bg-white/5 px-2 py-0.5 rounded-full border border-white/5">
+              {goals.length}
             </span>
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-1 max-h-[250px]">
             {goals.length === 0 ? (
-              <div className="py-10 text-center border-2 border-dashed border-white/5 rounded-3xl">
-                <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{isUrdu ? 'کوئی فعال اہداف نہیں' : 'No active goals yet'}</p>
+              <div className="py-10 text-center border-2 border-dashed border-white/5 rounded-3xl h-full flex items-center justify-center">
+                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{isUrdu ? 'کوئی فعال اہداف نہیں' : 'No active goals'}</p>
               </div>
             ) : (
               goals.map(goal => {
                 const progress = Math.min(100, (goal.currentAmount / goal.targetAmount) * 100);
                 return (
-                  <div key={goal.id} className="space-y-3">
+                  <div key={goal.id} className="space-y-2 bg-white/[0.02] p-3 rounded-2xl border border-white/5">
                     <div className={`flex justify-between items-end ${rtl ? 'flex-row-reverse' : ''}`}>
-                      <div>
-                        <p className="text-white font-bold text-sm">{goal.title}</p>
-                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">
+                      <div className="min-w-0">
+                        <p className="text-white font-bold text-[11px] truncate">{goal.title}</p>
+                        <p className="text-slate-500 text-[9px] font-black uppercase tracking-tight mt-0.5">
                           {formatCompactCurrency(goal.currentAmount)} / {formatCompactCurrency(goal.targetAmount)}
                         </p>
                       </div>
-                      <span className="text-purple-400 text-sm font-black tabular-nums">{Math.round(progress)}%</span>
+                      <span className="text-purple-400 text-[10px] font-black tabular-nums">{Math.round(progress)}%</span>
                     </div>
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/5">
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative">
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                        className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-purple-600 to-indigo-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-600 to-indigo-500"
                       />
                     </div>
                   </div>
@@ -463,52 +601,45 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
         </div>
 
         {/* Monthly Budget Progress */}
-        <div className="bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
-          <div className={`flex justify-between items-center mb-6 ${rtl ? 'flex-row-reverse' : ''}`}>
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-              <PieChart size={16} className="text-blue-400" />
+        <div className="bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 lg:p-7 shadow-2xl flex flex-col h-full">
+          <div className={`flex justify-between items-center mb-4 ${rtl ? 'flex-row-reverse' : ''}`}>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <PieChart size={14} className="text-blue-400" />
               {isUrdu ? 'ماہانہ بجٹ' : 'Monthly Budget'}
             </h3>
-            <span className="text-[10px] font-black text-slate-500 uppercase bg-white/5 px-3 py-1 rounded-full border border-white/5">
-              {format(new Date(), 'MMMM yyyy')}
-            </span>
           </div>
 
           {!budget ? (
-            <div className="py-10 text-center border-2 border-dashed border-white/5 rounded-3xl">
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">{isUrdu ? 'کوئی بجٹ مقرر نہیں کیا گیا' : 'No budget set for this month'}</p>
+            <div className="py-10 text-center border-2 border-dashed border-white/5 rounded-3xl h-full flex items-center justify-center">
+              <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{isUrdu ? 'کوئی بجٹ مقرر نہیں' : 'No budget set'}</p>
             </div>
           ) : (
-            <div className="space-y-8">
-              <div className="flex flex-col items-center justify-center py-4">
-                <div className="relative w-32 h-32 flex items-center justify-center">
-                  {/* Simple SVG progress circle */}
-                  <svg className="w-full h-full -rotate-90">
-                    <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                    <motion.circle 
-                      cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                      strokeDasharray={364.4}
-                      initial={{ strokeDashoffset: 364.4 }}
-                      animate={{ strokeDashoffset: 364.4 - (364.4 * Math.min(1, totalExpensePKR / budget.amount)) }}
-                      transition={{ duration: 2, ease: "easeInOut" }}
-                      className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-black text-white tabular-nums">{Math.round((totalExpensePKR / budget.amount) * 100)}%</span>
-                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{isUrdu ? 'استعمال شدہ' : 'Used'}</span>
-                  </div>
+            <div className="flex flex-col h-full justify-between gap-4">
+              <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90">
+                  <circle cx="56" cy="56" r="50" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-white/5" />
+                  <motion.circle 
+                    cx="56" cy="56" r="50" stroke="currentColor" strokeWidth="6" fill="transparent" 
+                    strokeDasharray={314.16}
+                    initial={{ strokeDashoffset: 314.16 }}
+                    animate={{ strokeDashoffset: 314.16 - (314.16 * Math.min(1, totalExpensePKR / budget.amount)) }}
+                    className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-lg font-black text-white">{Math.round((totalExpensePKR / budget.amount) * 100)}%</span>
+                  <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">{isUrdu ? 'استعمال شدہ' : 'Used'}</span>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                  <p className="text-slate-500 text-[8px] font-black uppercase tracking-widest mb-1">{isUrdu ? 'مجموعی بجٹ' : 'Total Budget'}</p>
-                  <p className="text-white font-black tabular-nums text-lg">{formatCompactCurrency(budget.amount)}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2.5 bg-white/5 rounded-xl border border-white/5">
+                  <p className="text-slate-500 text-[7px] font-black uppercase mb-1">{isUrdu ? 'بجٹ' : 'Budget'}</p>
+                  <p className="text-white font-black text-xs truncate">{formatCompactCurrency(budget.amount)}</p>
                 </div>
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                  <p className="text-slate-500 text-[8px] font-black uppercase tracking-widest mb-1">{isUrdu ? 'بقیہ' : 'Remaining'}</p>
-                  <p className={`font-black tabular-nums text-lg ${budget.amount - totalExpensePKR > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <div className="p-2.5 bg-white/5 rounded-xl border border-white/5">
+                  <p className="text-slate-500 text-[7px] font-black uppercase mb-1">{isUrdu ? 'بقیہ' : 'Left'}</p>
+                  <p className={`font-black text-xs truncate ${budget.amount - totalExpensePKR > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {formatCompactCurrency(Math.max(0, budget.amount - totalExpensePKR))}
                   </p>
                 </div>

@@ -7,7 +7,7 @@ import { ArrowUpRight, ArrowDownRight, Trash2, Search } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 
-export default function TransactionList({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
+export default function TransactionList({ lang, currency, activeContext, hideTitle = false, compact = false }: { lang: Lang, currency: string, activeContext: 'business' | 'personal', hideTitle?: boolean, compact?: boolean }) {
   const transactionsData = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const settingsObj = useLiveQuery(() => db.settings.get(1));
@@ -78,7 +78,7 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
   const rtl = isRTL(lang);
 
   return (
-    <div className="bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 overflow-hidden relative max-w-full">
+    <div className={`${hideTitle ? '' : 'bg-white/5 backdrop-blur-md rounded-3xl border border-white/10'} overflow-hidden relative max-w-full`}>
       <ConfirmDialog
         isOpen={confirmDeleteId !== null}
         onClose={() => setConfirmDeleteId(null)}
@@ -87,28 +87,45 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
         message="Are you sure you want to delete this transaction? This action cannot be undone."
       />
       <div className="absolute top-0 right-1/4 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
-      <div className="p-6 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">{t(lang, 'recentTransactions')}</h3>
-        <div className="relative w-full sm:w-auto">
-          <Search size={16} className={`absolute ${rtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-slate-500`} />
-          <input
-            type="text"
-            placeholder={t(lang, 'searchTransactions')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full bg-[#0F172A]/50 border border-white/10 text-white rounded-xl ${rtl ? 'pr-9 pl-4' : 'pl-9 pr-4'} py-2 text-sm focus:ring-2 focus:ring-blue-500/50 outline-none placeholder:text-slate-600`}
-          />
+      {!hideTitle && (
+        <div className="p-6 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">{t(lang, 'recentTransactions')}</h3>
+          <div className="relative w-full sm:w-auto">
+            <Search size={16} className={`absolute ${rtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-slate-500`} />
+            <input
+              type="text"
+              placeholder={t(lang, 'searchTransactions')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full bg-[#0F172A]/50 border border-white/10 text-white rounded-xl ${rtl ? 'pr-9 pl-4' : 'pl-9 pr-4'} py-2 text-sm focus:ring-2 focus:ring-blue-500/50 outline-none placeholder:text-slate-600`}
+            />
+          </div>
         </div>
-      </div>
+      )}
+      
+      {hideTitle && (
+        <div className="p-4 border-b border-white/5 flex items-center justify-between gap-4">
+          <div className="relative w-full">
+            <Search size={14} className={`absolute ${rtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-slate-500`} />
+            <input
+              type="text"
+              placeholder={t(lang, 'searchTransactions')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full bg-white/5 border border-white/5 text-white rounded-lg ${rtl ? 'pr-8 pl-4' : 'pl-8 pr-4'} py-1.5 text-[11px] focus:ring-1 focus:ring-blue-500/50 outline-none placeholder:text-slate-600`}
+            />
+          </div>
+        </div>
+      )}
       
       <div className="divide-y divide-white/5">
         {filteredTransactions.length === 0 ? (
           <div className="p-8 text-center text-slate-500">No transactions found</div>
         ) : (
           filteredTransactions.map(tx => (
-            <div key={tx.id} className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-white/5 transition-colors group">
+            <div key={tx.id} className={`${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-6'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-white/5 transition-colors group`}>
               <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto overflow-hidden">
-                <div className={`h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl sm:rounded-2xl flex items-center justify-center border ${
+                <div className={`${compact ? 'h-8 w-8 sm:h-10 sm:w-10' : 'h-10 w-10 sm:h-12 sm:w-12'} shrink-0 rounded-xl flex items-center justify-center border ${
                   tx.type === 'income' 
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                     : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
@@ -116,19 +133,19 @@ export default function TransactionList({ lang, currency, activeContext }: { lan
                   {tx.type === 'income' ? <ArrowDownRight size={18} className="sm:w-5 sm:h-5" /> : <ArrowUpRight size={18} className="sm:w-5 sm:h-5" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-white text-sm sm:text-base truncate">{getCategoryName(tx.categoryId)}</p>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1 truncate">
+                  <p className={`font-semibold text-white truncate ${compact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>{getCategoryName(tx.categoryId)}</p>
+                  <div className={`flex items-center gap-2 text-slate-500 mt-0.5 truncate ${compact ? 'text-[10px] sm:text-xs' : 'text-xs sm:text-sm sm:mt-1'}`}>
                     <span>{formatDate(tx.date)}</span>
                     <span>•</span>
                     <span className="capitalize">{t(lang, tx.context)}</span>
                   </div>
-                  {tx.description && <p className="text-[11px] sm:text-xs text-slate-400 mt-1 truncate">{tx.description}</p>}
+                  {tx.description && <p className={`text-slate-400 mt-1 truncate ${compact ? 'text-[10px]' : 'text-[11px] sm:text-xs'}`}>{tx.description}</p>}
                 </div>
               </div>
               
               <div className="flex items-center justify-between w-full sm:w-auto sm:flex-col sm:items-end gap-1 pl-13 sm:pl-0">
                 <div className="flex flex-col items-start sm:items-end">
-                   <div className={`font-bold text-sm sm:text-base ${tx.type === 'income' ? 'text-emerald-400' : 'text-slate-300'}`}>
+                   <div className={`font-bold ${tx.type === 'income' ? 'text-emerald-400' : 'text-slate-300'} ${compact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>
                      {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
                    </div>
                    {tx.originalCurrency && tx.originalCurrency !== 'PKR' && (
