@@ -39,7 +39,7 @@ export default function MobileMenu() {
   ];
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -127,7 +127,7 @@ export default function MobileMenu() {
         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-indigo-600/20 to-blue-600/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-xl relative z-50">
+      <div className="bg-gradient-to-br from-indigo-600/20 to-blue-600/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 shadow-xl relative">
         <h3 className="text-[10px] font-black text-slate-400 mb-6 uppercase tracking-[0.2em] px-2">Display Preferences</h3>
         <div className="grid grid-cols-1 gap-6">
           <div className="space-y-3">
