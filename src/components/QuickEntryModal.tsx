@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db } from "../db";
 import { t, Lang, isRTL } from "../lib/i18n";
 import { useLiveQuery } from "dexie-react-hooks";
+import { useToast } from "../contexts/ToastContext";
 import {
   X,
   Mic,
@@ -27,6 +28,7 @@ export default function QuickEntryModal({
   lang: Lang;
   activeContext: "personal" | "business";
 }) {
+  const { showToast } = useToast();
   const [type, setType] = useState<
     "expense" | "income" | "udhaar_give" | "udhaar_take"
   >("expense");
@@ -140,47 +142,63 @@ export default function QuickEntryModal({
   if (!isOpen) return null;
 
   const handleSave = async (closeAfterSave: boolean) => {
-    if (!amount) return;
-
-    const rate =
-      transactionCurrency === "PKR" ? 1 : parseFloat(exchangeRate) || 1;
-    const finalAmountInPKR = parseFloat(amount) * rate;
-
-    if (type === "expense" || type === "income") {
-      if (!categoryId) return;
-      await db.transactions.add({
-        type: type,
-        context: activeContext,
-        amount: finalAmountInPKR,
-        originalCurrency: transactionCurrency,
-        originalAmount: parseFloat(amount),
-        exchangeRate: rate,
-        categoryId: parseInt(categoryId, 10),
-        date: date,
-        description,
-        paymentMethod: "cash",
-      });
-    } else {
-      // Udhaar logic
-      if (!customerId) return;
-      await db.udhaarEntries.add({
-        customerId: parseInt(customerId, 10),
-        type: type === "udhaar_give" ? "give" : "receive",
-        amount: finalAmountInPKR,
-        originalCurrency: transactionCurrency,
-        originalAmount: parseFloat(amount),
-        exchangeRate: rate,
-        date: date,
-        description,
-        isCompleted: false,
-      });
+    // Validation
+    const numericAmount = parseFloat(amount);
+    if (!amount || isNaN(numericAmount) || numericAmount <= 0) {
+      showToast(lang === 'ur' ? 'براہ کرم درست رقم درج کریں' : 'Please enter a valid amount', 'error');
+      return;
     }
 
-    if (closeAfterSave) {
-      onClose();
-      // Reset form
-      setAmount("");
-      setDescription("");
+    const rate = transactionCurrency === "PKR" ? 1 : parseFloat(exchangeRate) || 1;
+    const finalAmountInPKR = numericAmount * rate;
+
+    try {
+      if (type === "expense" || type === "income") {
+        if (!categoryId) {
+          showToast(lang === 'ur' ? 'براہ کرم زمرہ منتخب کریں' : 'Please select a category', 'error');
+          return;
+        }
+        await db.transactions.add({
+          type: type,
+          context: activeContext,
+          amount: finalAmountInPKR,
+          originalCurrency: transactionCurrency,
+          originalAmount: numericAmount,
+          exchangeRate: rate,
+          categoryId: parseInt(categoryId, 10),
+          date: date,
+          description,
+          paymentMethod: "cash",
+        });
+      } else {
+        // Udhaar logic
+        if (!customerId) {
+          showToast(lang === 'ur' ? 'براہ کرم گاہک منتخب کریں' : 'Please select a customer', 'error');
+          return;
+        }
+        await db.udhaarEntries.add({
+          customerId: parseInt(customerId, 10),
+          type: type === "udhaar_give" ? "give" : "receive",
+          amount: finalAmountInPKR,
+          originalCurrency: transactionCurrency,
+          originalAmount: numericAmount,
+          exchangeRate: rate,
+          date: date,
+          description,
+          isCompleted: false,
+        });
+      }
+
+      showToast(lang === 'ur' ? 'ریکارڈ محفوظ کر لیا گیا ہے' : 'Entry saved successfully', 'success');
+
+      if (closeAfterSave) {
+        onClose();
+        // Reset form
+        setAmount("");
+        setDescription("");
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save entry', 'error');
     }
   };
 

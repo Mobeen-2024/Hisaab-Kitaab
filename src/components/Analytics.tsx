@@ -9,7 +9,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-export default function Analytics({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
+import { useSettings } from '../contexts/SettingsContext';
+
+export default function Analytics() {
+  const { lang, currency, activeContext } = useSettings();
   const allTransactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
   const transactions = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
   const categories = useLiveQuery(() => db.categories.toArray(), []) || [];

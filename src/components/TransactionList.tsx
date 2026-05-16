@@ -7,7 +7,10 @@ import { ArrowUpRight, ArrowDownRight, Trash2, Search } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 
-export default function TransactionList({ lang, currency, activeContext, hideTitle = false, compact = false }: { lang: Lang, currency: string, activeContext: 'business' | 'personal', hideTitle?: boolean, compact?: boolean }) {
+import { useSettings } from '../contexts/SettingsContext';
+
+export default function TransactionList({ hideTitle = false, compact = false }: { hideTitle?: boolean, compact?: boolean }) {
+  const { lang, currency, activeContext } = useSettings();
   const transactionsData = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
   const settingsObj = useLiveQuery(() => db.settings.toCollection().first());

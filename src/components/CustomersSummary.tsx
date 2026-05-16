@@ -3,7 +3,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
 
-export default function CustomersSummary({ lang }: { lang: Lang }) {
+import { useSettings } from '../contexts/SettingsContext';
+
+export default function CustomersSummary() {
+  const { lang } = useSettings();
   const customers = useLiveQuery(() => db.customers.toArray()) || [];
   
   // Get top 4 customers with debt (Udhaar)

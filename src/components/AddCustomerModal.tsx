@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
 import { X, UserRound, Truck } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 export default function AddCustomerModal({
   isOpen,
@@ -12,6 +13,7 @@ export default function AddCustomerModal({
   onClose: () => void;
   lang: Lang;
 }) {
+  const { showToast } = useToast();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [balance, setBalance] = useState('');
@@ -22,7 +24,10 @@ export default function AddCustomerModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      showToast(lang === 'ur' ? 'براہ کرم نام درج کریں' : 'Please enter a name', 'error');
+      return;
+    }
 
     let initialBalance = parseFloat(balance) || 0;
     if (balanceType === 'debt') {
@@ -39,14 +44,17 @@ export default function AddCustomerModal({
         type: contactType,
         createdAt: new Date().toISOString()
       });
+      
+      showToast(lang === 'ur' ? 'گاہک کا ریکارڈ محفوظ کر لیا گیا ہے' : 'Customer added successfully', 'success');
+      
       onClose();
       setName('');
       setPhone('');
       setBalance('');
       setBalanceType('debt');
       setContactType('customer');
-    } catch (e) {
-      console.error(e);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to add customer', 'error');
     }
   };
 

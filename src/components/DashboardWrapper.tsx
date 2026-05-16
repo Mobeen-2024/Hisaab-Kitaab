@@ -10,9 +10,9 @@ export default function DashboardWrapper() {
   
   return (
     <>
-      <Dashboard lang={lang} currency={currency} activeContext={activeContext} />
+      <Dashboard />
       <div className="space-y-8 w-full">
-        <Analytics lang={lang} currency={currency} activeContext={activeContext} />
+        <Analytics />
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] relative overflow-hidden group hover:border-blue-500/30 transition-colors duration-500">
@@ -22,11 +22,11 @@ export default function DashboardWrapper() {
             </div>
 
             <div className="space-y-4 relative">
-              <CustomersSummary lang={lang} />
+              <CustomersSummary />
             </div>
           </div>
 
-          <TransactionList lang={lang} currency={currency} activeContext={activeContext} compact />
+          <TransactionList compact />
         </div>
       </div>
     </>
