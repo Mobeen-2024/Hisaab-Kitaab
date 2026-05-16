@@ -22,7 +22,23 @@ export default function MobileMenu() {
       items: [
         { to: '/', icon: <LayoutDashboard size={20} />, label: t(lang, 'dashboard') || 'Dashboard', color: 'text-blue-400', bg: 'bg-blue-400/10' },
         { to: '/customers', icon: <Users size={20} />, label: t(lang, 'customers') || 'Contacts (Khata)', color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-        ...(canViewReports ? [{ to: '/reports', icon: <FileText size={20} />, label: t(lang, 'reports') || 'Reports', color: 'text-indigo-400', bg: 'bg-indigo-400/10' }] : []),
+        { 
+          onClick: () => setMessagesOpen(true), 
+          icon: <MessageSquare size={20} />, 
+          label: 'Messages', 
+          color: 'text-indigo-400', 
+          bg: 'bg-indigo-400/10',
+          isAction: true 
+        },
+        { 
+          onClick: () => setNotificationsOpen(true), 
+          icon: <Bell size={20} />, 
+          label: 'Notifications', 
+          color: 'text-rose-400', 
+          bg: 'bg-rose-400/10',
+          isAction: true 
+        },
+        ...(canViewReports ? [{ to: '/reports', icon: <FileText size={20} />, label: t(lang, 'reports') || 'Reports', color: 'text-slate-400', bg: 'bg-slate-400/10' }] : []),
       ]
     },
     {
@@ -87,23 +103,45 @@ export default function MobileMenu() {
             <div key={idx} className="space-y-3">
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-2">{group.title}</h3>
               <div className="grid grid-cols-1 gap-2">
-                {group.items.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) => 
-                      `flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-bold transition-all duration-300 group ${isActive ? 'bg-blue-600/20 text-white border border-blue-500/30 shadow-lg shadow-blue-500/5' : 'text-slate-300 hover:text-white hover:bg-white/10 border border-transparent'}`
-                    }
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform duration-300`}>
-                        {item.icon}
+                {group.items.map((item, i) => {
+                  const content = (
+                    <>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform duration-300`}>
+                          {item.icon}
+                        </div>
+                        <span>{item.label}</span>
                       </div>
-                      <span>{item.label}</span>
-                    </div>
-                    <ChevronRight size={16} className="text-slate-600 group-hover:text-slate-400 transition-colors" />
-                  </NavLink>
-                ))}
+                      <ChevronRight size={16} className="text-slate-600 group-hover:text-slate-400 transition-colors" />
+                    </>
+                  );
+
+                  const baseClass = `w-full flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-bold transition-all duration-300 group border border-transparent`;
+
+                  if (item.isAction && item.onClick) {
+                    return (
+                      <button
+                        key={i}
+                        onClick={item.onClick}
+                        className={`${baseClass} text-slate-300 hover:text-white hover:bg-white/10`}
+                      >
+                        {content}
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={item.to!}
+                      className={({ isActive }) => 
+                        `${baseClass} ${isActive ? 'bg-blue-600/20 text-white border-blue-500/30 shadow-lg shadow-blue-500/5' : 'text-slate-300 hover:text-white hover:bg-white/10'}`
+                      }
+                    >
+                      {content}
+                    </NavLink>
+                  );
+                })}
               </div>
             </div>
           ))}

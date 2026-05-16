@@ -39,7 +39,6 @@ export default function NotificationsModal({ isOpen, onClose, lang, currency }: 
 
   const hasNotifications = lowStockItems.length > 0 || outstandingDebts.length > 0 || outstandingPayables.length > 0;
 
-  if (!isOpen) return null;
 
   return (
     <AnimatePresence>

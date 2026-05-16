@@ -41,10 +41,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setSearchOpen]);
 
-  // P2-4: Close all modals on navigation
+  // P2-4: Close all modals on navigation (guard against firing on initial mount)
+  const isMounted = React.useRef(false);
   React.useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
     closeAllModals();
-  }, [location.pathname, closeAllModals]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   // Reactive alerts for inventory
   const hasAlerts = useHasLowStock(activeContext);

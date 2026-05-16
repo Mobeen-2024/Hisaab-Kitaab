@@ -64,7 +64,7 @@ export default function TopHeader({
         <button
           onClick={onMessagesOpen}
           title="Messages"
-          className="hidden sm:flex p-2 md:p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 relative cursor-pointer"
+          className="flex p-2 md:p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 relative cursor-pointer"
         >
           <Mail size={20} />
         </button>

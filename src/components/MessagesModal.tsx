@@ -24,7 +24,8 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
 
 
   const messagesRaw = useMessages(activeChatId);
-  const messages = React.useMemo(() => [...messagesRaw].reverse(), [messagesRaw]);
+  const isLoadingMessages = messagesRaw === undefined;
+  const messages = React.useMemo(() => (messagesRaw ? [...messagesRaw].reverse() : []), [messagesRaw]);
   const customers = useCustomers();
   const activeCustomer = customers.find(c => `customer-${c.id}` === activeChatId);
 
@@ -36,7 +37,6 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
     scrollToBottom();
   }, [messages, isOpen]);
 
-  if (!isOpen) return null;
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
@@ -185,7 +185,11 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
 
-                {messages.length === 0 && (
+                {isLoadingMessages ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                  </div>
+                ) : messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto">
                     <div className="w-20 h-20 rounded-[2rem] bg-gradient-to-br from-white/5 to-white/0 border border-white/10 flex items-center justify-center mb-6 shadow-2xl">
                       <MessageSquare size={32} className="text-slate-500" />
@@ -197,29 +201,29 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
                         : "Record private notes, deal details, or follow-up reminders for this customer here."}
                     </p>
                   </div>
-                )}
-
-                {messages.map((msg, i) => (
-                  <motion.div 
-                    initial={{ opacity: 0, x: msg.sender === 'user' ? 20 : -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    key={msg.id || i}
-                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-[75%] space-y-1`}>
-                      <div className={`rounded-[1.5rem] px-5 py-3.5 shadow-2xl relative ${
-                        msg.sender === 'user' 
-                          ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-none' 
-                          : 'bg-white/10 text-slate-100 rounded-tl-none border border-white/10 backdrop-blur-md'
-                      }`}>
-                        <p className="text-sm leading-relaxed font-medium">{msg.content}</p>
+                ) : (
+                  messages.map((msg, i) => (
+                    <motion.div 
+                      initial={{ opacity: 0, x: msg.sender === 'user' ? 20 : -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      key={msg.id || i}
+                      className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-[75%] space-y-1`}>
+                        <div className={`rounded-[1.5rem] px-5 py-3.5 shadow-2xl relative ${
+                          msg.sender === 'user' 
+                            ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-none' 
+                            : 'bg-white/10 text-slate-100 rounded-tl-none border border-white/10 backdrop-blur-md'
+                        }`}>
+                          <p className="text-sm leading-relaxed font-medium">{msg.content}</p>
+                        </div>
+                        <span className={`text-[9px] font-bold tracking-widest uppercase opacity-40 block ${msg.sender === 'user' ? 'text-right mr-2' : 'text-left ml-2'}`}>
+                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
-                      <span className={`text-[9px] font-bold tracking-widest uppercase opacity-40 block ${msg.sender === 'user' ? 'text-right mr-2' : 'text-left ml-2'}`}>
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                )}
                 <div ref={messagesEndRef} />
               </div>
 

@@ -155,7 +155,7 @@ export function useMessages(chatId?: string) {
       return db.messages.reverse().toArray();
     },
     [chatId],
-    [] as Message[]
+    undefined as Message[] | undefined
   );
 }
 
