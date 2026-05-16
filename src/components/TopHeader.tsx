@@ -10,10 +10,10 @@ interface TopHeaderProps {
   hasAlerts: boolean;
 }
 
-export default function TopHeader({ 
-  onSearchOpen, 
-  onNotificationsOpen, 
-  onMessagesOpen, 
+export default function TopHeader({
+  onSearchOpen,
+  onNotificationsOpen,
+  onMessagesOpen,
   onProfileOpen,
   hasAlerts
 }: TopHeaderProps) {
@@ -53,26 +53,26 @@ export default function TopHeader({
       <div className="flex items-center gap-2 md:gap-5">
         {/* Mobile Search Button */}
         <button
-           onClick={onSearchOpen}
-           title="Search"
-           className="md:hidden p-2 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 relative cursor-pointer"
+          onClick={onSearchOpen}
+          title="Search"
+          className="md:hidden p-2 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 relative cursor-pointer"
         >
           <Search size={20} />
         </button>
 
         {/* Messages */}
         <button
-           onClick={onMessagesOpen}
-           title="Messages"
-           className="hidden sm:flex p-2 md:p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 relative cursor-pointer"
+          onClick={onMessagesOpen}
+          title="Messages"
+          className="hidden sm:flex p-2 md:p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 relative cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
         </button>
         {/* Notifications */}
         <button
-           onClick={onNotificationsOpen}
-           title="Notifications"
-           className="flex p-2 md:p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 relative cursor-pointer"
+          onClick={onNotificationsOpen}
+          title="Notifications"
+          className="flex p-2 md:p-2.5 text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 relative cursor-pointer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
           {hasAlerts && <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full"></span>}

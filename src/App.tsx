@@ -28,7 +28,7 @@ const PageLoader = () => (
 function AppRoutes() {
   const { isLoading } = useSettings();
 
-  if (isLoading) return <SplashScreen onComplete={() => {}} />;
+  if (isLoading) return <PageLoader />;
 
   return (
     <MainLayout>

@@ -205,12 +205,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
   return (
     <div className={`space-y-10 scroll-section ${rtl ? 'text-right' : ''} max-w-full bg-transparent`}>
       {/* Welcome Header */}
-      <motion.div 
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative"
-      >
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative animate-in fade-in slide-in-from-top-4 duration-700">
         {/* Subtle aurora behind greeting */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_30%_50%,rgba(59,130,246,0.08)_0%,transparent_70%)] pointer-events-none" />
         <div>
@@ -245,7 +240,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Critical Alerts Bar */}
       {lowStockItems.length > 0 && (
@@ -291,7 +286,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
               </div>
             </div>
             <div className="relative z-10 w-full mt-2 sm:mt-8 flex flex-col items-center sm:items-start">
-              <h3 className={`text-base sm:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] text-center sm:text-left truncate w-full`} style={{ color: '#e0eaff' }} dir="ltr" title={formatCompactCurrency(totalBalancePKR)}>
+              <h3 className={`text-3xl sm:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] text-center sm:text-left truncate w-full`} style={{ color: '#e0eaff' }} dir="ltr" title={formatCompactCurrency(totalBalancePKR)}>
                 {formatCompactCurrency(totalBalancePKR)}
               </h3>
             </div>
@@ -319,7 +314,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
               </div>
             </div>
             <div className="relative z-10 w-full mt-2 sm:mt-8 flex flex-col items-center sm:items-start">
-              <h3 className={`text-base sm:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] text-center sm:text-left truncate w-full`} style={{ color: '#ffe0e6' }} dir="ltr" title={formatCompactCurrency(todayExpensePKR)}>
+              <h3 className={`text-3xl sm:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] text-center sm:text-left truncate w-full`} style={{ color: '#ffe0e6' }} dir="ltr" title={formatCompactCurrency(todayExpensePKR)}>
                 {formatCompactCurrency(todayExpensePKR)}
               </h3>
             </div>

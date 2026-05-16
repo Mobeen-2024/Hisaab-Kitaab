@@ -20,7 +20,7 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
       const action = actions[actionName];
       if (action) {
         action.play();
-        action.timeScale = 1.2; // Adjust flight speed
+        action.timeScale = 0.9; // Slower wing flapping
       }
     }
   }, [actions]);
@@ -36,29 +36,29 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
 
   useFrame((state, delta) => {
     if (!group.current) return;
-    
+
     if (progress < 1) {
-      const speed = 0.6; // Flight duration ~1.6s
+      const speed = 0.25; // Flight duration ~3.3s
       const nextProgress = Math.min(progress + delta * speed, 1);
       setProgress(nextProgress);
-      
+
       const point = curve.getPoint(nextProgress);
       group.current.position.copy(point);
-      
+
       if (nextProgress < 1) {
         const tangent = curve.getTangent(nextProgress);
         group.current.lookAt(point.clone().add(tangent));
       }
-      
+
       if (nextProgress === 1 && !landed) {
         setLanded(true);
         onLand();
         // Slow down animation upon landing to simulate balancing/hovering
         if (actions && Object.keys(actions).length > 0) {
-           const action = actions[Object.keys(actions)[0]];
-           if (action) {
-             action.timeScale = 0.2;
-           }
+          const action = actions[Object.keys(actions)[0]];
+          if (action) {
+            action.timeScale = 0.2;
+          }
         }
       }
     } else {
@@ -70,7 +70,7 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
   return (
     <group ref={group}>
       {/* Model scale & orientation adjustment */}
-      <primitive object={scene} scale={0.025} rotation={[0, Math.PI / 2, 0]} />
+      <primitive object={scene} scale={0.01} rotation={[0, Math.PI / 2, 0]} />
     </group>
   );
 }
@@ -86,7 +86,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(onComplete, 500);
-    }, 2500);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [onComplete]);
@@ -189,7 +189,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
                 className="absolute inset-[-20%] bg-blue-400/20 rounded-full blur-[40px]"
                 style={{ transform: "translateZ(-20px)" }}
               />
-              
+
               {/* Actual Logo SVG */}
               <motion.div
                 className="relative z-10 w-24 h-24 md:w-40 md:h-40"
@@ -282,7 +282,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             <motion.div
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
-              transition={{ duration: 2.2, ease: "easeInOut" }}
+              transition={{ duration: 4.5, ease: "easeInOut" }}
               className="h-full bg-blue-600 origin-left shadow-[0_0_15px_rgba(37,99,235,0.5)]"
             />
           </div>
