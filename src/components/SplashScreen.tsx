@@ -34,11 +34,11 @@ function RealisticBird({ onLand, isMobile }: { onLand: () => void; isMobile: boo
     [isMobile]);
 
   const endPos = React.useMemo(() =>
-    isMobile ? new THREE.Vector3(0.7, 0.9, 2) : new THREE.Vector3(1.8, 0.76, 2),
+    isMobile ? new THREE.Vector3(0.7, 0.9, 2) : new THREE.Vector3(1.8, 1.2, 2),
     [isMobile]);
 
   const controlPos = React.useMemo(() =>
-    isMobile ? new THREE.Vector3(1.3, 1.9, 3) : new THREE.Vector3(2.5, 2.3, 3),
+    isMobile ? new THREE.Vector3(1.3, 1.9, 3) : new THREE.Vector3(2.5, 2.2, 3),
     [isMobile]);
 
   const curve = React.useMemo(() => new THREE.QuadraticBezierCurve3(startPos, controlPos, endPos), [startPos, controlPos, endPos]);
