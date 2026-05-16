@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
+import { db, AppSettings } from '../db';
 import { Lang, isRTL } from '../lib/i18n';
 
 interface SettingsContextType {

@@ -130,7 +130,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       )}
       
       {/* Systems */}
-      <ReminderSystem settingsObj={{ language: lang, currency }} />
+      <ReminderSystem settingsObj={{ language: lang, currency, activeContext }} />
     </div>
   );
 }

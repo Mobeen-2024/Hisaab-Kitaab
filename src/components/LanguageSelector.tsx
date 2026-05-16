@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Lang } from '../lib/i18n';
 // Removed motion imports to fix rendering issues
 import { ChevronDown, Globe } from 'lucide-react';
 
 interface LanguageSelectorProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: Lang;
+  onChange: (value: Lang) => void;
   className?: string;
 }
 
@@ -68,7 +69,7 @@ export default function LanguageSelector({ value, onChange, className = '' }: La
                 key={language.code}
                 type="button"
                 onClick={() => {
-                  onChange(language.code);
+                  onChange(language.code as Lang);
                   setIsOpen(false);
                 }}
                 className={`
