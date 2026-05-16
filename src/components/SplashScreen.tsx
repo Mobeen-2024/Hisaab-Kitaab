@@ -147,7 +147,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             <Canvas camera={{ position: [0, 0, 10], fov: 50 }} gl={{ alpha: true, antialias: true, stencil: false }}>
               <ambientLight intensity={1.5} />
               <pointLight position={[10, 10, 10]} intensity={4} color="#93C5FD" />
-              <React.Suspense fallback={<mesh position={[0, 0, 5]}><sphereGeometry args={[0.1, 16, 16]} /><meshStandardMaterial color="#3B82F6" emissive="#3B82F6" emissiveIntensity={2} /></mesh>}>
+              <React.Suspense fallback={null}>
                 <Environment preset="city" />
                 <RealisticBird isMobile={isMobile} onLand={() => setHasLanded(true)} />
               </React.Suspense>
