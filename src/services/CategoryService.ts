@@ -1,4 +1,5 @@
-import { db, Category } from '../db';
+import { db } from '../db';
+import { Category } from '../models';
 
 export const CategoryService = {
   async getAll(context?: 'personal' | 'business') {

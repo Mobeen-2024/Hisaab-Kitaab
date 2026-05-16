@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Category } from '../db';
 import { CategoryService } from '../services/CategoryService';
 import { X, Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { t, Lang } from '../lib/i18n';
