@@ -66,7 +66,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               duration: 1.5,
               ease: easing,
             }}
-            className="relative flex flex-col items-center z-10 mb-16 md:mb-28"
+            className="relative flex flex-col items-center z-10 -translate-y-[10vh] md:-translate-y-[15vh]"
             style={{ transformStyle: "preserve-3d" }}
           >
             <div className="relative w-32 h-32 md:w-48 md:h-48 flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
