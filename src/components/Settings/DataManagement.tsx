@@ -13,6 +13,7 @@ interface DataManagementProps {
 export default function DataManagement({ setImportModalOpen, confirmModal, setConfirmModal }: DataManagementProps) {
   const backupInputRef = useRef<HTMLInputElement>(null);
 
+  const handleExportData = async () => {
     try {
       const data = await SettingsService.exportData();
       const blob = new Blob([data], { type: 'text/plain' });

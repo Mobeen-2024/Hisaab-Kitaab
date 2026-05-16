@@ -52,5 +52,13 @@ export const TransactionService = {
       (t.description?.toLowerCase().includes(q)) ||
       (t.amount.toString().includes(q))
     );
+  },
+
+  async getByImportReferences(refs: string[]) {
+    return await db.transactions.where('importReferenceId').anyOf(refs).toArray();
+  },
+
+  async bulkAdd(transactions: Transaction[]) {
+    return await db.transactions.bulkAdd(transactions);
   }
 };
