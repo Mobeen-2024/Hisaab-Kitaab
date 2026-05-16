@@ -65,11 +65,11 @@ function TiltCard({ children, className, glowColor = "rgba(59,130,246,0.5)" }: {
 
 export default function Dashboard({ lang, currency, activeContext }: { lang: Lang, currency: string, activeContext: 'business' | 'personal' }) {
   const allTransactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
-  const settingsObj = useLiveQuery(() => db.settings.get(1), []) || null;
+  const settingsObj = useLiveQuery(() => db.settings.toCollection().first()) || null;
   const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isQuickEntryOpen, setIsQuickEntryOpen] = useState(false);
+
   const [currentDisplayMonth, setCurrentDisplayMonth] = useState(startOfMonth(new Date()));
 
   const udhaarEntries = useLiveQuery(() => db.udhaarEntries.toArray(), []) || [];
@@ -763,12 +763,7 @@ export default function Dashboard({ lang, currency, activeContext }: { lang: Lan
          </div>
       </div>
 
-      <QuickEntryModal 
-        isOpen={isQuickEntryOpen} 
-        onClose={() => setIsQuickEntryOpen(false)} 
-        lang={lang} 
-        activeContext={activeContext} 
-      />
+
     </div>
   );
 }

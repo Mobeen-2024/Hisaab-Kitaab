@@ -13,7 +13,7 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProps) {
-  const settingsObj = useLiveQuery(() => db.settings.get(1));
+  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

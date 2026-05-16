@@ -174,15 +174,6 @@ export default function QuickEntryModal({
         description,
         isCompleted: false,
       });
-      // Update customer balance
-      const cust = await db.customers.get(parseInt(customerId, 10));
-      if (cust) {
-        const balanceChange =
-          type === "udhaar_give" ? finalAmountInPKR : -finalAmountInPKR;
-        await db.customers.update(cust.id!, {
-          balance: cust.balance + balanceChange,
-        });
-      }
     }
 
     if (closeAfterSave) {
@@ -206,7 +197,7 @@ export default function QuickEntryModal({
     setIsParsingVoice(true);
     setSmartVoiceError(null);
     try {
-      const settings = await db.settings.get(1);
+      const settings = await db.settings.toCollection().first();
       const apiKey =
         settings?.geminiApiKey || (import.meta as any).env.VITE_GEMINI_API_KEY;
       if (!apiKey)

@@ -29,6 +29,10 @@ export default function CustomerDetail({
     db.udhaarEntries.where({ customerId: customer.id }).reverse().toArray()
   ) || [];
 
+  const computedBalance = udhaarEntries.reduce((sum, entry) => {
+    return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
+  }, 0);
+
   const formatCurrency = (val: number) => {
     return formatSharedCurrency(val, currency, lang);
   };
@@ -38,8 +42,8 @@ export default function CustomerDetail({
       alert("No phone number available for this customer.");
       return;
     }
-    const amount = formatCurrency(Math.abs(customer.balance));
-    const message = customer.balance > 0 
+    const amount = formatCurrency(Math.abs(computedBalance));
+    const message = computedBalance > 0 
       ? `Asalam-o-Alaikum ${customer.name}, you have a pending amount of ${amount}. Please pay your balance at your earliest convenience.`
       : `Asalam-o-Alaikum ${customer.name}, your advance balance is ${amount}.`;
     
@@ -125,13 +129,13 @@ export default function CustomerDetail({
 
         {/* Balance Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-          <div className={`p-6 rounded-2xl border ${customer.balance > 0 ? 'bg-rose-500/10 border-rose-500/20' : customer.balance < 0 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-500/10 border-slate-500/20'}`}>
-            <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${customer.balance > 0 ? 'text-rose-400/80' : customer.balance < 0 ? 'text-emerald-400/80' : 'text-slate-400/80'}`}>Total Balance</p>
-            <h3 className={`text-3xl font-black tracking-tight ${customer.balance > 0 ? 'text-rose-400' : customer.balance < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
-              {formatCurrency(Math.abs(customer.balance))}
+          <div className={`p-6 rounded-2xl border ${computedBalance > 0 ? 'bg-rose-500/10 border-rose-500/20' : computedBalance < 0 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-500/10 border-slate-500/20'}`}>
+            <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${computedBalance > 0 ? 'text-rose-400/80' : computedBalance < 0 ? 'text-emerald-400/80' : 'text-slate-400/80'}`}>Total Balance</p>
+            <h3 className={`text-3xl font-black tracking-tight ${computedBalance > 0 ? 'text-rose-400' : computedBalance < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+              {formatCurrency(Math.abs(computedBalance))}
             </h3>
-            <p className={`text-sm mt-1 font-medium ${customer.balance > 0 ? 'text-rose-400/80' : customer.balance < 0 ? 'text-emerald-400/80' : 'text-slate-400/80'}`}>
-              {customer.balance > 0 ? (customer.type === 'supplier' ? 'You owe them' : 'They owe you') : customer.balance < 0 ? (customer.type === 'supplier' ? 'Advance given to them' : 'Advance from them') : 'Account settled'}
+            <p className={`text-sm mt-1 font-medium ${computedBalance > 0 ? 'text-rose-400/80' : computedBalance < 0 ? 'text-emerald-400/80' : 'text-slate-400/80'}`}>
+              {computedBalance > 0 ? (customer.type === 'supplier' ? 'You owe them' : 'They owe you') : computedBalance < 0 ? (customer.type === 'supplier' ? 'Advance given to them' : 'Advance from them') : 'Account settled'}
             </p>
           </div>
           
@@ -271,16 +275,7 @@ function AddUdhaarEntryModal({
       }
     }
 
-    // Update customer balance
-    // if type = give: customer owes more (+amount)
-    // if type = receive: customer owes less (-amount)
-    const newBalance = type === 'give' 
-      ? customer.balance + numAmount 
-      : customer.balance - numAmount;
-      
-    await db.customers.update(customer.id, {
-      balance: newBalance
-    });
+    onClose();
 
     setAmount('');
     setDescription('');

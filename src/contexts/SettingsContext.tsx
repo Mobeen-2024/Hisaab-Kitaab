@@ -18,7 +18,7 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const settingsObj = useLiveQuery(() => db.settings.get(1));
+  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
   const users = useLiveQuery(() => db.appUsers.toArray()) || [];
   
   const isLoading = settingsObj === undefined;
@@ -34,8 +34,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const activeRole = activeUser?.role || 'owner';
 
   const updateSetting = async (key: string, value: any) => {
-    if (settingsObj?.id) {
-      await db.settings.update(settingsObj.id, { [key]: value });
+    const existing = await db.settings.toCollection().first();
+    if (existing?.id) {
+      await db.settings.update(existing.id, { [key]: value });
+    } else {
+      await db.settings.add({ language: 'en', currency: 'PKR', [key]: value });
     }
   };
 

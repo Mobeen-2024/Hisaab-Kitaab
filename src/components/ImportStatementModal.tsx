@@ -83,7 +83,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   };
 
   const categories = useLiveQuery(() => db.categories.toArray());
-  const activeContext = useLiveQuery(() => db.settings.toArray().then(s => s[0]?.activeContext || 'business'));
+  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
 
   // Reset state when modal opens
   React.useEffect(() => {
@@ -100,7 +100,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
 
   const enhanceAndSetResults = async (rawResults: ParsedTransaction[]) => {
     if (!db.isOpen()) await db.open();
-    const settings = await db.settings.get(1);
+    const settings = await db.settings.toCollection().first();
     const currentCategories = await db.categories.toArray();
     const currentContext = settings?.activeContext || 'business';
 
@@ -203,7 +203,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
 
   const handleAIParsing = async () => {
     if (!db.isOpen()) await db.open();
-    const settings = await db.settings.get(1);
+    const settings = await db.settings.toCollection().first();
     const rawKey = settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY || '';
 
     if (!rawKey) {
@@ -430,7 +430,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
 
     try {
       if (!db.isOpen()) await db.open();
-      const settings = await db.settings.get(1);
+      const settings = await db.settings.toCollection().first();
       const currentContext = settings?.activeContext || 'business';
 
       const mappedSource = source === 'bank' ? 'bank_import' : source;

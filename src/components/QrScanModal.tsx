@@ -178,7 +178,7 @@ export default function QrScanModal({ isOpen, onClose, lang, activeContext }: Qr
   // ─── Gemini AI (Optional Fallback — requires API key) ───────────────────────
 
   const runGeminiOcr = async (file: File): Promise<ParsedPayment | null> => {
-    const settings = await db.settings.get(1);
+    const settings = await db.settings.toCollection().first();
     const apiKey = settings?.geminiApiKey || (import.meta as any).env.VITE_GEMINI_API_KEY;
     if (!apiKey) return null;
 

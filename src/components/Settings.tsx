@@ -11,7 +11,7 @@ import { useUI } from '../contexts/UIContext';
 export default function Settings() {
   const { lang, currency, updateSetting } = useSettings();
   const { setIsImportModalOpen } = useUI();
-  const settingsObj = useLiveQuery(() => db.settings.get(1));
+  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('20:00');
   const [tempApiKey, setTempApiKey] = useState('');

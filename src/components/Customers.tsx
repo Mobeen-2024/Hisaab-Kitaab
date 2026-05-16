@@ -81,6 +81,7 @@ export default function Customers() {
   const { lang, currency, activeContext } = useSettings();
   const { setIsAddCustomerModalOpen } = useUI();
   const customers = useLiveQuery(() => db.customers.toArray()) || [];
+  const allUdhaarEntries = useLiveQuery(() => db.udhaarEntries.toArray()) || [];
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [deletingCustomerId, setDeletingCustomerId] = useState<number | null>(null);
@@ -91,15 +92,22 @@ export default function Customers() {
     return <CustomerDetail customer={selectedCustomer} onBack={() => setSelectedCustomer(null)} lang={lang} currency={currency} activeContext={activeContext} />;
   }
 
-  const filteredCustomers = customers.filter(c => {
+  const customersWithBalances = customers.map(c => {
+    const balance = allUdhaarEntries
+      .filter(e => e.customerId === c.id)
+      .reduce((sum, e) => sum + (e.type === 'give' ? e.amount : -e.amount), 0);
+    return { ...c, balance };
+  });
+
+  const filteredCustomers = customersWithBalances.filter(c => {
     if (activeTab !== 'all' && (c.type || 'customer') !== activeTab) return false;
     if (!searchQuery.trim()) return true;
     return c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery);
   });
 
-  const totalReceivable = customers.filter(c => c.type !== 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0);
-  const totalPayable = customers.filter(c => c.type === 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0);
-  const settledCount = customers.filter(c => c.balance === 0).length;
+  const totalReceivable = customersWithBalances.filter(c => c.type !== 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0);
+  const totalPayable = customersWithBalances.filter(c => c.type === 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0);
+  const settledCount = customersWithBalances.filter(c => c.balance === 0).length;
 
   const formatCurrency = (val: number) => formatSharedCurrency(val, currency, lang);
 

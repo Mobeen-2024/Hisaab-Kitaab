@@ -7,7 +7,7 @@ import { format, subDays, isSameDay } from 'date-fns';
 
 export default function RetentionCards({ lang, currency }: { lang: any, currency: string }) {
   const allTransactions = useLiveQuery(() => db.transactions.toArray()) || [];
-  const settingsObj = useLiveQuery(() => db.settings.get(1));
+  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
 
   // Compute streaks
   const { currentStreak, longestStreak } = useMemo(() => {

@@ -10,7 +10,7 @@ import ConfirmDialog from './ConfirmDialog';
 export default function TransactionList({ lang, currency, activeContext, hideTitle = false, compact = false }: { lang: Lang, currency: string, activeContext: 'business' | 'personal', hideTitle?: boolean, compact?: boolean }) {
   const transactionsData = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
-  const settingsObj = useLiveQuery(() => db.settings.get(1));
+  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
   const users = useLiveQuery(() => db.appUsers.toArray()) || [];
 
   const activeUser = users.find(u => u.id === settingsObj?.activeUserId);

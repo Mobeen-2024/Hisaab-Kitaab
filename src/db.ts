@@ -175,14 +175,17 @@ export class HisaabKitaabDB extends Dexie {
       for (const tableName of tablesToAudit) {
         const table = this.table(tableName);
         
-        table.hook('creating', (primKey, obj, transaction) => {
-          this.auditLogs.add({
-            entityType: tableName as any,
-            entityId: primKey || obj.id || 0,
-            action: 'create',
-            timestamp: new Date().toISOString(),
-            context: obj.context || undefined
-          }).catch(console.error);
+        table.hook('creating', function(primKey, obj) {
+          // Use onsuccess to capture the auto-incremented primary key
+          this.onsuccess = (resultKey) => {
+            db.auditLogs.add({
+              entityType: tableName as any,
+              entityId: resultKey as number,
+              action: 'create',
+              timestamp: new Date().toISOString(),
+              context: obj.context || undefined
+            }).catch(console.error);
+          };
         });
 
         table.hook('updating', (modifications, primKey, obj, transaction) => {
@@ -242,6 +245,13 @@ export class HisaabKitaabDB extends Dexie {
       
       if (!parsed.data) throw new Error("Invalid backup file");
 
+      if (parsed.version && parsed.version !== 1) {
+        const confirmed = window.confirm(
+          `This backup was created with schema version ${parsed.version}. Your current database is version 9. Some fields may not be compatible. Proceed with import?`
+        );
+        if (!confirmed) return false;
+      }
+
       await this.transaction('rw', this.tables, async () => {
         for (const table of this.tables) {
           if (parsed.data[table.name]) {
@@ -270,6 +280,16 @@ export class HisaabKitaabDB extends Dexie {
     } catch(e) {
       console.error("Failed to log audit", e);
     }
+  }
+
+  async getCustomerBalance(customerId: number): Promise<number> {
+    const entries = await this.udhaarEntries.where('customerId').equals(customerId).toArray();
+    return entries.reduce((sum, entry) => {
+      // give = debt increases (positive for they owe, negative for advance we gave?)
+      // wait, let's check the logic: give = we gave money/goods (they owe us more)
+      // receive = we got money/goods (they owe us less)
+      return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
+    }, 0);
   }
 }
 

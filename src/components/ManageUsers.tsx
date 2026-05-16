@@ -10,7 +10,7 @@ interface ManageUsersProps {
 
 export default function ManageUsers({ onClose, activeContext }: ManageUsersProps) {
   const users = useLiveQuery(() => db.appUsers.toArray()) || [];
-  const settingsObj = useLiveQuery(() => db.settings.get(1));
+  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
   const [role, setRole] = useState<'owner' | 'spouse' | 'cashier' | 'employee'>('employee');

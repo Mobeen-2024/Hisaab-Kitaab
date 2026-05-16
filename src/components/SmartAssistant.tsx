@@ -26,7 +26,7 @@ export default function SmartAssistant() {
   }, [messages]);
 
   const getAI = async () => {
-    const settings = await db.settings.get(1);
+    const settings = await db.settings.toCollection().first();
     const apiKey = settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) throw new Error('Gemini API key is not configured. Please add it in App Settings.');
     const cleanKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
