@@ -1,12 +1,85 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useAnimation } from 'motion/react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { useGLTF, useAnimations, Environment } from '@react-three/drei';
+import * as THREE from 'three';
 
 interface SplashScreenProps {
   onComplete: () => void;
 }
 
+function RealisticBird({ onLand }: { onLand: () => void }) {
+  const group = React.useRef<THREE.Group>(null);
+  const { scene, animations } = useGLTF('/Stork.glb');
+  const { actions } = useAnimations(animations, group);
+
+  React.useEffect(() => {
+    // Play the flying animation
+    if (actions && Object.keys(actions).length > 0) {
+      const actionName = Object.keys(actions)[0];
+      const action = actions[actionName];
+      if (action) {
+        action.play();
+        action.timeScale = 1.2; // Adjust flight speed
+      }
+    }
+  }, [actions]);
+
+  // Flight path parameters
+  const startPos = React.useMemo(() => new THREE.Vector3(10, 8, -10), []);
+  const endPos = React.useMemo(() => new THREE.Vector3(0, 0.5, 2), []); // Target landing spot on text
+  const controlPos = React.useMemo(() => new THREE.Vector3(5, 4, 5), []);
+  const curve = React.useMemo(() => new THREE.QuadraticBezierCurve3(startPos, controlPos, endPos), [startPos, controlPos, endPos]);
+
+  const [progress, setProgress] = useState(0);
+  const [landed, setLanded] = useState(false);
+
+  useFrame((state, delta) => {
+    if (!group.current) return;
+    
+    if (progress < 1) {
+      const speed = 0.6; // Flight duration ~1.6s
+      const nextProgress = Math.min(progress + delta * speed, 1);
+      setProgress(nextProgress);
+      
+      const point = curve.getPoint(nextProgress);
+      group.current.position.copy(point);
+      
+      if (nextProgress < 1) {
+        const tangent = curve.getTangent(nextProgress);
+        group.current.lookAt(point.clone().add(tangent));
+      }
+      
+      if (nextProgress === 1 && !landed) {
+        setLanded(true);
+        onLand();
+        // Slow down animation upon landing to simulate balancing/hovering
+        if (actions && Object.keys(actions).length > 0) {
+           const action = actions[Object.keys(actions)[0]];
+           if (action) {
+             action.timeScale = 0.2;
+           }
+        }
+      }
+    } else {
+      // Gentle hover effect after landing
+      group.current.position.y = endPos.y + Math.sin(state.clock.elapsedTime * 4) * 0.03;
+    }
+  });
+
+  return (
+    <group ref={group}>
+      {/* Model scale & orientation adjustment */}
+      <primitive object={scene} scale={0.025} rotation={[0, Math.PI / 2, 0]} />
+    </group>
+  );
+}
+
+useGLTF.preload('/Stork.glb');
+
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const [hasLanded, setHasLanded] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   useEffect(() => {
@@ -20,6 +93,18 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
   // Easing presets
   const easing = [0.16, 1, 0.3, 1] as const;
+
+  const textVariants = {
+    hidden: { opacity: 0, y: 20, z: -20 },
+    visible: { opacity: 1, y: 0, z: 20, transition: { duration: 0.8, delay: 0.8 } },
+    bounce: {
+      y: [0, 15, -2, 0],
+      rotateX: [0, -15, 5, 0],
+      z: 20,
+      opacity: 1,
+      transition: { type: "spring" as const, stiffness: 350, damping: 12 }
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -44,6 +129,18 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               transition={{ duration: 4, repeat: Infinity }}
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-blue-600/10 rounded-full blur-[120px]"
             />
+          </div>
+
+          {/* 3D Canvas Overlay */}
+          <div className="absolute inset-0 z-[110] pointer-events-none">
+            <Canvas camera={{ position: [0, 0, 10], fov: 45 }} gl={{ alpha: true }}>
+              <ambientLight intensity={0.6} />
+              <directionalLight position={[10, 10, 10]} intensity={1.5} color="#93C5FD" />
+              <Environment preset="night" />
+              <React.Suspense fallback={null}>
+                <RealisticBird onLand={() => setHasLanded(true)} />
+              </React.Suspense>
+            </Canvas>
           </div>
 
           {/* 3D Logo Container */}
@@ -139,9 +236,9 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
             {/* Text with slight Z offset */}
             <motion.div
-              initial={{ opacity: 0, y: 20, z: -20 }}
-              animate={{ opacity: 1, y: 0, z: 20 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
+              variants={textVariants}
+              initial="hidden"
+              animate={hasLanded ? "bounce" : "visible"}
               className="text-center mt-8"
               style={{ transformStyle: "preserve-3d" }}
             >
