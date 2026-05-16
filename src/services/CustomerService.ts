@@ -1,7 +1,7 @@
 import { db } from '../db';
 import { Customer, CustomerSchema } from '../models';
 
-export type CustomerInput = Customer;
+export type CustomerInput = Omit<Customer, 'id' | 'createdAt'> & { id?: number; createdAt?: string };
 
 export const CustomerService = {
   async add(input: CustomerInput) {

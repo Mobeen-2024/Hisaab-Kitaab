@@ -33,10 +33,13 @@ export const AIService = {
     const ai = await getGeminiInstance();
     const prompt = `User context: ${activeContext}. Recent data: ${JSON.stringify(stats)}. Provide 3 concise, actionable financial insights. Return ONLY a JSON array of strings.`;
     const response = await withTimeout(
-      ai.getGenerativeModel({ model: AI_MODELS.fast }).generateContent(prompt),
+      ai.models.generateContent({
+        model: AI_MODELS.fast,
+        contents: prompt
+      }),
       AI_TIMEOUT_MS
     );
-    const fullText = response.response.text();
+    const fullText = response.text || '';
     return parseAIJson(fullText, []);
   },
 
@@ -59,10 +62,13 @@ export const AIService = {
       { role: 'user', parts: [{ text: userMsg }] }
     ];
     const response = await withTimeout(
-      ai.getGenerativeModel({ model: AI_MODELS.default }).generateContent({ contents } as any),
+      ai.models.generateContent({ 
+        model: AI_MODELS.default, 
+        contents: contents as any 
+      }),
       AI_TIMEOUT_MS
     );
-    return response.response.text().trim() || 'No response from AI';
+    return response.text?.trim() || 'No response from AI';
   },
 
   async parseStatement(pastedText: string): Promise<ParsedTransaction[]> {
@@ -83,11 +89,14 @@ export const AIService = {
     `;
 
     const response = await withTimeout(
-      ai.getGenerativeModel({ model: AI_MODELS.fast }).generateContent(prompt),
+      ai.models.generateContent({
+        model: AI_MODELS.fast,
+        contents: prompt
+      }),
       AI_TIMEOUT_MS
     );
 
-    const text = response.response.text();
+    const text = response.text || '';
     const results = parseAIJson(text, []);
     if (results.length === 0) {
       throw new Error("AI could not find any transactions in the text.");
@@ -111,11 +120,14 @@ If no data found, return: {"amount": 0, "type": "expense", "description": "Unkno
     }];
 
     const response = await withTimeout(
-      ai.getGenerativeModel({ model: AI_MODELS.vision }).generateContent({ contents } as any),
+      ai.models.generateContent({
+        model: AI_MODELS.vision,
+        contents: contents as any
+      }),
       AI_TIMEOUT_MS
     );
 
-    const text = response.response.text();
+    const text = response.text || '';
     return parseAIJson(text, null);
   },
 
@@ -123,10 +135,13 @@ If no data found, return: {"amount": 0, "type": "expense", "description": "Unkno
     const ai = await getGeminiInstance();
     const prompt = `Extract transaction details from: "${text}". Return ONLY JSON: { "type": "expense"|"income", "amount": number, "categoryId": number|null, "description": string }. Categories: ${JSON.stringify(categories)}`;
     const response = await withTimeout(
-      ai.getGenerativeModel({ model: AI_MODELS.fast }).generateContent(prompt),
+      ai.models.generateContent({
+        model: AI_MODELS.fast,
+        contents: prompt
+      }),
       AI_TIMEOUT_MS
     );
-    const textResponse = response.response.text();
+    const textResponse = response.text || '';
     return parseAIJson(textResponse, null);
   }
 };
