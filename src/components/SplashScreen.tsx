@@ -13,71 +13,69 @@ function RealisticBird({ onLand, isMobile }: { onLand: () => void; isMobile: boo
   const { scene, animations } = useGLTF('/Stork.glb');
   const { actions } = useAnimations(animations, group);
 
+  // Use a ref for progress to avoid heavy re-renders in useFrame
+  const progressRef = React.useRef(0);
+  const landedRef = React.useRef(false);
+
   React.useEffect(() => {
-    // Play the flying animation
     if (actions && Object.keys(actions).length > 0) {
       const actionName = Object.keys(actions)[0];
       const action = actions[actionName];
       if (action) {
         action.play();
-        action.timeScale = 0.9;
+        action.timeScale = 1.0;
       }
     }
   }, [actions]);
 
-  // Flight path — responsive to screen size
-  // Desktop: frustum at Z=2 ≈ ±6.4 wide, ±3.7 tall (16:9, fov 50)
-  // Mobile:  frustum at Z=2 ≈ ±2.1 wide, ±3.7 tall (9:16, fov 50)
-  // Title on mobile is text-5xl (smaller), offset -10vh. "Kitaab" center ≈ X=0.7
-  // Title on desktop is text-8xl, offset -15vh. "Kitaab" center ≈ X=1.8
+  // Adjust positions to ensure the bird appears almost immediately
   const startPos = React.useMemo(() =>
-    isMobile ? new THREE.Vector3(1.8, 4.5, 4) : new THREE.Vector3(5, 5, 4),
-  [isMobile]);
+    isMobile ? new THREE.Vector3(2.0, 3.0, 4) : new THREE.Vector3(2.5, 2.8, 4),
+    [isMobile]);
 
   const endPos = React.useMemo(() =>
     isMobile ? new THREE.Vector3(0.7, 0.9, 2) : new THREE.Vector3(1.8, 0.76, 2),
-  [isMobile]);
+    [isMobile]);
 
   const controlPos = React.useMemo(() =>
-    isMobile ? new THREE.Vector3(1.5, 2.5, 3) : new THREE.Vector3(3.5, 3.0, 3),
-  [isMobile]);
+    isMobile ? new THREE.Vector3(1.3, 1.9, 3) : new THREE.Vector3(2.5, 2.3, 3),
+    [isMobile]);
 
   const curve = React.useMemo(() => new THREE.QuadraticBezierCurve3(startPos, controlPos, endPos), [startPos, controlPos, endPos]);
 
   const birdScale = isMobile ? 0.008 : 0.012;
 
-  const [progress, setProgress] = useState(0);
-  const [landed, setLanded] = useState(false);
-
   useFrame((state, delta) => {
     if (!group.current) return;
 
-    if (progress < 1) {
-      const speed = 0.25;
-      const nextProgress = Math.min(progress + delta * speed, 1);
-      setProgress(nextProgress);
+    if (progressRef.current < 1) {
+      // Faster flight: 0.5 means it takes 2 seconds total
+      const speed = 0.5;
+      progressRef.current = Math.min(progressRef.current + delta * speed, 1);
 
-      const point = curve.getPoint(nextProgress);
+      const point = curve.getPoint(progressRef.current);
       group.current.position.copy(point);
 
-      if (nextProgress < 1) {
-        const tangent = curve.getTangent(nextProgress);
-        group.current.lookAt(point.clone().add(tangent));
+      if (progressRef.current < 1) {
+        const tangent = curve.getTangent(progressRef.current);
+        const lookTarget = point.clone().add(tangent);
+        group.current.lookAt(lookTarget);
       }
 
-      if (nextProgress === 1 && !landed) {
-        setLanded(true);
+      if (progressRef.current >= 1 && !landedRef.current) {
+        landedRef.current = true;
         onLand();
         if (actions && Object.keys(actions).length > 0) {
           const action = actions[Object.keys(actions)[0]];
           if (action) {
-            action.timeScale = 0.2;
+            action.timeScale = 0.3; // Slow down wings on landing
           }
         }
       }
     } else {
-      group.current.position.y = endPos.y + Math.sin(state.clock.elapsedTime * 3.5) * 0.04;
-      group.current.position.x = endPos.x + Math.sin(state.clock.elapsedTime * 1.2) * 0.02;
+      // Idle animation after landing
+      group.current.position.y = endPos.y + Math.sin(state.clock.elapsedTime * 3.5) * 0.03;
+      group.current.position.x = endPos.x + Math.sin(state.clock.elapsedTime * 1.2) * 0.015;
     }
   });
 
@@ -145,12 +143,12 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           </div>
 
           {/* 3D Canvas Overlay */}
-          <div className="absolute inset-0 z-[110] pointer-events-none">
-            <Canvas camera={{ position: [0, 0, 10], fov: 50 }} gl={{ alpha: true }}>
-              <ambientLight intensity={0.6} />
-              <directionalLight position={[10, 10, 10]} intensity={1.5} color="#93C5FD" />
-              <Environment preset="night" />
-              <React.Suspense fallback={null}>
+          <div className="absolute inset-0 z-[110] pointer-events-none overflow-hidden">
+            <Canvas camera={{ position: [0, 0, 10], fov: 50 }} gl={{ alpha: true, antialias: true, stencil: false }}>
+              <ambientLight intensity={1.5} />
+              <pointLight position={[10, 10, 10]} intensity={4} color="#93C5FD" />
+              <React.Suspense fallback={<mesh position={[0, 0, 5]}><sphereGeometry args={[0.1, 16, 16]} /><meshStandardMaterial color="#3B82F6" emissive="#3B82F6" emissiveIntensity={2} /></mesh>}>
+                <Environment preset="city" />
                 <RealisticBird isMobile={isMobile} onLand={() => setHasLanded(true)} />
               </React.Suspense>
             </Canvas>
