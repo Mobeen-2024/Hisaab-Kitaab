@@ -1,3 +1,4 @@
+import { motion, AnimatePresence } from 'motion/react';
 import React from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useUI } from '../contexts/UIContext';
@@ -61,8 +62,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </>
         ) : (
           <>
-            <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[120px] animate-float-1 mix-blend-screen"></div>
-            <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-indigo-600/15 rounded-full blur-[140px] animate-float-2 mix-blend-screen"></div>
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 150, repeat: Infinity, ease: "linear" }}
+              className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-blue-600/10 rounded-full blur-[120px] mix-blend-screen"
+            />
+            <motion.div 
+              animate={{ rotate: -360 }}
+              transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
+              className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-indigo-600/15 rounded-full blur-[140px] mix-blend-screen"
+            />
             <div className="absolute top-[20%] right-[-5%] w-[45%] h-[45%] bg-purple-600/10 rounded-full blur-[110px] animate-liquid mix-blend-screen"></div>
             <div className="absolute bottom-[10%] left-[10%] w-[50%] h-[50%] bg-blue-400/10 rounded-full blur-[130px] animate-float-1 animation-delay-2000 mix-blend-screen"></div>
           </>
@@ -81,8 +90,19 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         />
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 md:p-8 relative custom-scrollbar bg-transparent min-w-0">
-          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-[calc(6rem+var(--safe-bottom))] md:pb-8 bg-transparent">
-            {children}
+          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-[calc(6rem+var(--safe-bottom))] md:pb-8 bg-transparent min-h-full flex flex-col">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -20, filter: 'blur(8px)' }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full flex-1"
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </main>
       </div>
