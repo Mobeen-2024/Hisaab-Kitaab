@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { GoogleGenAI } from '@google/genai';
+import { getGeminiInstance } from '../lib/ai';
 import { Sparkles, Brain, AlertTriangle, Lightbulb, Activity, RefreshCw, MessageSquare, Send, Bot, User, Trash2, TrendingUp, DollarSign, ShieldCheck } from 'lucide-react';
 import { format, subMonths, isAfter } from 'date-fns';
 import { useSettings } from '../contexts/SettingsContext';
@@ -25,14 +26,7 @@ export default function SmartAssistant() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const getAI = async () => {
-    const settings = await db.settings.toCollection().first();
-    const apiKey = settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) throw new Error('Gemini API key is not configured. Please add it in App Settings.');
-    const cleanKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
-    if (!cleanKey) throw new Error('API key is invalid. Please re-paste it in Settings.');
-    return new GoogleGenAI({ apiKey: cleanKey });
-  };
+
 
   const getSummaryPayload = () => {
     const oneMonthAgo = subMonths(new Date(), 1);
@@ -53,7 +47,7 @@ export default function SmartAssistant() {
     setError(null);
     setInsights(null);
     try {
-      const ai = await getAI();
+      const ai = await getGeminiInstance();
       const dataPayload = getSummaryPayload();
       const prompt = `You are a smart financial assistant for a user in Pakistan. The user's active mode is: ${activeContext}.
 Here is their recent financial data (last 30 days): ${JSON.stringify(dataPayload, null, 2)}
@@ -98,11 +92,28 @@ Return ONLY a valid JSON array of strings, nothing else. Example: ["Insight 1", 
     setChatLoading(true);
     await db.messages.add({ chatId: 'ai', sender: 'user', content: userMsg, timestamp: new Date().toISOString() });
     try {
-      const ai = await getAI();
+      const ai = await getGeminiInstance();
       const dataPayload = getSummaryPayload();
       const systemContext = `You are a smart financial advisor for a Pakistani user. Their ${activeContext} finances: ${JSON.stringify(dataPayload)}. Today: ${format(new Date(), 'dd MMM yyyy')}. Currency: ${currency}. Be concise, helpful, and occasionally use Roman Urdu if appropriate.`;
-      const prompt = `${systemContext}\n\nUser question: ${userMsg}`;
-      const response = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: prompt });
+      
+      // Build history for the model
+      const history = messages
+        .filter(m => m.id) // Ensure only saved messages
+        .slice().reverse() // Back to chronological order
+        .map(m => ({
+          role: m.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: m.content }]
+        }));
+
+      // Add system context as the first user message if history is empty, or as context
+      const contents = [
+        { role: 'user', parts: [{ text: `System Context: ${systemContext}` }] },
+        { role: 'model', parts: [{ text: "Understood. I'm ready to help with your finances." }] },
+        ...history,
+        { role: 'user', parts: [{ text: userMsg }] }
+      ];
+
+      const response = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents });
       const aiReply = (response.text || 'I could not generate a response. Please try again.').trim();
       await db.messages.add({ chatId: 'ai', sender: 'ai', content: aiReply, timestamp: new Date().toISOString() });
     } catch (err: any) {

@@ -41,6 +41,17 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setIsSearchOpen]);
 
+  // P2-4: Close all modals on navigation
+  React.useEffect(() => {
+    setIsQuickEntryOpen(false);
+    setIsAddCustomerModalOpen(false);
+    setIsProfileModalOpen(false);
+    setIsNotificationsOpen(false);
+    setIsMessagesOpen(false);
+    setIsSearchOpen(false);
+    setIsImportModalOpen(false);
+  }, [location.pathname, setIsQuickEntryOpen, setIsAddCustomerModalOpen, setIsProfileModalOpen, setIsNotificationsOpen, setIsMessagesOpen, setIsSearchOpen, setIsImportModalOpen]);
+
   // Reactive alerts for inventory
   const inventory = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
   const hasAlerts = inventory.some(item => item.quantity <= item.minQuantity);

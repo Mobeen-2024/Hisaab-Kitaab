@@ -1,4 +1,4 @@
-export const mockExchangeRates: Record<string, number> = {
+let exchangeRates: Record<string, number> = {
   'PKR': 1,
   'USD': 0.0036,
   'EUR': 0.0033,
@@ -21,9 +21,28 @@ export const mockExchangeRates: Record<string, number> = {
   'PHP': 0.20,
 };
 
+export const fetchExchangeRates = async () => {
+  try {
+    // Using Frankfurter API (free, no key required)
+    const response = await fetch('https://api.frankfurter.app/latest?from=PKR');
+    const data = await response.json();
+    if (data && data.rates) {
+      exchangeRates = { ...exchangeRates, ...data.rates, 'PKR': 1 };
+      return true;
+    }
+  } catch (error) {
+    console.error('Failed to fetch live exchange rates, using mocks:', error);
+  }
+  return false;
+};
+
+// Initial fetch attempt
+fetchExchangeRates();
+
+
 export const calculateConvertedAmount = (amountInPKR: number, targetCurrency: string): number => {
   if (targetCurrency === 'PKR') return amountInPKR;
-  const rate = mockExchangeRates[targetCurrency] || 1;
+  const rate = exchangeRates[targetCurrency] || 1;
   return amountInPKR * rate;
 };
 
