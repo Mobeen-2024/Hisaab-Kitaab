@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
+import { CustomerService } from '../services/CustomerService';
 import { X, UserRound, Truck } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
@@ -37,12 +38,11 @@ export default function AddCustomerModal({
     }
 
     try {
-      await db.customers.add({
+      await CustomerService.add({
         name,
         phone,
-        balance: initialBalance,
         type: contactType,
-        createdAt: new Date().toISOString()
+        balance: initialBalance,
       });
       
       showToast(lang === 'ur' ? 'گاہک کا ریکارڈ محفوظ کر لیا گیا ہے' : 'Customer added successfully', 'success');

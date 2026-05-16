@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Customer } from '../db';
+import { CustomerService } from '../services/CustomerService';
+import { UdhaarService } from '../services/UdhaarService';
+import { InventoryService } from '../services/InventoryService';
 import { t, Lang } from '../lib/i18n';
 import { ArrowLeft, Phone, Calendar, ArrowUpRight, ArrowDownRight, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -58,24 +61,8 @@ export default function CustomerDetail({
 
   const handleDelete = async () => {
     if (customer.id) {
-      try {
-        const custId = Number(customer.id);
-        // Also delete standard transactions linked to this person
-        const txs = await db.transactions.toArray();
-        const txIds = txs.filter(t => Number(t.customerId) === custId).map(t => t.id).filter((id): id is number => id !== undefined);
-        if (txIds.length > 0) await db.transactions.bulkDelete(txIds);
-
-        // Delete all udhaar entries relating to this person
-        const entries = await db.udhaarEntries.toArray();
-        const entryIds = entries.filter(e => Number(e.customerId) === custId).map(e => e.id).filter((id): id is number => id !== undefined);
-        if (entryIds.length > 0) await db.udhaarEntries.bulkDelete(entryIds);
-
-        // Delete the customer
-        await db.customers.delete(custId);
-        onBack();
-      } catch(err) {
-        console.error("Error deleting in detail view:", err);
-      }
+      await CustomerService.delete(Number(customer.id));
+      onBack();
     }
   };
 
@@ -252,27 +239,24 @@ function AddUdhaarEntryModal({
     const numAmount = Number(amount);
     
     // Add entry
-    await db.udhaarEntries.add({
+    await UdhaarService.add({
       customerId: customer.id,
       type,
       amount: numAmount,
       date: new Date(date).toISOString(),
       dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
-      description: description.trim()
+      description: description.trim(),
+      originalCurrency: 'PKR', // Default for this modal
+      originalAmount: numAmount,
+      exchangeRate: 1,
+      isCompleted: false
     });
 
     // Handle inventory deduction/addition
     if (inventoryItemId && inventoryQty && !isNaN(Number(inventoryQty))) {
-      const item = await db.inventory.get(Number(inventoryItemId));
-      if (item && type === 'give') {
-        const qty = Number(inventoryQty);
-        // give to supplier = we get items. give to customer = they take items
-        if (customer.type === 'supplier') {
-          await db.inventory.update(item.id, { quantity: item.quantity + qty });
-        } else {
-          await db.inventory.update(item.id, { quantity: item.quantity - qty });
-        }
-      }
+      const qty = Number(inventoryQty);
+      const delta = customer.type === 'supplier' ? qty : -qty;
+      await InventoryService.updateQuantity(Number(inventoryItemId), delta);
     }
 
     onClose();

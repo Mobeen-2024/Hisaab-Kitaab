@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Customer } from '../db';
+import { CustomerService } from '../services/CustomerService';
 import { t } from '../lib/i18n';
 import { Plus, Users, Search, Phone, ChevronRight, Trash2, UserRound, Truck, ArrowDownLeft, ArrowUpRight, Pencil, X } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import CustomerDetail from './CustomerDetail';
 import ConfirmDialog from './ConfirmDialog';
 import { useSettings } from '../contexts/SettingsContext';
-import { useUI } from '../contexts/UIContext';
+import { useUIStore } from '../lib/store';
 
 function EditCustomerModal({ customer, onClose }: { customer: Customer; onClose: () => void }) {
   const [name, setName] = useState(customer.name);
@@ -20,7 +21,7 @@ function EditCustomerModal({ customer, onClose }: { customer: Customer; onClose:
     if (!name.trim()) return;
     setSaving(true);
     try {
-      await db.customers.update(customer.id!, { name: name.trim(), phone: phone.trim(), type });
+      await CustomerService.update(customer.id!, { name: name.trim(), phone: phone.trim(), type });
       onClose();
     } finally {
       setSaving(false);
@@ -79,7 +80,7 @@ function EditCustomerModal({ customer, onClose }: { customer: Customer; onClose:
 
 export default function Customers() {
   const { lang, currency, activeContext } = useSettings();
-  const { setIsAddCustomerModalOpen } = useUI();
+  const { setAddCustomerModalOpen } = useUIStore();
   const customers = useLiveQuery(() => db.customers.toArray()) || [];
   const allUdhaarEntries = useLiveQuery(() => db.udhaarEntries.toArray()) || [];
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,14 +121,7 @@ export default function Customers() {
         onClose={() => setDeletingCustomerId(null)}
         onConfirm={async () => {
           if (deletingCustomerId) {
-            const custId = deletingCustomerId;
-            const txs = await db.transactions.toArray();
-            const txIds = txs.filter(t => Number(t.customerId) === custId).map(t => t.id).filter((id): id is number => id !== undefined);
-            if (txIds.length > 0) await db.transactions.bulkDelete(txIds);
-            const entries = await db.udhaarEntries.toArray();
-            const entryIds = entries.filter(e => Number(e.customerId) === custId).map(e => e.id).filter((id): id is number => id !== undefined);
-            if (entryIds.length > 0) await db.udhaarEntries.bulkDelete(entryIds);
-            await db.customers.delete(custId);
+            await CustomerService.delete(deletingCustomerId);
             setDeletingCustomerId(null);
           }
         }}
@@ -171,7 +165,7 @@ export default function Customers() {
                 className="w-full bg-[#0F172A]/50 border border-white/10 text-white rounded-xl pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none placeholder:text-slate-600"
               />
             </div>
-            <button onClick={() => setIsAddCustomerModalOpen(true)}
+            <button onClick={() => setAddCustomerModalOpen(true)}
               className="hidden lg:flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 transition-colors whitespace-nowrap">
               <Plus size={16} /> Add Contact
             </button>
@@ -196,7 +190,7 @@ export default function Customers() {
             <div className="col-span-full py-16 text-center">
               <Users size={40} className="mx-auto mb-4 text-slate-600" />
               <p className="text-slate-500 font-medium">No contacts found.</p>
-              <button onClick={() => setIsAddCustomerModalOpen(true)} className="mt-4 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors">
+              <button onClick={() => setAddCustomerModalOpen(true)} className="mt-4 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors">
                 Add First Contact
               </button>
             </div>

@@ -10,13 +10,13 @@ import autoTable from 'jspdf-autotable';
 import TransactionCalendar from './TransactionCalendar';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useSettings } from '../contexts/SettingsContext';
-import { useUI } from '../contexts/UIContext';
+import { useUIStore } from '../lib/store';
 
 const CHART_COLORS = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#3b82f6', '#8b5cf6', '#14b8a6', '#ef4444'];
 
 export default function Reports() {
   const { lang, currency, activeContext } = useSettings();
-  const { setIsImportModalOpen } = useUI();
+  const { setImportModalOpen } = useUIStore();
   const allTransactions = useLiveQuery(() => db.transactions.toArray()) || [];
   const categories = useLiveQuery(() => db.categories.toArray()) || [];
 
@@ -166,7 +166,7 @@ export default function Reports() {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-              <button onClick={() => setIsImportModalOpen(true)}
+              <button onClick={() => setImportModalOpen(true)}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-xl text-sm font-bold transition-colors border border-blue-500/30">
                 <Upload size={16} /> Import Data
               </button>

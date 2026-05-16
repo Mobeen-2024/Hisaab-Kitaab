@@ -5,11 +5,11 @@ import { t } from '../lib/i18n';
 import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, MessageSquare, Bell, ChevronRight, LayoutDashboard } from 'lucide-react';
 import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
-import { useUI } from '../contexts/UIContext';
+import { useUIStore } from '../lib/store';
 
 export default function MobileMenu() {
   const { lang, currency, activeContext, updateSetting } = useSettings();
-  const { setIsMessagesOpen, setIsNotificationsOpen } = useUI();
+  const { setMessagesOpen, setNotificationsOpen } = useUIStore();
   
   const activeUserRole = 'owner';
   const canViewReports = activeUserRole === 'owner' || activeUserRole === 'spouse';
@@ -48,13 +48,13 @@ export default function MobileMenu() {
           <h2 className="text-2xl font-black tracking-tight text-white">App Menu</h2>
           <div className="flex gap-2">
             <button
-              onClick={() => setIsMessagesOpen(true)}
+              onClick={() => setMessagesOpen(true)}
               className="p-2.5 bg-white/5 rounded-xl text-slate-300 hover:text-white transition-colors border border-white/10"
             >
               <MessageSquare size={18} />
             </button>
             <button
-              onClick={() => setIsNotificationsOpen(true)}
+              onClick={() => setNotificationsOpen(true)}
               className="p-2.5 bg-white/5 rounded-xl text-slate-300 hover:text-white transition-colors border border-white/10"
             >
               <Bell size={18} />

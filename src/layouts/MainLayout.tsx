@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSettings } from '../contexts/SettingsContext';
-import { useUI } from '../contexts/UIContext';
+import { useUIStore } from '../lib/store';
 import Sidebar from '../components/Sidebar';
 import TopHeader from '../components/TopHeader';
 import BottomNav from '../components/BottomNav';
@@ -20,37 +20,32 @@ import { Plus } from 'lucide-react';
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { rtl, lang, currency, activeContext } = useSettings();
   const {
-    isQuickEntryOpen, setIsQuickEntryOpen,
-    isAddCustomerModalOpen, setIsAddCustomerModalOpen,
-    isProfileModalOpen, setIsProfileModalOpen,
-    isNotificationsOpen, setIsNotificationsOpen,
-    isMessagesOpen, setIsMessagesOpen,
-    isSearchOpen, setIsSearchOpen,
-    isImportModalOpen, setIsImportModalOpen
-  } = useUI();
+    isQuickEntryOpen, setQuickEntryOpen,
+    isAddCustomerModalOpen, setAddCustomerModalOpen,
+    isProfileModalOpen, setProfileModalOpen,
+    isNotificationsOpen, setNotificationsOpen,
+    isMessagesOpen, setMessagesOpen,
+    isSearchOpen, setSearchOpen,
+    isImportModalOpen, setImportModalOpen,
+    closeAllModals
+  } = useUIStore();
   const location = useLocation();
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsSearchOpen(true);
+        setSearchOpen(true);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setIsSearchOpen]);
+  }, [setSearchOpen]);
 
   // P2-4: Close all modals on navigation
   React.useEffect(() => {
-    setIsQuickEntryOpen(false);
-    setIsAddCustomerModalOpen(false);
-    setIsProfileModalOpen(false);
-    setIsNotificationsOpen(false);
-    setIsMessagesOpen(false);
-    setIsSearchOpen(false);
-    setIsImportModalOpen(false);
-  }, [location.pathname, setIsQuickEntryOpen, setIsAddCustomerModalOpen, setIsProfileModalOpen, setIsNotificationsOpen, setIsMessagesOpen, setIsSearchOpen, setIsImportModalOpen]);
+    closeAllModals();
+  }, [location.pathname, closeAllModals]);
 
   // Reactive alerts for inventory
   const inventory = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
@@ -84,10 +79,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       <div className={`flex-1 flex flex-col h-screen overflow-hidden relative bg-transparent min-w-0 ${rtl ? 'order-1' : 'order-2'}`}>
         <TopHeader 
-          onSearchOpen={() => setIsSearchOpen(true)}
-          onNotificationsOpen={() => setIsNotificationsOpen(true)}
-          onMessagesOpen={() => setIsMessagesOpen(true)}
-          onProfileOpen={() => setIsProfileModalOpen(true)}
+          onSearchOpen={() => setSearchOpen(true)}
+          onNotificationsOpen={() => setNotificationsOpen(true)}
+          onMessagesOpen={() => setMessagesOpen(true)}
+          onProfileOpen={() => setProfileModalOpen(true)}
           hasAlerts={hasAlerts}
         />
 
@@ -106,24 +101,39 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         style={{ bottom: 'calc(1.5rem + var(--safe-bottom))' }}
       >
         <button
-          onClick={() => isDashboardOrSimilar ? setIsQuickEntryOpen(true) : setIsAddCustomerModalOpen(true)}
+          onClick={() => isDashboardOrSimilar ? setQuickEntryOpen(true) : setAddCustomerModalOpen(true)}
           className={`${isDashboardOrSimilar ? 'bg-blue-600' : 'bg-emerald-600'} text-white h-14 w-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer`}
         >
           <Plus size={28} />
         </button>
       </div>
 
-      {/* Modals */}
-      <QuickEntryModal isOpen={isQuickEntryOpen} onClose={() => setIsQuickEntryOpen(false)} lang={lang} activeContext={activeContext} />
-      <AddCustomerModal isOpen={isAddCustomerModalOpen} onClose={() => setIsAddCustomerModalOpen(false)} lang={lang} />
-      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} lang={lang} />
-      <NotificationsModal isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} lang={lang} currency={currency} />
-      <MessagesModal isOpen={isMessagesOpen} onClose={() => setIsMessagesOpen(false)} lang={lang} currency={currency} />
-      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} lang={lang} currency={currency} activeContext={activeContext} />
-      <ImportStatementModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} />
+      {/* Modals - Optimized with conditional rendering */}
+      {isQuickEntryOpen && (
+        <QuickEntryModal isOpen={isQuickEntryOpen} onClose={() => setQuickEntryOpen(false)} lang={lang} activeContext={activeContext} />
+      )}
+      {isAddCustomerModalOpen && (
+        <AddCustomerModal isOpen={isAddCustomerModalOpen} onClose={() => setAddCustomerModalOpen(false)} lang={lang} />
+      )}
+      {isProfileModalOpen && (
+        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} lang={lang} />
+      )}
+      {isNotificationsOpen && (
+        <NotificationsModal isOpen={isNotificationsOpen} onClose={() => setNotificationsOpen(false)} lang={lang} currency={currency} />
+      )}
+      {isMessagesOpen && (
+        <MessagesModal isOpen={isMessagesOpen} onClose={() => setMessagesOpen(false)} lang={lang} currency={currency} />
+      )}
+      {isSearchOpen && (
+        <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} lang={lang} currency={currency} activeContext={activeContext} />
+      )}
+      {isImportModalOpen && (
+        <ImportStatementModal isOpen={isImportModalOpen} onClose={() => setImportModalOpen(false)} />
+      )}
       
       {/* Systems */}
       <ReminderSystem settingsObj={{ language: lang, currency }} />
     </div>
   );
 }
+
