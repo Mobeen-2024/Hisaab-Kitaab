@@ -44,6 +44,6 @@ export const useUIStore = create<UIState>((set) => ({
     isNotificationsOpen: false,
     isMessagesOpen: false,
     isSearchOpen: false,
-    isImportModalOpen: false,
+    isImportModalOpen: false
   }),
 }));

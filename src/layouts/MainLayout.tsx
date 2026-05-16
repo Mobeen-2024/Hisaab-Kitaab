@@ -28,6 +28,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     isImportModalOpen, setImportModalOpen,
     closeAllModals
   } = useUIStore();
+
   const location = useLocation();
 
   React.useEffect(() => {
@@ -41,16 +42,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setSearchOpen]);
 
-  // P2-4: Close all modals on navigation (guard against firing on initial mount)
-  const isMounted = React.useRef(false);
+  // P2-4: Close all modals on navigation (with stable path guard)
+  const lastPathname = React.useRef(location.pathname);
   React.useEffect(() => {
-    if (!isMounted.current) {
-      isMounted.current = true;
-      return;
+    if (lastPathname.current !== location.pathname) {
+      closeAllModals();
+      lastPathname.current = location.pathname;
     }
-    closeAllModals();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [location.pathname, closeAllModals]);
 
   // Reactive alerts for inventory
   const hasAlerts = useHasLowStock(activeContext);
@@ -112,25 +111,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </button>
       </div>
 
-      {/* Modals - Optimized with conditional rendering */}
-      {isQuickEntryOpen && (
-        <QuickEntryModal isOpen={isQuickEntryOpen} onClose={() => setQuickEntryOpen(false)} lang={lang} activeContext={activeContext} />
-      )}
-      {isAddCustomerModalOpen && (
-        <AddCustomerModal isOpen={isAddCustomerModalOpen} onClose={() => setAddCustomerModalOpen(false)} lang={lang} />
-      )}
-      {isProfileModalOpen && (
-        <ProfileModal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} lang={lang} />
-      )}
-      {isNotificationsOpen && (
-        <NotificationsModal isOpen={isNotificationsOpen} onClose={() => setNotificationsOpen(false)} lang={lang} currency={currency} />
-      )}
-      {isMessagesOpen && (
-        <MessagesModal isOpen={isMessagesOpen} onClose={() => setMessagesOpen(false)} lang={lang} currency={currency} />
-      )}
-      {isSearchOpen && (
-        <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} lang={lang} currency={currency} activeContext={activeContext} />
-      )}
+      {/* Modals - Always mounted for robust animations */}
+      <QuickEntryModal isOpen={isQuickEntryOpen} onClose={() => setQuickEntryOpen(false)} lang={lang} activeContext={activeContext} />
+      <AddCustomerModal isOpen={isAddCustomerModalOpen} onClose={() => setAddCustomerModalOpen(false)} lang={lang} />
+      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} lang={lang} />
+      <NotificationsModal isOpen={isNotificationsOpen} onClose={() => setNotificationsOpen(false)} lang={lang} currency={currency} />
+      <MessagesModal isOpen={isMessagesOpen} onClose={() => setMessagesOpen(false)} lang={lang} currency={currency} />
+      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} lang={lang} currency={currency} activeContext={activeContext} />
       {isImportModalOpen && (
         <ImportStatementModal isOpen={isImportModalOpen} onClose={() => setImportModalOpen(false)} />
       )}
