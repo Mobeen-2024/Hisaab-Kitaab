@@ -66,11 +66,11 @@ const getLocaleMap = (lang: string) => {
 export const formatCurrency = (valInPKR: number, currency: string, lang: string, compact: boolean = false) => {
   const convertedVal = calculateConvertedAmount(valInPKR, currency);
   const locale = getLocaleMap(lang);
-  
+
   // Custom fraction digits based on currency
   // JPY typically has 0 fraction digits, others usually 2.
   const maximumFractionDigits = ['JPY', 'PKR', 'INR', 'IDR'].includes(currency) ? 0 : 2;
-  
+
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: currency,

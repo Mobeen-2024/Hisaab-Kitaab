@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
-import { GoogleGenAI } from '@google/genai';
 import { getGeminiInstance } from '../lib/ai';
 import { Sparkles, Brain, AlertTriangle, Lightbulb, Activity, RefreshCw, MessageSquare, Send, Bot, User, Trash2, TrendingUp, DollarSign, ShieldCheck } from 'lucide-react';
 import { format, subMonths, isAfter } from 'date-fns';
@@ -57,7 +56,10 @@ Provide 3 very concise, highly actionable bullet points.
 - Keep it simple and friendly. Occasional Roman Urdu is fine (like "Kharcha", "Aamdani", "Bachat").
 Return ONLY a valid JSON array of strings, nothing else. Example: ["Insight 1", "Insight 2", "Insight 3"]`;
       
-      const response = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: prompt });
+      const response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: prompt,
+      });
       const fullText = response.text || '';
       
       let rawJson = fullText.trim();
@@ -113,7 +115,10 @@ Return ONLY a valid JSON array of strings, nothing else. Example: ["Insight 1", 
         { role: 'user', parts: [{ text: userMsg }] }
       ];
 
-      const response = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents });
+      const response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: contents as any,
+      });
       const aiReply = (response.text || 'I could not generate a response. Please try again.').trim();
       await db.messages.add({ chatId: 'ai', sender: 'ai', content: aiReply, timestamp: new Date().toISOString() });
     } catch (err: any) {

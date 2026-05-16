@@ -8,7 +8,6 @@ import { FinancialOverview } from './dashboard/FinancialOverview';
 import { ContextComparison } from './dashboard/ContextComparison';
 import TransactionList from './TransactionList';
 import { useSettings } from '../contexts/SettingsContext';
-import { isRTL } from '../lib/i18n';
 
 export default function Dashboard() {
   const { lang, rtl } = useSettings();

@@ -13,7 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import ManageCategoriesModal from "./ManageCategoriesModal";
-import { GoogleGenAI } from "@google/genai";
+import { getGeminiInstance } from "../lib/ai";
 import DatePicker from "./DatePicker";
 import ConfirmDialog from "./ConfirmDialog";
 
@@ -215,15 +215,7 @@ export default function QuickEntryModal({
     setIsParsingVoice(true);
     setSmartVoiceError(null);
     try {
-      const settings = await db.settings.toCollection().first();
-      const apiKey =
-        settings?.geminiApiKey || (import.meta as any).env.VITE_GEMINI_API_KEY;
-      if (!apiKey)
-        throw new Error(
-          "GEMINI_API_KEY is missing. Please add it in App Settings.",
-        );
-      const ai = new GoogleGenAI({ apiKey });
-
+      const ai = await getGeminiInstance();
       const catsPayload = categories.map((c) => ({
         id: c.id,
         name: c.name,
@@ -246,17 +238,19 @@ export default function QuickEntryModal({
        `;
 
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: 'gemini-1.5-flash',
         contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-        },
       });
 
-      if (response.text) {
-        const data = JSON.parse(response.text);
+      const textResponse = response.text;
+      
+      // Basic JSON extraction in case model returns markdown blocks
+      const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+      const data = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(textResponse);
+
+      if (data) {
         if (data.type === "expense" || data.type === "income") {
-          setType(data.type);
+          setType(data.type as any);
         }
         if (data.amount) {
           setAmount(data.amount.toString());
@@ -269,7 +263,7 @@ export default function QuickEntryModal({
         }
         setIsSmartVoiceMode(false); // Switch back to form view to confirm
       } else {
-        throw new Error("Received empty response from AI.");
+        throw new Error("Could not parse AI response.");
       }
     } catch (err: any) {
       console.error("Smart Voice Parsing Error", err);

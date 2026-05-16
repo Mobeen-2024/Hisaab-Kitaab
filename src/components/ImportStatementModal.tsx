@@ -2,8 +2,9 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, FileText, Smartphone, Banknote, CheckCircle2, AlertCircle, Loader2, Sparkles, FileStack } from 'lucide-react';
 import { db, Transaction, Category } from '../db';
-import { GoogleGenAI } from '@google/genai';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useSettings } from '../contexts/SettingsContext';
+import { getGeminiInstance } from '../lib/ai';
 import { parseJazzCashCSV, parseEasypaisaCSV, parseGenericCSV, ParsedTransaction, generateDeterministicId } from '../utils/statementParsers';
 
 interface ImportStatementModalProps {
@@ -22,6 +23,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   const [duplicatesSkipped, setDuplicatesSkipped] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { activeContext } = useSettings();
 
   const extractTextFromPDF = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -222,13 +224,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
     const cleanKey = rawKey.replace(/[^\x20-\x7E]/g, '').trim();
 
     try {
-      // Sanitize key - strip invisible/non-ASCII chars that break HTTP headers
-      if (!cleanKey) {
-        setError("API key appears to be invalid. Please re-paste it in Settings.");
-        return;
-      }
-      const ai = new GoogleGenAI({ apiKey: cleanKey });
-      
+      const ai = await getGeminiInstance();
       const prompt = `
         Parse the following financial statement text and return a JSON array of transactions.
         Each transaction must have:
@@ -245,16 +241,18 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       `;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-1.5-flash',
         contents: prompt,
       });
 
-      if (!response.text) {
+      const text = response.text;
+
+      if (!text) {
         throw new Error("AI could not find any transactions in the text.");
       }
 
       // Strip markdown code fences if present (e.g. ```json ... ```)
-      const rawText = response.text.trim();
+      const rawText = text.trim();
       const jsonText = rawText.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
 
       const rawResults: ParsedTransaction[] = JSON.parse(jsonText);
