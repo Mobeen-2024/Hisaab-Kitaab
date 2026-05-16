@@ -25,10 +25,13 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
     }
   }, [actions]);
 
-  // Flight path parameters
-  const startPos = React.useMemo(() => new THREE.Vector3(10, 8, -10), []);
-  const endPos = React.useMemo(() => new THREE.Vector3(0, 0.5, 2), []); // Target landing spot on text
-  const controlPos = React.useMemo(() => new THREE.Vector3(5, 4, 5), []);
+  // Flight path — lands on top of the word "Kitaab"
+  // Title is centered, pushed up ~15vh. "Kitaab" is the right word.
+  // Camera: [0,0,10], fov 50. At Z=2, visible area ≈ ±6.4 wide, ±3.7 tall.
+  // "Kitaab" center ≈ X=1.8, top of letters ≈ Y=2.0
+  const startPos = React.useMemo(() => new THREE.Vector3(5, 5, 4), []);   // enters from upper-right
+  const endPos = React.useMemo(() => new THREE.Vector3(1.8, 0.76, 2), []); // right on top of "Kitaab" letters
+  const controlPos = React.useMemo(() => new THREE.Vector3(3.5, 3.0, 3), []); // smooth descending arc
   const curve = React.useMemo(() => new THREE.QuadraticBezierCurve3(startPos, controlPos, endPos), [startPos, controlPos, endPos]);
 
   const [progress, setProgress] = useState(0);
@@ -62,15 +65,16 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
         }
       }
     } else {
-      // Gentle hover effect after landing
-      group.current.position.y = endPos.y + Math.sin(state.clock.elapsedTime * 4) * 0.03;
+      // Gentle hover effect after landing at right corner
+      group.current.position.y = endPos.y + Math.sin(state.clock.elapsedTime * 3.5) * 0.04;
+      group.current.position.x = endPos.x + Math.sin(state.clock.elapsedTime * 1.2) * 0.02;
     }
   });
 
   return (
     <group ref={group}>
-      {/* Model scale & orientation adjustment */}
-      <primitive object={scene} scale={0.01} rotation={[0, Math.PI / 2, 0]} />
+      {/* Model scale & orientation adjustment - slightly smaller to fit neatly at title corner */}
+      <primitive object={scene} scale={0.012} rotation={[0, Math.PI / 2, 0]} />
     </group>
   );
 }
@@ -133,7 +137,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
           {/* 3D Canvas Overlay */}
           <div className="absolute inset-0 z-[110] pointer-events-none">
-            <Canvas camera={{ position: [0, 0, 10], fov: 45 }} gl={{ alpha: true }}>
+            <Canvas camera={{ position: [0, 0, 10], fov: 50 }} gl={{ alpha: true }}>
               <ambientLight intensity={0.6} />
               <directionalLight position={[10, 10, 10]} intensity={1.5} color="#93C5FD" />
               <Environment preset="night" />
