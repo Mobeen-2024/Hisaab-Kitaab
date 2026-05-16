@@ -27,7 +27,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <nav className="hidden md:flex flex-col z-50 w-20 lg:w-64 border-r border-white/10 bg-white/10 backdrop-blur-3xl shrink-0 transition-all duration-300 overflow-x-hidden shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
+    <nav className="hidden md:flex flex-col z-50 w-20 lg:w-64 border-r border-white/10 bg-white/10 backdrop-blur-3xl shrink-0 transition-all duration-300 overflow-visible shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
       <div className="h-24 flex items-center justify-center lg:justify-start px-0 lg:px-6 gap-3 border-b border-white/5 shrink-0 bg-gradient-to-b from-white/5 to-transparent">
         <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-700 rounded-2xl flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.4)] transform rotate-3 hover:rotate-0 transition-transform duration-500 shrink-0">
           <span className="font-black text-white text-xl">HK</span>
@@ -79,26 +79,27 @@ export default function Sidebar() {
           ))}
         </div>
 
-        <div className="block shrink-0 mt-auto px-2 pb-2">
-          <NavLink
-            to="/settings"
-            className={({ isActive }) => 
-              `w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${isActive ? 'bg-slate-800 text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}`
-            }
-            title="Settings"
-          >
-            <SettingsIcon size={20} className="shrink-0" />
-            <span className="block md:hidden lg:block whitespace-nowrap">App Settings</span>
-          </NavLink>
-        </div>
+      </div>
 
-        <div className="block md:hidden lg:block shrink-0 border-t border-white/10 mt-4 pt-4">
-          <div className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest px-6">Preferences</div>
+      <div className="block shrink-0 px-2 pb-2 mt-auto border-t border-white/5 bg-black/20 backdrop-blur-md">
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => 
+            `w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${isActive ? 'bg-slate-800 text-white shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5'}`
+          }
+          title="Settings"
+        >
+          <SettingsIcon size={20} className="shrink-0" />
+          <span className="block md:hidden lg:block whitespace-nowrap">App Settings</span>
+        </NavLink>
+
+        <div className="block md:hidden lg:block shrink-0 mt-2 pt-2 border-t border-white/5">
+          <div className="text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em] px-4">Preferences</div>
           
-          <div className="px-4 space-y-4 mt-2 mb-8">
+          <div className="px-2 space-y-3 mb-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t(lang, 'currency')}</label>
-              <div className="relative z-[50]">
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 px-2">{t(lang, 'currency')}</label>
+              <div className="relative z-[100]">
                 <CurrencySelector
                   value={currency}
                   onChange={(newCurrency) => updateSetting('currency', newCurrency)}
@@ -106,8 +107,8 @@ export default function Sidebar() {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t(lang, 'language')}</label>
-              <div className="relative z-[60]">
+              <label className="block text-[10px] font-bold text-slate-500 mb-1 px-2">{t(lang, 'language')}</label>
+              <div className="relative z-[110]">
                 <LanguageSelector
                   value={lang}
                   onChange={(newLang) => updateSetting('language', newLang)}

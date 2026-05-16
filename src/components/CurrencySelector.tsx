@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+// Removed motion imports to fix rendering issues
 import { ChevronDown, DollarSign } from 'lucide-react';
 import { mockExchangeRates } from '../lib/currency';
 
@@ -80,72 +80,58 @@ export default function CurrencySelector({ value, onChange, className = '' }: Cu
         <ChevronDown size={14} className={`text-slate-400 transition-transform duration-300 group-hover:text-white ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute z-[100] bottom-full mb-2 right-0 md:left-0 w-[240px] bg-[#0F172A]/95 backdrop-blur-2xl border border-white/10 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] shadow-blue-900/20 overflow-[visible]"
-          >
-            <div className="max-h-[280px] overflow-y-auto custom-scrollbar p-1 z-10 relative bg-[#0F172A]/90 rounded-xl">
-              {currencies.map((currency) => (
-                <div
-                  key={currency.code}
-                  className="relative group/item"
-                  onMouseEnter={() => setHoveredCurrency(currency.code)}
-                  onMouseLeave={() => setHoveredCurrency(null)}
+      {isOpen && (
+        <div
+          className="absolute z-[999] bottom-full mb-3 right-0 md:left-0 w-[240px] bg-[#0F172A] border border-white/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
+        >
+          <div className="max-h-[320px] overflow-y-auto custom-scrollbar p-1">
+            {currencies.map((currency) => (
+              <div
+                key={currency.code}
+                className="relative group/item"
+                onMouseEnter={() => setHoveredCurrency(currency.code)}
+                onMouseLeave={() => setHoveredCurrency(null)}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(currency.code);
+                    setIsOpen(false);
+                  }}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left transition-colors
+                    ${value === currency.code 
+                      ? 'bg-blue-600 text-white font-bold' 
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'}
+                  `}
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onChange(currency.code);
-                      setIsOpen(false);
-                    }}
-                    className={`
-                      w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left transition-all duration-200
-                      ${value === currency.code 
-                        ? 'bg-blue-500/20 text-blue-300 font-semibold border border-blue-500/30' 
-                        : 'text-slate-300 hover:bg-white/5 hover:text-white border border-transparent'}
-                    `}
-                  >
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border text-xs font-bold transition-all duration-200 ${
-                      value === currency.code
-                        ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_10px_rgba(37,99,235,0.5)]'
-                        : 'bg-white/5 border-white/10 text-slate-400 group-hover/item:border-slate-500 group-hover/item:text-slate-200'
-                    }`}>
-                      {currency.symbol}
-                    </span>
-                    <div className="flex flex-col">
-                      <span>{currency.code}</span>
-                      <span className="text-[10px] text-slate-500 group-hover/item:text-slate-400 line-clamp-1">{currency.label}</span>
-                    </div>
-                  </button>
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border text-xs font-bold ${
+                    value === currency.code
+                      ? 'bg-white text-blue-600 border-white'
+                      : 'bg-white/5 border-white/10 text-slate-400'
+                  }`}>
+                    {currency.symbol}
+                  </span>
+                  <div className="flex flex-col">
+                    <span>{currency.code}</span>
+                    <span className={`text-[10px] ${value === currency.code ? 'text-blue-100' : 'text-slate-500'} line-clamp-1`}>{currency.label}</span>
+                  </div>
+                </button>
 
-                  {/* Tooltip for Exchange Rate (Desktop) */}
-                  <AnimatePresence>
-                     {hoveredCurrency === currency.code && (
-                       <motion.div
-                         initial={{ opacity: 0, x: 10, scale: 0.95 }}
-                         animate={{ opacity: 1, x: 0, scale: 1 }}
-                         exit={{ opacity: 0, x: 10, scale: 0.95 }}
-                         transition={{ duration: 0.15 }}
-                         className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 hidden md:flex z-[120]"
-                       >
-                         <div className="bg-[#1E293B]/95 backdrop-blur-xl border border-blue-500/30 text-blue-200 text-xs py-2 px-3 rounded-xl shadow-2xl shadow-blue-900/20 whitespace-nowrap flex items-center gap-2 before:content-[''] before:absolute before:-left-1.5 before:top-1/2 before:-translate-y-1/2 before:w-3 before:h-3 before:bg-[#1E293B] before:border-l before:border-b before:border-blue-500/30 before:rotate-45">
-                           <DollarSign size={12} className="text-blue-400" />
-                           <span className="font-medium tracking-wide">{getExchangeRateText(currency.code)}</span>
-                         </div>
-                       </motion.div>
-                     )}
-                  </AnimatePresence>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                {/* Tooltip for Exchange Rate (Desktop) */}
+                {hoveredCurrency === currency.code && (
+                  <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 hidden md:flex z-[120]">
+                    <div className="bg-[#1E293B]/95 backdrop-blur-xl border border-blue-500/30 text-blue-200 text-xs py-2 px-3 rounded-xl shadow-2xl shadow-blue-900/20 whitespace-nowrap flex items-center gap-2 before:content-[''] before:absolute before:-left-1.5 before:top-1/2 before:-translate-y-1/2 before:w-3 before:h-3 before:bg-[#1E293B] before:border-l before:border-b before:border-blue-500/30 before:rotate-45">
+                      <DollarSign size={12} className="text-blue-400" />
+                      <span className="font-medium tracking-wide">{getExchangeRateText(currency.code)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
