@@ -18,10 +18,17 @@ export const InventoryService = {
     return await db.inventory.add(validated as InventoryItem);
   },
 
-  async updateQuantity(id: number, delta: number) {
+  async restock(id: number, additionalQty: number) {
+    if (!Number.isFinite(additionalQty) || additionalQty <= 0)
+      throw new Error('Invalid quantity');
     const item = await db.inventory.get(id);
-    if (!item) throw new Error("Item not found");
-    return await db.inventory.update(id, { quantity: item.quantity + delta });
+    if (!item) throw new Error('Item not found');
+    return db.inventory.update(id, { quantity: item.quantity + additionalQty });
+  },
+
+  async upsert(data: InventoryItemInput, id?: number) {
+    const validated = InventoryItemSchema.parse(data);
+    return id ? db.inventory.update(id, validated) : db.inventory.add(validated as InventoryItem);
   },
 
   async getAllByContext(context: 'personal' | 'business') {

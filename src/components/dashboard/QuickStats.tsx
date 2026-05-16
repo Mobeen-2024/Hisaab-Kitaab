@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useTransactions, useAppSettings, useCategories } from '../../hooks/useData';
+import { useTransactions, useAppSettings, useCategories, useTodayTransactions } from '../../hooks/useData';
 import { db } from '../../db';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 import { t } from '../../lib/i18n';
-import { isToday } from 'date-fns';
 
 export function QuickStats() {
   const { lang, currency, activeContext, rtl } = useSettings();
@@ -13,16 +12,13 @@ export function QuickStats() {
   const isUrdu = lang === 'ur';
 
   const transactions = useTransactions(activeContext);
+  const todayTransactions = useTodayTransactions(activeContext);
   const settingsObj = useAppSettings();
   const categories = useCategories();
 
   const totalIncomePKR = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
   const totalExpensePKR = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
   const totalBalancePKR = totalIncomePKR - totalExpensePKR;
-
-  const todayTransactions = transactions.filter(t => {
-    try { return isToday(new Date(t.date)); } catch(e) { return false; }
-  });
 
   const todayExpensePKR = todayTransactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
 

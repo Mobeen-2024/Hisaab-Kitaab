@@ -4,6 +4,14 @@ import { db } from '../db';
 let aiInstance: GoogleGenAI | null = null;
 let currentKey: string | null = null;
 
+export const AI_MODELS = {
+  default: 'gemini-2.0-flash',
+  fast: 'gemini-2.0-flash',
+  vision: 'gemini-2.0-flash',
+} as const;
+
+export const AI_TIMEOUT_MS = 15000;
+
 export async function getGeminiInstance() {
   const settings = await db.settings.toCollection().first();
   const apiKey = settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;

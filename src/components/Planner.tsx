@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { db, Goal, Budget } from '../db';
+import { Goal } from '../db';
+import { PlannerService } from '../services/PlannerService';
+import { useMemo } from 'react';
 import { Lang, t } from '../lib/i18n';
 import { Target, PieChart, TrendingUp, AlertCircle, Plus, X, Pencil, PiggyBank, Calendar, Trash2, Wallet } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
@@ -22,10 +24,10 @@ export default function Planner() {
 
   const currentBudget = budgets.length > 0 ? budgets[0] : null;
 
-  const currentMonthExpenses = transactions.filter(t => 
+  const currentMonthExpenses = useMemo(() => transactions.filter(t => 
     t.type === 'expense' && 
     isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd })
-  ).reduce((sum, t) => sum + t.amount, 0);
+  ).reduce((sum, t) => sum + t.amount, 0), [transactions, monthStart, monthEnd]);
 
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
@@ -48,9 +50,9 @@ export default function Planner() {
     return 'bg-rose-400';
   };
 
-  const budgetUsedPct = currentBudget && currentBudget.amount > 0 
+  const budgetUsedPct = useMemo(() => currentBudget && currentBudget.amount > 0 
     ? Math.min(100, Math.round((currentMonthExpenses / currentBudget.amount) * 100))
-    : 0;
+    : 0, [currentBudget, currentMonthExpenses]);
 
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
@@ -60,7 +62,7 @@ export default function Planner() {
         onClose={() => setDeletingGoalId(null)}
         onConfirm={async () => {
           if (deletingGoalId) {
-            await db.goals.delete(deletingGoalId);
+            await PlannerService.deleteGoal(deletingGoalId);
             setDeletingGoalId(null);
           }
         }}
@@ -324,15 +326,11 @@ function BudgetModal({ isOpen, onClose, activeContext, currentBudget, currentMon
     e.preventDefault();
     if (!amount || isNaN(Number(amount))) return;
 
-    if (currentBudget?.id) {
-      await db.budgets.update(currentBudget.id, { amount: Number(amount) });
-    } else {
-      await db.budgets.add({
-        month: currentMonth,
-        amount: Number(amount),
-        context: activeContext
-      });
-    }
+    await PlannerService.upsertBudget({
+      month: currentMonth,
+      amount: Number(amount),
+      context: activeContext
+    }, currentBudget?.id);
     onClose();
   };
 
@@ -381,10 +379,9 @@ function GoalModal({ isOpen, onClose, activeContext, currency }: any) {
     e.preventDefault();
     if (!title || !targetAmount || isNaN(Number(targetAmount))) return;
 
-    await db.goals.add({
+    await PlannerService.addGoal({
       title,
       targetAmount: Number(targetAmount),
-      currentAmount: 0,
       deadline: deadline || undefined,
       context: activeContext
     });
@@ -454,9 +451,7 @@ function AddFundsModal({ goal, currency, onClose }: { goal: Goal, currency: stri
     e.preventDefault();
     if (!amount || isNaN(Number(amount))) return;
 
-    await db.goals.update(goal.id!, {
-      currentAmount: (goal.currentAmount || 0) + Number(amount)
-    });
+    await PlannerService.addFunds(goal.id!, goal.currentAmount || 0, Number(amount));
 
     onClose();
   };

@@ -1,10 +1,11 @@
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { ToastProvider } from './contexts/ToastContext';
 import MainLayout from './layouts/MainLayout';
 import SplashScreen from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
+import PageLoader from './components/common/PageLoader';
 
 // Lazy loaded components
 const DashboardPage = lazy(() => import('./components/DashboardWrapper'));
@@ -17,21 +18,15 @@ const Inventory = lazy(() => import('./components/Inventory'));
 const Settings = lazy(() => import('./components/Settings'));
 const MobileMenu = lazy(() => import('./components/MobileMenu'));
 
-// Loading component
-const PageLoader = () => (
-  <div className="flex items-center justify-center h-full w-full py-20">
-    <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-  </div>
-);
-
 function AppRoutes() {
   const { isLoading } = useSettings();
+  const location = useLocation();
 
   if (isLoading) return <PageLoader />;
 
   return (
     <MainLayout>
-      <ErrorBoundary>
+      <ErrorBoundary locationKey={location.key}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
@@ -54,15 +49,15 @@ function AppRoutes() {
 export default function App() {
   const [showSplash, setShowSplash] = React.useState(true);
 
-  if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  }
-
   return (
     <SettingsProvider>
       <ToastProvider>
         <BrowserRouter>
-          <AppRoutes />
+          {showSplash ? (
+            <SplashScreen onComplete={() => setShowSplash(false)} />
+          ) : (
+            <AppRoutes />
+          )}
         </BrowserRouter>
       </ToastProvider>
     </SettingsProvider>

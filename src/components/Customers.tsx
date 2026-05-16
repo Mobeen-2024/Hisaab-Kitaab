@@ -93,21 +93,21 @@ export default function Customers() {
     return <CustomerDetail customer={selectedCustomer} onBack={() => setSelectedCustomer(null)} lang={lang} currency={currency} activeContext={activeContext} />;
   }
 
-  const customersWithBalances = customers.map(c => {
+  const customersWithBalances = React.useMemo(() => customers.map(c => {
     const balance = allUdhaarEntries
       .filter(e => e.customerId === c.id)
       .reduce((sum, e) => sum + (e.type === 'give' ? e.amount : -e.amount), 0);
     return { ...c, balance };
-  });
+  }), [customers, allUdhaarEntries]);
 
-  const filteredCustomers = customersWithBalances.filter(c => {
+  const filteredCustomers = React.useMemo(() => customersWithBalances.filter(c => {
     if (activeTab !== 'all' && (c.type || 'customer') !== activeTab) return false;
     if (!searchQuery.trim()) return true;
     return c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery);
-  });
+  }), [customersWithBalances, activeTab, searchQuery]);
 
-  const totalReceivable = customersWithBalances.filter(c => c.type !== 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0);
-  const totalPayable = customersWithBalances.filter(c => c.type === 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0);
+  const totalReceivable = React.useMemo(() => customersWithBalances.filter(c => c.type !== 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0), [customersWithBalances]);
+  const totalPayable = React.useMemo(() => customersWithBalances.filter(c => c.type === 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0), [customersWithBalances]);
   const settledCount = customersWithBalances.filter(c => c.balance === 0).length;
 
   const formatCurrency = (val: number) => formatSharedCurrency(val, currency, lang);

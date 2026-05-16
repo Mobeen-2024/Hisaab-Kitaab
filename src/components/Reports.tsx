@@ -19,7 +19,7 @@ export default function Reports() {
   const allTransactions = useTransactions();
   const categories = useCategories();
 
-  const transactions = allTransactions.filter(t => t.context === activeContext);
+  const transactions = useMemo(() => allTransactions.filter(t => t.context === activeContext), [allTransactions, activeContext]);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [activeView, setActiveView] = useState<'summary' | 'calendar'>('summary');
   const [tableSearch, setTableSearch] = useState('');
@@ -50,8 +50,8 @@ export default function Reports() {
     const end = endOfYear(new Date());
     return transactions.filter(t => { const d = new Date(t.date); return d >= start && d <= end; });
   }, [transactions]);
-  const ytdIncome = ytdTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const ytdExpense = ytdTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const ytdIncome = useMemo(() => ytdTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [ytdTransactions]);
+  const ytdExpense = useMemo(() => ytdTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [ytdTransactions]);
 
   // Category breakdown for chart
   const categoryBreakdown = useMemo(() => {
@@ -64,8 +64,8 @@ export default function Reports() {
       .slice(0, 8);
   }, [filteredTransactions, categories]);
 
-  const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const totalIncome = useMemo(() => filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [filteredTransactions]);
+  const totalExpense = useMemo(() => filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [filteredTransactions]);
   const netBalance = totalIncome - totalExpense;
 
   const formatCurrency = (val: number) => formatSharedCurrency(val, currency, lang);

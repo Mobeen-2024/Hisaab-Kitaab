@@ -13,8 +13,7 @@ import GlobalSearchModal from '../components/GlobalSearchModal';
 import ImportStatementModal from '../components/ImportStatementModal';
 import ReminderSystem from '../components/ReminderSystem';
 import { useLocation } from 'react-router-dom';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
+import { useHasLowStock } from '../hooks/useData';
 import { Plus } from 'lucide-react';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
@@ -48,8 +47,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   }, [location.pathname, closeAllModals]);
 
   // Reactive alerts for inventory
-  const inventory = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
-  const hasAlerts = inventory.some(item => item.quantity <= item.minQuantity);
+  const hasAlerts = useHasLowStock(activeContext);
   const isDashboardOrSimilar = ['/', '/smart', '/intelligence', '/reports', '/planner', '/inventory'].includes(location.pathname);
 
   return (

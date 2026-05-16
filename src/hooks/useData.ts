@@ -35,6 +35,15 @@ export function useRecentTransactions(limit = 50) {
   );
 }
 
+export function useTodayTransactions(context: 'personal' | 'business') {
+  const today = new Date().toLocaleDateString('en-CA');
+  return useLiveQuery(
+    () => db.transactions.where('date').equals(today).filter(t => t.context === context).toArray(),
+    [context, today],
+    [] as Transaction[]
+  );
+}
+
 export function useCustomers() {
   return useLiveQuery(
     () => db.customers.toArray(),
@@ -79,6 +88,15 @@ export function useInventory(context?: 'personal' | 'business') {
     },
     [context],
     [] as InventoryItem[]
+  );
+}
+
+export function useHasLowStock(context: 'personal' | 'business') {
+  return useLiveQuery(
+    () => db.inventory.where('context').equals(context).toArray()
+      .then(items => items.some(i => i.quantity <= i.minQuantity)),
+    [context],
+    false
   );
 }
 

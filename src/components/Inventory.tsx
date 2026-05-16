@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Package, Plus, AlertCircle, Trash2, Edit2, TrendingUp, DollarSign, BarChart3, Minus } from 'lucide-react';
 import { InventoryItem } from '../models';
 import { useInventory } from '../hooks/useData';
-import { db } from '../db';
+import { InventoryService, InventoryItemInput } from '../services/InventoryService';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import { useSettings } from '../contexts/SettingsContext';
@@ -31,12 +31,13 @@ export default function Inventory() {
 
   const handleRestock = async () => {
     if (!restockId || !restockQty || isNaN(Number(restockQty))) return;
-    const item = items.find(i => i.id === restockId);
-    if (item) {
-      await db.inventory.update(restockId, { quantity: item.quantity + Number(restockQty) });
+    try {
+      await InventoryService.restock(restockId, Number(restockQty));
+      setRestockId(null);
+      setRestockQty('');
+    } catch (error) {
+      console.error('Restock failed:', error);
     }
-    setRestockId(null);
-    setRestockQty('');
   };
 
   return (
@@ -203,7 +204,7 @@ export default function Inventory() {
         onClose={() => setDeleteId(null)}
         onConfirm={async () => {
           if (deleteId) {
-            await db.inventory.delete(deleteId);
+            await InventoryService.delete(deleteId);
             setDeleteId(null);
           }
         }}
@@ -214,7 +215,15 @@ export default function Inventory() {
   );
 }
 
-function InventoryModal({ isOpen, onClose, item, activeContext, currency }: any) {
+interface InventoryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  item: InventoryItem | null;
+  activeContext: 'personal' | 'business';
+  currency: string;
+}
+
+function InventoryModal({ isOpen, onClose, item, activeContext, currency }: InventoryModalProps) {
   const [name, setName] = useState(item?.name || '');
   const [category, setCategory] = useState(item?.category || '');
   const [quantity, setQuantity] = useState(item?.quantity?.toString() || '');
@@ -241,7 +250,7 @@ function InventoryModal({ isOpen, onClose, item, activeContext, currency }: any)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {
+    const data: InventoryItemInput = {
       name,
       category,
       quantity: Number(quantity),
@@ -250,11 +259,7 @@ function InventoryModal({ isOpen, onClose, item, activeContext, currency }: any)
       context: activeContext
     };
 
-    if (item?.id) {
-      await db.inventory.update(item.id, data);
-    } else {
-      await db.inventory.add(data);
-    }
+    await InventoryService.upsert(data, item?.id);
     onClose();
   };
 

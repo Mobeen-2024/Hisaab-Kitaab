@@ -1,4 +1,5 @@
-import { getGeminiInstance } from '../lib/ai';
+import { getGeminiInstance, AI_MODELS, AI_TIMEOUT_MS } from '../lib/ai';
+import { parseAIJson } from '../lib/parseAIJson';
 import { ParsedTransaction } from '../utils/statementParsers';
 
 export interface AIInsightStats {
@@ -18,15 +19,25 @@ export interface AIImageResult {
   suggestedCategory?: string;
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('AI request timed out')), timeoutMs)
+    ),
+  ]);
+}
+
 export const AIService = {
   async generateInsights(activeContext: string, stats: AIInsightStats): Promise<string[]> {
     const ai = await getGeminiInstance();
     const prompt = `User context: ${activeContext}. Recent data: ${JSON.stringify(stats)}. Provide 3 concise, actionable financial insights. Return ONLY a JSON array of strings.`;
-    const response = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: prompt });
-    const fullText = response.text || '';
-    const jsonMatch = fullText.match(/\[[\s\S]*\]/);
-    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(fullText);
-    return Array.isArray(parsed) ? parsed : [fullText];
+    const response = await withTimeout(
+      ai.getGenerativeModel({ model: AI_MODELS.fast }).generateContent(prompt),
+      AI_TIMEOUT_MS
+    );
+    const fullText = response.response.text();
+    return parseAIJson(fullText, []);
   },
 
   async getChatResponse(
@@ -47,8 +58,11 @@ export const AIService = {
       })),
       { role: 'user', parts: [{ text: userMsg }] }
     ];
-    const response = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: contents as any });
-    return (response.text || 'Error').trim();
+    const response = await withTimeout(
+      ai.getGenerativeModel({ model: AI_MODELS.default }).generateContent({ contents } as any),
+      AI_TIMEOUT_MS
+    );
+    return response.response.text().trim() || 'No response from AI';
   },
 
   async parseStatement(pastedText: string): Promise<ParsedTransaction[]> {
@@ -68,17 +82,14 @@ export const AIService = {
       Return ONLY a JSON array. Return ONLY the JSON, no other text.
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: prompt,
-    });
+    const response = await withTimeout(
+      ai.getGenerativeModel({ model: AI_MODELS.fast }).generateContent(prompt),
+      AI_TIMEOUT_MS
+    );
 
-    const text = response.text;
-    if (!text) throw new Error("AI could not find any transactions in the text.");
-
-    const jsonText = text.trim().replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
-    const results = JSON.parse(jsonText);
-    if (!Array.isArray(results) || results.length === 0) {
+    const text = response.response.text();
+    const results = parseAIJson(text, []);
+    if (results.length === 0) {
       throw new Error("AI could not find any transactions in the text.");
     }
     return results;
@@ -86,35 +97,36 @@ export const AIService = {
 
   async extractFromImage(file: File, base64: string): Promise<AIImageResult | null> {
     const ai = await getGeminiInstance();
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [{
-        role: 'user',
-        parts: [
-          {
-            text: `Extract financial transaction details from this image.
+    const contents = [{
+      role: 'user',
+      parts: [
+        {
+          text: `Extract financial transaction details from this image.
 Return ONLY a valid JSON object:
 {"amount": <number>, "type": "<income|expense>", "description": "<5-word summary>", "date": "<YYYY-MM-DD>", "suggestedCategory": "<food|fuel|salary|utilities|transport>"}
 If no data found, return: {"amount": 0, "type": "expense", "description": "Unknown", "date": "${new Date().toISOString().split('T')[0]}", "suggestedCategory": ""}`
-          },
-          { inlineData: { mimeType: file.type as any || 'image/jpeg', data: base64 } }
-        ]
-      }],
-    });
+        },
+        { inlineData: { mimeType: file.type as any || 'image/jpeg', data: base64 } }
+      ]
+    }];
 
-    if (response.text) {
-      const json = response.text.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
-      return JSON.parse(json);
-    }
-    return null;
+    const response = await withTimeout(
+      ai.getGenerativeModel({ model: AI_MODELS.vision }).generateContent({ contents } as any),
+      AI_TIMEOUT_MS
+    );
+
+    const text = response.response.text();
+    return parseAIJson(text, null);
   },
 
   async parseVoiceInput(text: string, categories: any[]): Promise<any> {
     const ai = await getGeminiInstance();
     const prompt = `Extract transaction details from: "${text}". Return ONLY JSON: { "type": "expense"|"income", "amount": number, "categoryId": number|null, "description": string }. Categories: ${JSON.stringify(categories)}`;
-    const response = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: prompt });
-    const textResponse = response.text || '';
-    const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : (textResponse ? JSON.parse(textResponse) : null);
+    const response = await withTimeout(
+      ai.getGenerativeModel({ model: AI_MODELS.fast }).generateContent(prompt),
+      AI_TIMEOUT_MS
+    );
+    const textResponse = response.response.text();
+    return parseAIJson(textResponse, null);
   }
 };

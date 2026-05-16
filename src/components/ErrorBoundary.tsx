@@ -3,6 +3,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  locationKey?: string;
 }
 
 interface State {
@@ -16,6 +17,12 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   public static getDerivedStateFromError(_: Error): State {
     return { hasError: true };
+  }
+
+  public componentDidUpdate(prevProps: Props) {
+    if (this.state.hasError && this.props.locationKey !== prevProps.locationKey) {
+      this.setState({ hasError: false });
+    }
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {

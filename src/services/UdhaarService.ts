@@ -1,20 +1,7 @@
 import { db, UdhaarEntry } from '../db';
-import { z } from 'zod';
+import { UdhaarEntrySchema } from '../models';
 
-export const UdhaarEntrySchema = z.object({
-  customerId: z.number(),
-  type: z.enum(['give', 'receive']),
-  amount: z.number().positive(),
-  originalCurrency: z.string(),
-  originalAmount: z.number().positive(),
-  exchangeRate: z.number().positive(),
-  date: z.string(),
-  description: z.string().optional(),
-  dueDate: z.string().optional(),
-  isCompleted: z.boolean().default(false),
-});
-
-export type UdhaarEntryInput = z.infer<typeof UdhaarEntrySchema>;
+export type UdhaarEntryInput = UdhaarEntry;
 
 export const UdhaarService = {
   async add(input: UdhaarEntryInput) {

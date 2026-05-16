@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTransactions, useCategories, useInventory, useMessages } from '../hooks/useData';
 import { useSettings } from '../contexts/SettingsContext';
-import { db } from '../db';
 import { AIService } from '../services/AIService';
+import { MessageService } from '../services/MessageService';
 import { AlertTriangle } from 'lucide-react';
 import { format, subMonths, isAfter } from 'date-fns';
 
@@ -64,12 +64,12 @@ export default function SmartAssistant() {
     const userMsg = chatInput.trim();
     setChatInput('');
     setChatLoading(true);
-    await db.messages.add({ chatId: 'ai', sender: 'user', content: userMsg, timestamp: new Date().toISOString() });
+    await MessageService.add('ai', 'user', userMsg);
     try {
       const content = await AIService.getChatResponse(activeContext, stats, currency, messages, userMsg);
-      await db.messages.add({ chatId: 'ai', sender: 'ai', content, timestamp: new Date().toISOString() });
+      await MessageService.add('ai', 'ai', content);
     } catch (err: any) {
-      await db.messages.add({ chatId: 'ai', sender: 'ai', content: `Error: ${err.message}`, timestamp: new Date().toISOString() });
+      await MessageService.add('ai', 'ai', `Error: ${err.message}`);
     } finally { setChatLoading(false); }
   };
 
@@ -79,8 +79,7 @@ export default function SmartAssistant() {
         activeContext={activeContext}
         loading={loading}
         onClearChat={async () => {
-          const ids = (await db.messages.where('chatId').equals('ai').toArray()).map(m => m.id).filter((id): id is number => id !== undefined);
-          if (ids.length > 0) await db.messages.bulkDelete(ids);
+          await MessageService.clearChat('ai');
           setInsights(null);
         }}
         onGenerateInsights={generateInsights}

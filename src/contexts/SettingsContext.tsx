@@ -11,7 +11,7 @@ interface SettingsContextType {
   ownerName: string;
   ownerAvatar: string | null;
   activeRole: string;
-  updateSetting: (key: string, value: any) => Promise<void>;
+  updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -33,12 +33,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const activeUser = users.find(u => u.id === settingsObj?.activeUserId);
   const activeRole = activeUser?.role || 'owner';
 
-  const updateSetting = async (key: string, value: any) => {
-    const existing = await db.settings.toCollection().first();
-    if (existing?.id) {
-      await db.settings.update(existing.id, { [key]: value });
+  const updateSetting = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
+    if (settingsObj?.id) {
+      await db.settings.update(settingsObj.id, { [key]: value });
     } else {
-      await db.settings.add({ language: 'en', currency: 'PKR', [key]: value });
+      await db.settings.add({ language: 'en', currency: 'PKR', activeContext: 'business', [key]: value } as AppSettings);
     }
   };
 

@@ -17,16 +17,14 @@ export const CustomerService = {
   },
 
   async delete(id: number) {
-    // Also delete related transactions and udhaar entries
-    const txs = await db.transactions.toArray();
-    const txIds = txs.filter(t => Number(t.customerId) === id).map(t => t.id).filter((id): id is number => id !== undefined);
-    if (txIds.length > 0) await db.transactions.bulkDelete(txIds);
-    
-    const entries = await db.udhaarEntries.toArray();
-    const entryIds = entries.filter(e => Number(e.customerId) === id).map(e => e.id).filter((id): id is number => id !== undefined);
-    if (entryIds.length > 0) await db.udhaarEntries.bulkDelete(entryIds);
-    
-    return await db.customers.delete(id);
+    const txIds = await db.transactions.where('customerId').equals(id).primaryKeys();
+    const udhaarIds = await db.udhaarEntries.where('customerId').equals(id).primaryKeys();
+
+    return await db.transaction('rw', [db.transactions, db.udhaarEntries, db.customers], async () => {
+      if (txIds.length > 0) await db.transactions.bulkDelete(txIds);
+      if (udhaarIds.length > 0) await db.udhaarEntries.bulkDelete(udhaarIds);
+      await db.customers.delete(id);
+    });
   },
 
   async getAll() {

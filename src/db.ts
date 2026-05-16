@@ -97,7 +97,7 @@ export class HisaabKitaabDB extends Dexie {
         });
 
         table.hook('updating', (modifications, primKey, obj, transaction) => {
-          this.auditLogs.add({
+          db.auditLogs.add({
             entityType: tableName as any,
             entityId: primKey || obj.id || 0,
             action: 'update',
@@ -108,7 +108,7 @@ export class HisaabKitaabDB extends Dexie {
         });
 
         table.hook('deleting', (primKey, obj, transaction) => {
-          this.auditLogs.add({
+          db.auditLogs.add({
             entityType: tableName as any,
             entityId: primKey || obj.id || 0,
             action: 'delete',

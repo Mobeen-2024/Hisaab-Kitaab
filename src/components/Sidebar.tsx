@@ -2,20 +2,19 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { t } from '../lib/i18n';
-import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity } from 'lucide-react';
+import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, LayoutGrid } from 'lucide-react';
 import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
 
 export default function Sidebar() {
-  const { lang, currency, activeContext, updateSetting } = useSettings();
+  const { lang, currency, activeContext, updateSetting, activeRole } = useSettings();
 
-  const activeUserRole = 'owner'; // This should be fetched from context as well if needed
-  const canViewReports = activeUserRole === 'owner' || activeUserRole === 'spouse';
-  const canViewPlanner = activeUserRole === 'owner' || activeUserRole === 'spouse';
-  const canViewSmart = activeUserRole === 'owner' || activeUserRole === 'spouse';
+  const canViewReports = activeRole === 'owner' || activeRole === 'spouse';
+  const canViewPlanner = activeRole === 'owner' || activeRole === 'spouse';
+  const canViewSmart = activeRole === 'owner' || activeRole === 'spouse';
 
   const navItems = [
-    { to: '/', icon: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>, label: t(lang, 'dashboard') || 'Dashboard' },
+    { to: '/', icon: <LayoutGrid size={20} className="shrink-0" />, label: t(lang, 'dashboard') || 'Dashboard' },
     { to: '/customers', icon: <Users size={20} className="shrink-0" />, label: t(lang, 'customers') || 'Contacts (Khata)' },
     ...(canViewReports ? [{ to: '/reports', icon: <FileText size={20} className="shrink-0" />, label: t(lang, 'reports') || 'Reports' }] : []),
     ...(canViewPlanner ? [{ to: '/planner', icon: <PieChart size={20} className="shrink-0" />, label: 'Planner & Goals' }] : []),
