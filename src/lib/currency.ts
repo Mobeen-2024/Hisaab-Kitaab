@@ -1,4 +1,4 @@
-let exchangeRates: Record<string, number> = {
+export let exchangeRates: Record<string, number> = {
   'PKR': 1,
   'USD': 0.0036,
   'EUR': 0.0033,
@@ -20,6 +20,8 @@ let exchangeRates: Record<string, number> = {
   'MYR': 0.017,
   'PHP': 0.20,
 };
+
+export { exchangeRates as mockExchangeRates };
 
 export const fetchExchangeRates = async () => {
   try {

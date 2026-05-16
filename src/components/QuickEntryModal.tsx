@@ -242,11 +242,11 @@ export default function QuickEntryModal({
         contents: prompt,
       });
 
-      const textResponse = response.text;
+      const textResponse = response.text || '';
       
       // Basic JSON extraction in case model returns markdown blocks
       const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-      const data = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(textResponse);
+      const data = jsonMatch ? JSON.parse(jsonMatch[0]) : (textResponse ? JSON.parse(textResponse) : null);
 
       if (data) {
         if (data.type === "expense" || data.type === "income") {
