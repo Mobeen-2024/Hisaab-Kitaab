@@ -1,4 +1,4 @@
-import { Transaction } from '../db';
+import type { Transaction } from '../models';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Use a CDN link for the worker to avoid complex Vite worker configuration issues in this environment
