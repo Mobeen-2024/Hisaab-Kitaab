@@ -29,5 +29,14 @@ export const CustomerService = {
 
   async getAll() {
     return await db.customers.toArray();
+  },
+
+  async search(query: string) {
+    const q = query.toLowerCase();
+    const all = await this.getAll();
+    return all.filter(c => 
+      c.name.toLowerCase().includes(q) || 
+      c.phone.includes(q)
+    );
   }
 };

@@ -3,7 +3,7 @@ import { X, MessageSquare, Send, User, Sparkles, Clock, Trash2, Phone, ExternalL
 import QrScanModal from './QrScanModal';
 
 import { motion, AnimatePresence } from 'motion/react';
-import { db } from '../db';
+
 import { Lang, t } from '../lib/i18n';
 import { formatCurrency } from '../lib/currency';
 import { useMessages, useCustomers } from '../hooks/useData';

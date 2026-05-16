@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { db } from '../db';
+import { SettingsService } from '../services/SettingsService';
 
 let aiInstance: GoogleGenAI | null = null;
 let currentKey: string | null = null;
@@ -13,7 +13,7 @@ export const AI_MODELS = {
 export const AI_TIMEOUT_MS = 15000;
 
 export async function getGeminiInstance() {
-  const settings = await db.settings.toCollection().first();
+  const settings = await SettingsService.get();
   const apiKey = settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
   
   if (!apiKey) {

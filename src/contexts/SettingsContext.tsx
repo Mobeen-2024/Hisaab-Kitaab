@@ -1,7 +1,9 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, AppSettings } from '../db';
+import { AppSettings } from '../db';
 import { Lang, isRTL } from '../lib/i18n';
+import { SettingsService } from '../services/SettingsService';
+import { AppUserService } from '../services/AppUserService';
 
 interface SettingsContextType {
   lang: Lang;
@@ -18,8 +20,8 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
-  const users = useLiveQuery(() => db.appUsers.toArray()) || [];
+  const settingsObj = useLiveQuery(() => SettingsService.get());
+  const users = useLiveQuery(() => AppUserService.getAll()) || [];
   
   const isLoading = settingsObj === undefined;
 
@@ -34,11 +36,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const activeRole = activeUser?.role || 'owner';
 
   const updateSetting = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    if (settingsObj?.id) {
-      await db.settings.update(settingsObj.id, { [key]: value });
-    } else {
-      await db.settings.add({ language: 'en', currency: 'PKR', activeContext: 'business', [key]: value } as AppSettings);
-    }
+    await SettingsService.update({ [key]: value });
   };
 
   const value = {

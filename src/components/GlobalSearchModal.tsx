@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { db, Transaction, Customer, InventoryItem } from '../db';
+import { TransactionService } from '../services/TransactionService';
+import { CustomerService } from '../services/CustomerService';
+import { InventoryService } from '../services/InventoryService';
+import { CategoryService } from '../services/CategoryService';
+import { Transaction, Customer, InventoryItem } from '../db';
 import { Search, X, TrendingUp, TrendingDown, Users, Package } from 'lucide-react';
 import { t, Lang } from '../lib/i18n';
 
@@ -48,15 +52,8 @@ export default function GlobalSearchModal({
         return;
       }
       
-      const q = query.toLowerCase();
-
-      // Search transactions
-      const txs = await db.transactions.where('context').equals(activeContext).toArray();
-      const cats = await db.categories.toArray();
-      const matchedTxs = txs.filter(t => 
-        (t.description?.toLowerCase().includes(q)) ||
-        (t.amount.toString().includes(q))
-      );
+      const matchedTxs = await TransactionService.search(query, activeContext);
+      const cats = await CategoryService.getAll();
       
       const enrichedTxs = matchedTxs.map(tx => {
         const cat = cats.find(c => c.id === tx.categoryId);
@@ -65,17 +62,12 @@ export default function GlobalSearchModal({
       setTxResults(enrichedTxs.slice(0, 5));
 
       // Search customers
-      const custs = await db.customers.toArray();
-      const matchedCusts = custs.filter(c => 
-        c.name.toLowerCase().includes(q) || 
-        c.phone.includes(q)
-      );
+      const matchedCusts = await CustomerService.search(query);
       setCustomerResults(matchedCusts.slice(0, 5));
 
       // Search inventory
       if (activeContext === 'business') {
-        const items = await db.inventory.where('context').equals(activeContext).toArray();
-        const matchedItems = items.filter(i => i.name.toLowerCase().includes(q));
+        const matchedItems = await InventoryService.search(query, activeContext);
         setInventoryResults(matchedItems.slice(0, 5));
       }
     };

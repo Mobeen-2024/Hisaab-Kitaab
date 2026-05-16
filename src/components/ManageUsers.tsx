@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { db, AppUser } from '../db';
+import { AppUser } from '../db';
+import { AppUserService } from '../services/AppUserService';
+import { SettingsService } from '../services/SettingsService';
 import { Shield, UserPlus, Users, X, Key, Trash2 } from 'lucide-react';
 import { useAppUsers, useAppSettings } from '../hooks/useData';
 
@@ -23,7 +25,7 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
     e.preventDefault();
     if (!name || !passcode) return;
 
-    await db.appUsers.add({
+    await AppUserService.add({
       name,
       role,
       passcode,
@@ -40,7 +42,7 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
     const input = prompt(`Enter passcode for ${user.name}:`);
     if (input === user.passcode) {
       if (settingsObj?.id) {
-        await db.settings.update(settingsObj.id, { activeUserId: userId });
+        await SettingsService.update(settingsObj.id, { activeUserId: userId });
         window.location.reload();
       }
     } else {
@@ -50,21 +52,21 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
 
   const handleDeleteUser = async (id: number) => {
     if (confirm("Are you sure you want to delete this user?")) {
-      await db.appUsers.delete(id);
+      await AppUserService.delete(id);
     }
   };
 
   // Seed owner if users list is empty
   const handleSeedOwner = async () => {
     const defaultOwnerName = settingsObj?.ownerName || 'Owner';
-    const newOwnerId = await db.appUsers.add({
+    const newOwnerId = await AppUserService.add({
       name: defaultOwnerName,
       role: 'owner',
       passcode: '0000',
       contextAccess: 'both'
     });
     if (settingsObj?.id) {
-      await db.settings.update(settingsObj.id, { activeUserId: newOwnerId });
+      await SettingsService.update(settingsObj.id, { activeUserId: newOwnerId });
     }
   };
 

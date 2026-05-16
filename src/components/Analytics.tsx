@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
 import { t, Lang, isRTL } from '../lib/i18n';
+import { useTransactions, useCategories } from '../hooks/useData';
 import { ComposedChart, Bar, Line, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { startOfWeek, addDays, getDay, isSameDay, startOfMonth, endOfMonth, endOfWeek, isSameMonth, isToday, addMonths, subMonths, format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -13,9 +12,9 @@ import { useSettings } from '../contexts/SettingsContext';
 
 export default function Analytics() {
   const { lang, currency, activeContext } = useSettings();
-  const allTransactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
-  const transactions = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
-  const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
+  const allTransactions = useTransactions();
+  const transactions = useTransactions(activeContext);
+  const categories = useCategories();
 
   const rtl = isRTL(lang);
 

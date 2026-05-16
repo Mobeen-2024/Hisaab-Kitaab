@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, Loader2, AlertCircle } from 'lucide-react';
-import { db, Transaction } from '../db';
+import { Transaction } from '../db';
+import { TransactionService } from '../services/TransactionService';
 import { useCategories, useAppSettings } from '../hooks/useData';
 import { useSettings } from '../contexts/SettingsContext';
 import { AIService } from '../services/AIService';
@@ -290,11 +291,8 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       }));
 
       const existingRefs = new Set(
-        (await db.transactions
-          .where('importReferenceId')
-          .anyOf(selectedData.map(d => d.referenceId).filter(Boolean))
-          .toArray()
-        ).map(t => t.importReferenceId)
+        (await TransactionService.getByImportReferences(selectedData.map(d => d.referenceId).filter(Boolean)))
+        .map(t => t.importReferenceId)
       );
 
       const newTransactions = transactionsToSave.filter(t => 
@@ -302,7 +300,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       );
 
       setDuplicatesSkipped(transactionsToSave.length - newTransactions.length);
-      if (newTransactions.length > 0) await db.transactions.bulkAdd(newTransactions);
+      if (newTransactions.length > 0) await TransactionService.bulkAdd(newTransactions);
       setStep('success');
     } catch (err: any) {
       setError("Failed to save transactions: " + (err.message || "Unknown error"));

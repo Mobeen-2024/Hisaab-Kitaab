@@ -27,7 +27,7 @@ async function getTesseract(): Promise<any> {
   return TesseractRef;
 }
 
-import { db } from '../db';
+import { TransactionService } from '../services/TransactionService';
 import { Lang, t } from '../lib/i18n';
 import { parsePaymentData, ParsedPayment } from '../lib/parsePaymentData';
 import { AIService } from '../services/AIService';
@@ -263,7 +263,7 @@ export default function QrScanModal({ isOpen, onClose, lang, activeContext }: Qr
     if (!amount || !categoryId) return;
     setIsProcessing(true);
     try {
-      await db.transactions.add({
+      await TransactionService.add({
         amount: parseFloat(amount),
         type,
         categoryId: parseInt(categoryId),
@@ -272,7 +272,7 @@ export default function QrScanModal({ isOpen, onClose, lang, activeContext }: Qr
         description,
         source: 'ai',
         importReferenceId: parsedData?.referenceId,
-      });
+      } as any);
       onClose();
     } catch (err) {
       setError('Failed to save. Please try again.');

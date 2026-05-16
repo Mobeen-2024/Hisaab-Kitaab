@@ -1,6 +1,6 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
-import { db } from '../../db';
+import { SettingsService } from '../../services/SettingsService';
 
 interface AISettingsProps {
   tempApiKey: string;
@@ -47,9 +47,9 @@ export default function AISettings({ tempApiKey, setTempApiKey, isKeySaved, setI
                     return;
                   }
                   if (settingsObj?.id) {
-                    await db.settings.update(settingsObj.id, { geminiApiKey: cleanKey });
+                    await SettingsService.update(settingsObj.id, { geminiApiKey: cleanKey });
                   } else {
-                    await db.settings.put({ id: 1, language: 'en', currency: 'PKR', geminiApiKey: cleanKey, activeContext: 'business' });
+                    await SettingsService.update(1, { geminiApiKey: cleanKey });
                   }
                   setTempApiKey(cleanKey);
                   setIsKeySaved(true);
@@ -78,7 +78,7 @@ export default function AISettings({ tempApiKey, setTempApiKey, isKeySaved, setI
               <button
                 onClick={async () => {
                   if (confirm('Clear saved API key and use default from .env?')) {
-                    await db.settings.update(settingsObj.id!, { geminiApiKey: undefined });
+                    await SettingsService.update(settingsObj.id!, { geminiApiKey: undefined });
                     setTempApiKey('');
                     alert('Settings reset! Refreshing...');
                     window.location.reload();

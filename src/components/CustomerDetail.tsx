@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Customer } from '../db';
+import { Customer } from '../db';
 import { CustomerService } from '../services/CustomerService';
 import { UdhaarService } from '../services/UdhaarService';
 import { InventoryService } from '../services/InventoryService';
+import { useUdhaarEntries, useInventory } from '../hooks/useData';
 import { t, Lang } from '../lib/i18n';
 import { ArrowLeft, Phone, Calendar, ArrowUpRight, ArrowDownRight, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -28,9 +29,7 @@ export default function CustomerDetail({
   const [entryType, setEntryType] = useState<'give' | 'receive'>('give');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const udhaarEntries = useLiveQuery(() => 
-    db.udhaarEntries.where({ customerId: customer.id }).reverse().toArray()
-  ) || [];
+  const udhaarEntries = useUdhaarEntries(customer.id);
 
   const computedBalance = udhaarEntries.reduce((sum, entry) => {
     if (customer.type === 'supplier') {
@@ -233,7 +232,7 @@ function AddUdhaarEntryModal({
 
   const [isConfirmingSave, setIsConfirmingSave] = useState(false);
 
-  const inventoryItems = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
+  const inventoryItems = useInventory(activeContext);
 
   if (!isOpen) return null;
 

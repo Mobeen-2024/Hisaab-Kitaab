@@ -45,5 +45,24 @@ export const InventoryService = {
 
   async delete(id: number) {
     return await db.inventory.delete(id);
+  },
+
+  async getByContext(context: 'personal' | 'business') {
+    return await db.inventory.where('context').equals(context).toArray();
+  },
+
+  async getAll() {
+    return await db.inventory.toArray();
+  },
+
+  async hasLowStock(context: 'personal' | 'business') {
+    const items = await this.getByContext(context);
+    return items.some(i => i.quantity <= i.minQuantity);
+  },
+
+  async search(query: string, context: 'personal' | 'business') {
+    const q = query.toLowerCase();
+    const items = await this.getByContext(context);
+    return items.filter(i => i.name.toLowerCase().includes(q));
   }
 };

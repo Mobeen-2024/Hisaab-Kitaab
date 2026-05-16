@@ -10,7 +10,11 @@ export const UdhaarService = {
   },
 
   async getAll() {
-    return await db.udhaarEntries.toArray();
+    return await db.udhaarEntries.reverse().toArray();
+  },
+
+  async getByCustomer(customerId: number) {
+    return await db.udhaarEntries.where('customerId').equals(customerId).reverse().toArray();
   },
 
   async delete(id: number) {
@@ -19,5 +23,13 @@ export const UdhaarService = {
 
   async markAsCompleted(id: number) {
     return await db.udhaarEntries.update(id, { isCompleted: true });
+  },
+
+  async getLastUsedCustomer(type: 'give' | 'receive') {
+    return await db.udhaarEntries
+      .where('type')
+      .equals(type)
+      .reverse()
+      .first();
   }
 };

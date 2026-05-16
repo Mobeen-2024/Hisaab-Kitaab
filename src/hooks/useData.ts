@@ -1,5 +1,4 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
 import { 
   Transaction, 
   Customer, 
@@ -13,14 +12,24 @@ import {
   Message,
   AuditLog
 } from '../models';
+import { TransactionService } from '../services/TransactionService';
+import { CustomerService } from '../services/CustomerService';
+import { InventoryService } from '../services/InventoryService';
+import { UdhaarService } from '../services/UdhaarService';
+import { PlannerService } from '../services/PlannerService';
+import { MessageService } from '../services/MessageService';
+import { SettingsService } from '../services/SettingsService';
+import { AuditService } from '../services/AuditService';
+import { AppUserService } from '../services/AppUserService';
+import { CategoryService } from '../services/CategoryService';
 
 export function useTransactions(context?: 'personal' | 'business') {
   return useLiveQuery(
     () => {
       if (context) {
-        return db.transactions.where('context').equals(context).reverse().toArray();
+        return TransactionService.getByContext(context);
       }
-      return db.transactions.reverse().toArray();
+      return TransactionService.getAll();
     },
     [context],
     [] as Transaction[]
@@ -29,7 +38,7 @@ export function useTransactions(context?: 'personal' | 'business') {
 
 export function useRecentTransactions(limit = 50) {
   return useLiveQuery(
-    () => db.transactions.reverse().limit(limit).toArray(),
+    () => TransactionService.getRecent(limit),
     [limit],
     [] as Transaction[]
   );
@@ -38,7 +47,7 @@ export function useRecentTransactions(limit = 50) {
 export function useTodayTransactions(context: 'personal' | 'business') {
   const today = new Date().toLocaleDateString('en-CA');
   return useLiveQuery(
-    () => db.transactions.where('date').equals(today).filter(t => t.context === context).toArray(),
+    () => TransactionService.getByDate(today, context),
     [context, today],
     [] as Transaction[]
   );
@@ -46,7 +55,7 @@ export function useTodayTransactions(context: 'personal' | 'business') {
 
 export function useCustomers() {
   return useLiveQuery(
-    () => db.customers.toArray(),
+    () => CustomerService.getAll(),
     [],
     [] as Customer[]
   );
@@ -54,12 +63,7 @@ export function useCustomers() {
 
 export function useCategories(context?: 'personal' | 'business') {
   return useLiveQuery(
-    () => {
-      if (context) {
-        return db.categories.where('context').equals(context).toArray();
-      }
-      return db.categories.toArray();
-    },
+    () => CategoryService.getAll(context),
     [context],
     [] as Category[]
   );
@@ -69,9 +73,9 @@ export function useUdhaarEntries(customerId?: number) {
   return useLiveQuery(
     () => {
       if (customerId) {
-        return db.udhaarEntries.where('customerId').equals(customerId).reverse().toArray();
+        return UdhaarService.getByCustomer(customerId);
       }
-      return db.udhaarEntries.reverse().toArray();
+      return UdhaarService.getAll();
     },
     [customerId],
     [] as UdhaarEntry[]
@@ -82,9 +86,9 @@ export function useInventory(context?: 'personal' | 'business') {
   return useLiveQuery(
     () => {
       if (context) {
-        return db.inventory.where('context').equals(context).toArray();
+        return InventoryService.getByContext(context);
       }
-      return db.inventory.toArray();
+      return InventoryService.getAll();
     },
     [context],
     [] as InventoryItem[]
@@ -93,8 +97,7 @@ export function useInventory(context?: 'personal' | 'business') {
 
 export function useHasLowStock(context: 'personal' | 'business') {
   return useLiveQuery(
-    () => db.inventory.where('context').equals(context).toArray()
-      .then(items => items.some(i => i.quantity <= i.minQuantity)),
+    () => InventoryService.hasLowStock(context),
     [context],
     false
   );
@@ -104,9 +107,9 @@ export function useGoals(context?: 'personal' | 'business') {
   return useLiveQuery(
     () => {
       if (context) {
-        return db.goals.where('context').equals(context).toArray();
+        return PlannerService.getGoalsByContext(context);
       }
-      return db.goals.toArray();
+      return PlannerService.getAllGoals();
     },
     [context],
     [] as Goal[]
@@ -115,16 +118,7 @@ export function useGoals(context?: 'personal' | 'business') {
 
 export function useBudgets(context?: 'personal' | 'business', month?: string) {
   return useLiveQuery(
-    () => {
-      let collection = db.budgets.toCollection();
-      if (month && context) {
-        return db.budgets.where({ month, context }).toArray();
-      }
-      if (context) {
-        return db.budgets.where('context').equals(context).toArray();
-      }
-      return collection.toArray();
-    },
+    () => PlannerService.getBudgets(context, month),
     [context, month],
     [] as Budget[]
   );
@@ -132,7 +126,7 @@ export function useBudgets(context?: 'personal' | 'business', month?: string) {
 
 export function useAppSettings() {
   return useLiveQuery(
-    () => db.settings.toCollection().first(),
+    () => SettingsService.get(),
     [],
     null as AppSettings | null
   );
@@ -140,7 +134,7 @@ export function useAppSettings() {
 
 export function useAppUsers() {
   return useLiveQuery(
-    () => db.appUsers.toArray(),
+    () => AppUserService.getAll(),
     [],
     [] as AppUser[]
   );
@@ -150,9 +144,9 @@ export function useMessages(chatId?: string) {
   return useLiveQuery(
     () => {
       if (chatId) {
-        return db.messages.where('chatId').equals(chatId).reverse().toArray();
+        return MessageService.getAllByChatId(chatId);
       }
-      return db.messages.reverse().toArray();
+      return MessageService.getAll();
     },
     [chatId],
     undefined as Message[] | undefined
@@ -161,12 +155,7 @@ export function useMessages(chatId?: string) {
 
 export function useAuditLogs(context?: 'personal' | 'business') {
   return useLiveQuery(
-    () => {
-      if (context) {
-        return db.auditLogs.where('context').equals(context).reverse().toArray();
-      }
-      return db.auditLogs.reverse().toArray();
-    },
+    () => AuditService.getAll(context),
     [context],
     [] as AuditLog[]
   );

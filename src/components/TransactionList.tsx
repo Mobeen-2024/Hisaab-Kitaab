@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { t, Lang, isRTL } from '../lib/i18n';
 import { useTransactions, useCategories, useAppSettings, useAppUsers } from '../hooks/useData';
-import { db } from '../db';
+import { TransactionService } from '../services/TransactionService';
 import { format } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, Trash2, Search } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
@@ -56,7 +56,7 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
 
   const handleDelete = async () => {
     if (confirmDeleteId) {
-      await db.transactions.delete(confirmDeleteId);
+      await TransactionService.delete(confirmDeleteId);
       setConfirmDeleteId(null);
     }
   };

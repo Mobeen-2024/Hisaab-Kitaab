@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTransactions, useAppSettings, useCategories, useTodayTransactions } from '../../hooks/useData';
-import { db } from '../../db';
+import { SettingsService } from '../../services/SettingsService';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 import { t } from '../../lib/i18n';
 
@@ -41,7 +41,7 @@ export function QuickStats() {
 
   const updateHighlightedCategory = async (id: number) => {
     if (settingsObj?.id) {
-      await db.settings.update(settingsObj.id, { highlightedCategoryId: id });
+      await SettingsService.update(settingsObj.id, { highlightedCategoryId: id });
     }
     setIsDropdownOpen(false);
   };

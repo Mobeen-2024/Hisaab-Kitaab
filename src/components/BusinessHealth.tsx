@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
+import { useTransactions, useCustomers } from '../hooks/useData';
 import { formatCurrency } from '../lib/currency';
 import { Activity, TrendingUp, TrendingDown, ShieldAlert, DollarSign, Target, PieChart, ShieldCheck } from 'lucide-react';
 import { subMonths, isAfter, startOfMonth } from 'date-fns';
@@ -10,8 +9,8 @@ import { useSettings } from '../contexts/SettingsContext';
 
 export default function BusinessHealth() {
   const { lang, currency, activeContext } = useSettings();
-  const transactions = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
-  const customers = useLiveQuery(() => db.customers.toArray()) || [];
+  const transactions = useTransactions(activeContext);
+  const customers = useCustomers();
 
   const healthData = useMemo(() => {
     const now = new Date();

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { db } from "../db";
 import { t, Lang, isRTL } from "../lib/i18n";
 import { useRecentTransactions, useCategories, useCustomers } from "../hooks/useData";
 import { useToast } from "../contexts/ToastContext";
@@ -55,18 +54,12 @@ export default function QuickEntryModal({
   useEffect(() => {
     async function loadLastCategory() {
       if (type === "expense" || type === "income") {
-        const lastTx = await db.transactions
-          .orderBy("id")
-          .reverse()
-          .filter((t) => t.type === type && t.context === activeContext)
-          .first();
+        const lastTx = await TransactionService.getLastUsedCategory(type, activeContext);
         if (lastTx) setCategoryId(lastTx.categoryId.toString());
       } else {
-        const lastEntry = await db.udhaarEntries
-          .where("type")
-          .equals(type === "udhaar_give" ? "give" : "receive")
-          .reverse()
-          .first();
+        const lastEntry = await UdhaarService.getLastUsedCustomer(
+          type === "udhaar_give" ? "give" : "receive"
+        );
         if (lastEntry) setCustomerId(lastEntry.customerId.toString());
       }
     }

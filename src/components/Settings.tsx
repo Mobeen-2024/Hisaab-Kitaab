@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from '../db';
+import { SettingsService } from '../services/SettingsService';
 import { Settings as SettingsIcon, Users, Smartphone, Upload } from 'lucide-react';
 import ManageUsers from './ManageUsers';
 import { useSettings } from '../contexts/SettingsContext';
@@ -37,7 +37,7 @@ export default function Settings() {
 
   const handleSaveReminder = async () => {
     if (settingsObj && settingsObj.id) {
-      await db.settings.update(settingsObj.id, {
+      await SettingsService.update(settingsObj.id, {
         reminderEnabled,
         reminderTime
       });

@@ -18,6 +18,10 @@ export const MessageService = {
   },
 
   async getAllByChatId(chatId: string) {
-    return await db.messages.where('chatId').equals(chatId).toArray();
+    return await db.messages.where('chatId').equals(chatId).reverse().toArray();
+  },
+
+  async getAll() {
+    return await db.messages.reverse().toArray();
   }
 };

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
 import { CustomerService } from '../services/CustomerService';
 import { X, UserRound, Truck } from 'lucide-react';

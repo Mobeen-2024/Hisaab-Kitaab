@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { db } from '../db';
+import { SettingsService } from '../services/SettingsService';
 import { Lang, t, isRTL } from '../lib/i18n';
 import { X, Camera, Save, Download, Upload, Shield, Users, Settings, ChevronRight, Phone } from 'lucide-react';
 import { useAppSettings } from '../hooks/useData';
@@ -66,7 +66,7 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (settingsObj && settingsObj.id) {
-      await db.settings.update(settingsObj.id, {
+      await SettingsService.update(settingsObj.id, {
         ownerName: name,
         ownerEmail: email,
         ownerDob: dob,
@@ -82,7 +82,7 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
 
   const handleExportData = async () => {
     try {
-      const data = await db.exportData();
+      const data = await SettingsService.exportData();
       const blob = new Blob([data], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -104,7 +104,7 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
       reader.onloadend = async () => {
         const str = reader.result as string;
         try {
-          const success = await db.importData(str);
+          const success = await SettingsService.importData(str);
           if (success) {
             alert("Data restored successfully!");
             window.location.reload();

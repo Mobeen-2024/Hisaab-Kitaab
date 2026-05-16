@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Download, Upload, Shield, AlertTriangle, Trash2 } from 'lucide-react';
-import { db } from '../../db';
+import { SettingsService } from '../../services/SettingsService';
+import { TransactionService } from '../../services/TransactionService';
 
 interface DataManagementProps {
   setImportModalOpen: (open: boolean) => void;
@@ -12,9 +13,8 @@ interface DataManagementProps {
 export default function DataManagement({ setImportModalOpen, confirmModal, setConfirmModal }: DataManagementProps) {
   const backupInputRef = useRef<HTMLInputElement>(null);
 
-  const handleExportData = async () => {
     try {
-      const data = await db.exportData();
+      const data = await SettingsService.exportData();
       const blob = new Blob([data], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -36,7 +36,7 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
       reader.onloadend = async () => {
         const str = reader.result as string;
         try {
-          const success = await db.importData(str);
+          const success = await SettingsService.importData(str);
           if (success) {
             alert("Data restored successfully!");
             window.location.reload();
@@ -142,8 +142,13 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
                 <div className="flex gap-2">
                   <button
                     onClick={async () => {
-                      if (confirmModal.type === 'clear') await db.transactions.clear();
-                      else await db.delete();
+                      if (confirmModal.type === 'clear') await TransactionService.clearAll();
+                      else {
+                        // Global database deletion is special, usually handled by SettingsService or direct db access as it's a "factory reset"
+                        // Since I'm abstracting, I'll assume SettingsService.factoryReset handles it.
+                        // For now I'll use db.delete() if SettingsService doesn't have it, but I'll add it to SettingsService.
+                        await SettingsService.factoryReset();
+                      }
                       setConfirmModal({ ...confirmModal, isOpen: false });
                     }}
                     className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-lg"

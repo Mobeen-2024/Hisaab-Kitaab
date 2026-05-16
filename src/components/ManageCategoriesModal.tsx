@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { db, Category } from '../db';
+import { Category } from '../db';
+import { CategoryService } from '../services/CategoryService';
 import { X, Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { t, Lang } from '../lib/i18n';
 import { useCategories } from '../hooks/useData';
@@ -29,7 +30,7 @@ export default function ManageCategoriesModal({
     e.preventDefault();
     if (!newCatName.trim()) return;
     
-    await db.categories.add({
+    await CategoryService.add({
       name: newCatName.trim(),
       type: newCatType,
       context: activeContext
@@ -39,7 +40,7 @@ export default function ManageCategoriesModal({
 
   const handleDelete = async () => {
     if (confirmDeleteId) {
-      await db.categories.delete(confirmDeleteId);
+      await CategoryService.delete(confirmDeleteId);
       setConfirmDeleteId(null);
     }
   };
