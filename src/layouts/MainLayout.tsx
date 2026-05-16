@@ -80,7 +80,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           hasAlerts={hasAlerts}
         />
 
-        <main className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-8 relative custom-scrollbar bg-transparent min-w-0">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 md:p-8 relative custom-scrollbar bg-transparent min-w-0">
           <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-[calc(6rem+var(--safe-bottom))] md:pb-8 bg-transparent">
             {children}
           </div>
