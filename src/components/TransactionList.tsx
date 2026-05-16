@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
 import { t, Lang, isRTL } from '../lib/i18n';
+import { useTransactions, useCategories, useAppSettings, useAppUsers } from '../hooks/useData';
+import { db } from '../db';
 import { format } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, Trash2, Search } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
@@ -11,10 +11,10 @@ import { useSettings } from '../contexts/SettingsContext';
 
 export default function TransactionList({ hideTitle = false, compact = false }: { hideTitle?: boolean, compact?: boolean }) {
   const { lang, currency, activeContext } = useSettings();
-  const transactionsData = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
-  const categories = useLiveQuery(() => db.categories.toArray()) || [];
-  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
-  const users = useLiveQuery(() => db.appUsers.toArray()) || [];
+  const transactionsData = useTransactions(activeContext);
+  const categories = useCategories();
+  const settingsObj = useAppSettings();
+  const users = useAppUsers();
 
   const activeUser = users.find(u => u.id === settingsObj?.activeUserId);
   const activeRole = activeUser?.role || 'owner';

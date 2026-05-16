@@ -1,4 +1,8 @@
 import { Transaction } from '../db';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Use a CDN link for the worker to avoid complex Vite worker configuration issues in this environment
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs';
 
 export interface ParsedTransaction {
   date: string;
@@ -6,6 +10,36 @@ export interface ParsedTransaction {
   type: 'income' | 'expense';
   description: string;
   referenceId: string;
+}
+
+export async function extractTextFromPDF(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    
+    const lines: { [key: number]: any[] } = {};
+    textContent.items.forEach((item: any) => {
+      const y = Math.round(item.transform[5]);
+      if (!lines[y]) lines[y] = [];
+      lines[y].push(item);
+    });
+
+    const sortedY = Object.keys(lines).map(Number).sort((a, b) => b - a);
+    
+    const pageText = sortedY.map(y => {
+      return lines[y]
+        .sort((a, b) => a.transform[4] - b.transform[4])
+        .map(item => item.str)
+        .join(' ');
+    }).join('\n');
+
+    fullText += pageText + '\n';
+  }
+  return fullText;
 }
 
 // Simple deterministic hash for duplicate prevention

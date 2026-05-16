@@ -1,21 +1,7 @@
-import { db, Transaction } from '../db';
-import { z } from 'zod';
+import { db } from '../db';
+import { Transaction, TransactionSchema } from '../models';
 
-export const TransactionSchema = z.object({
-  type: z.enum(['expense', 'income']),
-  context: z.enum(['personal', 'business']),
-  amount: z.number().positive(),
-  originalCurrency: z.string(),
-  originalAmount: z.number().positive(),
-  exchangeRate: z.number().positive(),
-  categoryId: z.number(),
-  date: z.string(),
-  description: z.string().optional(),
-  paymentMethod: z.string().default('cash'),
-  customerId: z.number().optional(),
-});
-
-export type TransactionInput = z.infer<typeof TransactionSchema>;
+export type TransactionInput = Transaction;
 
 export const TransactionService = {
   async add(input: TransactionInput) {

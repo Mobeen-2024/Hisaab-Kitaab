@@ -1,15 +1,7 @@
-import { db, Customer } from '../db';
-import { z } from 'zod';
+import { db } from '../db';
+import { Customer, CustomerSchema } from '../models';
 
-export const CustomerSchema = z.object({
-  name: z.string().min(1),
-  phone: z.string(),
-  type: z.enum(['customer', 'supplier']).default('customer'),
-  balance: z.number().default(0),
-  createdAt: z.string().optional(),
-});
-
-export type CustomerInput = z.infer<typeof CustomerSchema>;
+export type CustomerInput = Customer;
 
 export const CustomerService = {
   async add(input: CustomerInput) {

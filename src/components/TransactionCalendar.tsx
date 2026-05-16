@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
 import { t, Lang } from '../lib/i18n';
+import { useTransactions, useCategories } from '../hooks/useData';
 import { 
   format, 
   addMonths, 
@@ -53,12 +52,8 @@ export default function TransactionCalendar({ lang, currency, activeContext }: T
   const dx = useSpring(rotateX, springConfig);
   const dy = useSpring(rotateY, springConfig);
 
-  const transactions = useLiveQuery(() => 
-    db.transactions.where({ context: activeContext }).toArray(),
-    [activeContext]
-  ) || [];
-
-  const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  const transactions = useTransactions(activeContext);
+  const categories = useCategories();
 
   const formatCurrency = (val: number) => {
     return formatSharedCurrency(val, currency, lang);

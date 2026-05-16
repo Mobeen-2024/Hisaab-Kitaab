@@ -3,10 +3,10 @@ import { X, MessageSquare, Send, User, Sparkles, Clock, Trash2, Phone, ExternalL
 import QrScanModal from './QrScanModal';
 
 import { motion, AnimatePresence } from 'motion/react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
 import { formatCurrency } from '../lib/currency';
+import { useMessages, useCustomers } from '../hooks/useData';
 
 interface MessagesModalProps {
   isOpen: boolean;
@@ -22,12 +22,8 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
   const [isQrScanOpen, setIsQrScanOpen] = useState(false);
 
 
-  const messages = useLiveQuery(
-    () => db.messages.where('chatId').equals(activeChatId).toArray(),
-    [activeChatId]
-  ) || [];
-
-  const customers = useLiveQuery(() => db.customers.toArray()) || [];
+  const messages = useMessages(activeChatId);
+  const customers = useCustomers();
   const activeCustomer = customers.find(c => `customer-${c.id}` === activeChatId);
 
   const scrollToBottom = () => {

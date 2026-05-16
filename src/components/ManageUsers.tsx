@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db, AppUser } from '../db';
 import { Shield, UserPlus, Users, X, Key, Trash2 } from 'lucide-react';
+import { useAppUsers, useAppSettings } from '../hooks/useData';
 
 interface ManageUsersProps {
   onClose: () => void;
@@ -9,8 +9,8 @@ interface ManageUsersProps {
 }
 
 export default function ManageUsers({ onClose, activeContext }: ManageUsersProps) {
-  const users = useLiveQuery(() => db.appUsers.toArray()) || [];
-  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
+  const users = useAppUsers();
+  const settingsObj = useAppSettings();
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
   const [role, setRole] = useState<'owner' | 'spouse' | 'cashier' | 'employee'>('employee');

@@ -1,15 +1,14 @@
 import React from 'react';
 import { HandCoins } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import { useUdhaarEntries } from '../../hooks/useData';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 
 export function UdhaarSummary() {
   const { lang, currency } = useSettings();
   const isUrdu = lang === 'ur';
 
-  const udhaarEntries = useLiveQuery(() => db.udhaarEntries.toArray(), []) || [];
+  const udhaarEntries = useUdhaarEntries();
   const udhaarToReceive = udhaarEntries.filter(u => u.type === 'give' && !u.isCompleted).reduce((sum, u) => sum + u.amount, 0);
   const udhaarToGive = udhaarEntries.filter(u => u.type === 'receive' && !u.isCompleted).reduce((sum, u) => sum + u.amount, 0);
 

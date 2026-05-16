@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Goal, Budget } from '../db';
 import { Lang, t } from '../lib/i18n';
 import { Target, PieChart, TrendingUp, AlertCircle, Plus, X, Pencil, PiggyBank, Calendar, Trash2, Wallet } from 'lucide-react';
@@ -8,7 +7,7 @@ import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import DatePicker from './DatePicker';
 import RetentionCards from './RetentionCards';
-
+import { useGoals, useBudgets, useTransactions } from '../hooks/useData';
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function Planner() {
@@ -17,9 +16,9 @@ export default function Planner() {
   const monthStart = startOfMonth(new Date());
   const monthEnd = endOfMonth(new Date());
 
-  const goals = useLiveQuery(() => db.goals.where({ context: activeContext }).toArray()) || [];
-  const budgets = useLiveQuery(() => db.budgets.where({ month: currentMonth, context: activeContext }).toArray()) || [];
-  const transactions = useLiveQuery(() => db.transactions.where({ context: activeContext }).toArray()) || [];
+  const goals = useGoals(activeContext);
+  const budgets = useBudgets(activeContext, currentMonth);
+  const transactions = useTransactions(activeContext);
 
   const currentBudget = budgets.length > 0 ? budgets[0] : null;
 

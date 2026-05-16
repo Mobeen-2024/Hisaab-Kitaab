@@ -2,12 +2,11 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Sparkles } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import { useAppSettings } from '../../hooks/useData';
 
 export function WelcomeHeader() {
   const { lang, rtl, activeContext } = useSettings();
-  const settingsObj = useLiveQuery(() => db.settings.toCollection().first()) || null;
+  const settingsObj = useAppSettings();
   const isUrdu = lang === 'ur';
 
   return (

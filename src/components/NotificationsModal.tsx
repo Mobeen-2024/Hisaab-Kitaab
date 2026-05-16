@@ -1,10 +1,9 @@
 import React from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
 import { X, Bell, AlertTriangle, Package, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lang, t } from '../lib/i18n';
 import { formatCurrency } from '../lib/currency';
+import { useInventory, useCustomers } from '../hooks/useData';
 
 interface NotificationsModalProps {
   isOpen: boolean;
@@ -14,8 +13,8 @@ interface NotificationsModalProps {
 }
 
 export default function NotificationsModal({ isOpen, onClose, lang, currency }: NotificationsModalProps) {
-  const inventory = useLiveQuery(() => db.inventory.toArray()) || [];
-  const customers = useLiveQuery(() => db.customers.toArray()) || [];
+  const inventory = useInventory();
+  const customers = useCustomers();
 
   const lowStockItems = inventory.filter(item => item.quantity <= item.minQuantity);
   const outstandingDebts = customers.filter(c => c.balance > 0 && c.type !== 'supplier');

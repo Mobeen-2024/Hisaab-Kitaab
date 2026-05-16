@@ -2,12 +2,11 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { AlertTriangle } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import { useInventory } from '../../hooks/useData';
 
 export function InventoryAlert() {
   const { lang, activeContext } = useSettings();
-  const inventory = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
+  const inventory = useInventory(activeContext);
   const lowStockItems = inventory.filter(item => item.quantity <= item.minQuantity);
   const isUrdu = lang === 'ur';
 

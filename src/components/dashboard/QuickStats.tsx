@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useTransactions, useAppSettings, useCategories } from '../../hooks/useData';
 import { db } from '../../db';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 import { t } from '../../lib/i18n';
@@ -12,9 +12,9 @@ export function QuickStats() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const isUrdu = lang === 'ur';
 
-  const transactions = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
-  const settingsObj = useLiveQuery(() => db.settings.toCollection().first()) || null;
-  const categories = useLiveQuery(() => db.categories.toArray(), []) || [];
+  const transactions = useTransactions(activeContext);
+  const settingsObj = useAppSettings();
+  const categories = useCategories();
 
   const totalIncomePKR = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
   const totalExpensePKR = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);

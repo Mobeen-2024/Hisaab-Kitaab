@@ -2,15 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, startOfMonth, endOfMonth, endOfWeek, isSameMonth, addMonths, subMonths, isToday, isSameDay } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import { useTransactions } from '../../hooks/useData';
 
 export function DashboardCalendar() {
   const { lang, rtl, activeContext } = useSettings();
   const [currentDisplayMonth, setCurrentDisplayMonth] = useState(startOfMonth(new Date()));
   const isUrdu = lang === 'ur';
 
-  const transactions = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
+  const transactions = useTransactions(activeContext);
 
   const calendarStart = startOfWeek(startOfMonth(currentDisplayMonth));
   const calendarEnd = endOfWeek(endOfMonth(currentDisplayMonth));

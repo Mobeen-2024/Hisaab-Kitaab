@@ -2,8 +2,7 @@ import React, { useMemo } from 'react';
 import { format, subMonths, isAfter } from 'date-fns';
 import { TrendingUp, Target, PieChart } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import { useTransactions, useGoals, useBudgets } from '../../hooks/useData';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'motion/react';
@@ -12,10 +11,11 @@ export function FinancialOverview() {
   const { lang, currency, activeContext, rtl } = useSettings();
   const isUrdu = lang === 'ur';
 
-  const transactions = useLiveQuery(() => db.transactions.where('context').equals(activeContext).toArray(), [activeContext]) || [];
-  const goals = useLiveQuery(() => db.goals.where('context').equals(activeContext).toArray(), [activeContext]) || [];
+  const transactions = useTransactions(activeContext);
+  const goals = useGoals(activeContext);
   const currentMonth = format(new Date(), 'yyyy-MM');
-  const budget = useLiveQuery(() => db.budgets.where({ month: currentMonth, context: activeContext }).first(), [activeContext, currentMonth]);
+  const budgets = useBudgets(activeContext, currentMonth);
+  const budget = budgets[0] || null;
 
   const totalExpensePKR = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
 

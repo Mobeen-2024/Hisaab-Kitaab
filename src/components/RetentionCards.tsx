@@ -1,13 +1,12 @@
 import React, { useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
 import { Flame, Trophy, TrendingUp, Calendar, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 import { format, subDays, isSameDay } from 'date-fns';
+import { useTransactions, useAppSettings } from '../hooks/useData';
 
 export default function RetentionCards({ lang, currency }: { lang: any, currency: string }) {
-  const allTransactions = useLiveQuery(() => db.transactions.toArray()) || [];
-  const settingsObj = useLiveQuery(() => db.settings.toCollection().first());
+  const allTransactions = useTransactions();
+  const settingsObj = useAppSettings();
 
   // Compute streaks
   const { currentStreak, longestStreak } = useMemo(() => {

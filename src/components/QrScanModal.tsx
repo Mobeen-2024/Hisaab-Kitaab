@@ -30,8 +30,8 @@ async function getTesseract(): Promise<any> {
 import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
 import { parsePaymentData, ParsedPayment } from '../lib/parsePaymentData';
-import { GoogleGenAI } from "@google/genai";
-import { useLiveQuery } from 'dexie-react-hooks';
+import { AIService } from '../services/AIService';
+import { useCategories, useAppSettings } from '../hooks/useData';
 import DatePicker from './DatePicker';
 
 interface QrScanModalProps {
@@ -64,7 +64,7 @@ export default function QrScanModal({ isOpen, onClose, lang, activeContext }: Qr
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scanAnimFrameRef = useRef<number>(0);
 
-  const categories = useLiveQuery(() => db.categories.where({ context: activeContext }).toArray(), [activeContext]) || [];
+  const categories = useCategories(activeContext);
   const currentTypeCategories = categories.filter(c => c.type === type);
 
   useEffect(() => {
@@ -178,13 +178,6 @@ export default function QrScanModal({ isOpen, onClose, lang, activeContext }: Qr
   // ─── Gemini AI (Optional Fallback — requires API key) ───────────────────────
 
   const runGeminiOcr = async (file: File): Promise<ParsedPayment | null> => {
-    const settings = await db.settings.toCollection().first();
-    const apiKey = settings?.geminiApiKey || (import.meta as any).env.VITE_GEMINI_API_KEY;
-    if (!apiKey) return null;
-
-    const cleanKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
-    const ai = new GoogleGenAI({ apiKey: cleanKey });
-
     const reader = new FileReader();
     const base64: string = await new Promise((resolve, reject) => {
       reader.readAsDataURL(file);
@@ -193,28 +186,8 @@ export default function QrScanModal({ isOpen, onClose, lang, activeContext }: Qr
     });
 
     setProcessingLabel('Asking Gemini AI...');
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: [{
-        role: 'user',
-        parts: [
-          {
-            text: `Extract financial transaction details from this image.
-Return ONLY a valid JSON object:
-{"amount": <number>, "type": "<income|expense>", "description": "<5-word summary>", "date": "<YYYY-MM-DD>", "suggestedCategory": "<food|fuel|salary|utilities|transport>"}
-If no data found, return: {"amount": 0, "type": "expense", "description": "Unknown", "date": "${new Date().toISOString().split('T')[0]}", "suggestedCategory": ""}`
-          },
-          { inlineData: { mimeType: file.type as any || 'image/jpeg', data: base64 } }
-        ]
-      }],
-    });
-
-    if (response.text) {
-      const json = response.text.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
-      return JSON.parse(json);
-    }
-    return null;
+    const result = await AIService.extractFromImage(file, base64);
+    return result as ParsedPayment;
   };
 
   // ─── Main Upload Handler ─────────────────────────────────────────────────────

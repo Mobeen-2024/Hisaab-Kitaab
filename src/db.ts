@@ -1,123 +1,31 @@
 import Dexie, { Table } from 'dexie';
-import { Lang } from './lib/i18n';
+import { 
+  Category, 
+  Customer, 
+  InventoryItem, 
+  Transaction, 
+  UdhaarEntry, 
+  Goal, 
+  Budget, 
+  AppSettings, 
+  AppUser, 
+  Message, 
+  AuditLog 
+} from './models';
 
-export interface Category {
-  id?: number;
-  name: string;
-  type: 'income' | 'expense';
-  context: 'personal' | 'business';
-}
-
-export interface Customer {
-  id?: number;
-  name: string;
-  phone: string;
-  balance: number;
-  type?: 'customer' | 'supplier';
-  createdAt: string;
-}
-
-export interface InventoryItem {
-  id?: number;
-  name: string;
-  category: string;
-  quantity: number;
-  minQuantity: number;
-  unitPrice: number;
-  context: 'personal' | 'business';
-}
-
-export interface Transaction {
-  id?: number;
-  amount: number;
-  type: 'income' | 'expense';
-  categoryId: number;
-  context: 'personal' | 'business';
-  date: string;
-  description: string;
-  customerId?: number;
-  paymentMethod?: 'cash' | 'bank' | 'mobile_wallet';
-  originalCurrency?: string;
-  originalAmount?: number;
-  exchangeRate?: number;
-  source?: 'manual' | 'voice' | 'easypaisa' | 'jazzcash' | 'bank_import' | 'pdf' | 'ai';
-  importReferenceId?: string;
-}
-
-export interface UdhaarEntry {
-  id?: number;
-  customerId: number;
-  type: 'give' | 'receive'; // give = gave goods/money (increase their debt), receive = got paid (decrease their debt)
-  amount: number;
-  date: string;
-  dueDate?: string;
-  description: string;
-  isCompleted?: boolean;
-  originalCurrency?: string;
-  originalAmount?: number;
-  exchangeRate?: number;
-}
-
-export interface Goal {
-  id?: number;
-  title: string;
-  targetAmount: number;
-  currentAmount: number;
-  deadline?: string;
-  context: 'personal' | 'business';
-}
-
-export interface Budget {
-  id?: number;
-  month: string; // 'YYYY-MM'
-  amount: number;
-  context: 'personal' | 'business';
-}
-
-export interface AppSettings {
-  id?: number;
-  language: Lang;
-  currency: string;
-  highlightedCategoryId?: number;
-  ownerName?: string;
-  ownerEmail?: string;
-  ownerDob?: string;
-  ownerAvatar?: string;
-  ownerPhone?: string;
-  ownerCountryCode?: string;
-  activeContext?: 'personal' | 'business';
-  reminderEnabled?: boolean;
-  reminderTime?: string;
-  activeUserId?: number; // Added to track current user
-  geminiApiKey?: string; // For AI features
-}
-
-export interface AppUser {
-  id?: number;
-  name: string;
-  role: 'owner' | 'spouse' | 'cashier' | 'employee';
-  contextAccess: 'personal' | 'business' | 'both';
-  passcode: string; 
-  avatar?: string;
-}
-
-export interface Message {
-  id?: number;
-  chatId: string; // Could be 'ai' or customerId
-  sender: 'user' | 'ai' | 'system';
-  content: string;
-  timestamp: string;
-}
-
-export interface AuditLog {
-  id?: number;
-  entityType: 'transaction' | 'customer' | 'udhaar' | 'goal' | 'budget' | 'inventory';
-  entityId: number;
-  action: 'create' | 'update' | 'delete';
-  timestamp: string;
-  details?: string;
-  context?: 'personal' | 'business';
-}
+export type { 
+  Category, 
+  Customer, 
+  InventoryItem, 
+  Transaction, 
+  UdhaarEntry, 
+  Goal, 
+  Budget, 
+  AppSettings, 
+  AppUser, 
+  Message, 
+  AuditLog 
+};
 
 export class HisaabKitaabDB extends Dexie {
   transactions!: Table<Transaction, number>;
@@ -308,6 +216,7 @@ db.on('populate', async () => {
   
   await db.settings.add({
     language: 'en',
-    currency: 'PKR'
+    currency: 'PKR',
+    activeContext: 'business'
   });
 });

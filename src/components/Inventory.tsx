@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, InventoryItem } from '../db';
 import { Package, Plus, AlertCircle, Trash2, Edit2, TrendingUp, DollarSign, BarChart3, Minus } from 'lucide-react';
+import { InventoryItem } from '../models';
+import { useInventory } from '../hooks/useData';
+import { db } from '../db';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function Inventory() {
   const { lang, currency, activeContext } = useSettings();
-  const items = useLiveQuery(() => db.inventory.where('context').equals(activeContext).toArray(), [activeContext]) || [];
+  const items = useInventory(activeContext);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -25,8 +26,8 @@ export default function Inventory() {
   }
 
   const formatCurrency = (val: number) => formatSharedCurrency(val, currency, lang);
-  const totalValue = items.reduce((s, i) => s + (i.quantity * i.unitPrice), 0);
-  const totalItems = items.reduce((s, i) => s + i.quantity, 0);
+  const totalValue = items.reduce((s: number, i: InventoryItem) => s + (i.quantity * i.unitPrice), 0);
+  const totalItems = items.reduce((s: number, i: InventoryItem) => s + i.quantity, 0);
 
   const handleRestock = async () => {
     if (!restockId || !restockQty || isNaN(Number(restockQty))) return;

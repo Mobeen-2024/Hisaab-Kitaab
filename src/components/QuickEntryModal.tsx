@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { db } from "../db";
 import { t, Lang, isRTL } from "../lib/i18n";
-import { useLiveQuery } from "dexie-react-hooks";
+import { useRecentTransactions, useCategories, useCustomers } from "../hooks/useData";
 import { useToast } from "../contexts/ToastContext";
 import { X, Calendar, Plus, Sparkles } from "lucide-react";
 import ManageCategoriesModal from "./ManageCategoriesModal";
-import { getGeminiInstance } from "../lib/ai";
+import { AIService } from "../services/AIService";
 import { TransactionService } from "../services/TransactionService";
 import { UdhaarService } from "../services/UdhaarService";
 import DatePicker from "./DatePicker";
@@ -87,7 +87,7 @@ export default function QuickEntryModal({
     }
   }, [isOpen]);
 
-  const recentTransactions = useLiveQuery(() => db.transactions.reverse().limit(100).toArray()) || [];
+  const recentTransactions = useRecentTransactions(100);
   const frequentAmounts = useMemo(() => {
     const counts: Record<number, number> = {};
     recentTransactions.forEach((t) => {
@@ -101,9 +101,9 @@ export default function QuickEntryModal({
     return amounts.length > 0 ? amounts : [100, 500, 1000, 5000];
   }, [recentTransactions]);
 
-  const categories = useLiveQuery(() => db.categories.where({ context: activeContext }).toArray(), [activeContext]) || [];
+  const categories = useCategories(activeContext);
   const currentTypeCategories = categories.filter(c => c.type === (type === "income" ? "income" : "expense"));
-  const customers = useLiveQuery(() => db.customers.toArray()) || [];
+  const customers = useCustomers();
   const rtl = isRTL(lang);
 
   if (!isOpen) return null;
@@ -169,14 +169,8 @@ export default function QuickEntryModal({
     setIsParsingVoice(true);
     setSmartVoiceError(null);
     try {
-      const ai = await getGeminiInstance();
       const catsPayload = categories.map((c) => ({ id: c.id, name: c.name, type: c.type }));
-      const prompt = `Extract transaction details from: "${text}". Return ONLY JSON: { "type": "expense"|"income", "amount": number, "categoryId": number|null, "description": string }. Categories: ${JSON.stringify(catsPayload)}`;
-
-      const response = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: prompt });
-      const textResponse = response.text || '';
-      const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-      const data = jsonMatch ? JSON.parse(jsonMatch[0]) : (textResponse ? JSON.parse(textResponse) : null);
+      const data = await AIService.parseVoiceInput(text, catsPayload);
 
       if (data) {
         if (data.type) setType(data.type);

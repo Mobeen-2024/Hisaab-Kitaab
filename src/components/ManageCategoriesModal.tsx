@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { db, Category } from '../db';
 import { X, Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { t, Lang } from '../lib/i18n';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useCategories } from '../hooks/useData';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function ManageCategoriesModal({
@@ -19,10 +19,7 @@ export default function ManageCategoriesModal({
   const [newCatName, setNewCatName] = useState('');
   const [newCatType, setNewCatType] = useState<'expense' | 'income'>('expense');
 
-  const categories = useLiveQuery(
-    () => db.categories.where('context').equals(activeContext).toArray(),
-    [activeContext]
-  ) || [];
+  const categories = useCategories(activeContext);
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 

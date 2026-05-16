@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../db';
+import { useTransactions } from '../../hooks/useData';
 import { t } from '../../lib/i18n';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 
@@ -9,7 +8,7 @@ export function ContextComparison() {
   const { lang, currency, rtl } = useSettings();
   const isUrdu = lang === 'ur';
 
-  const allTransactions = useLiveQuery(() => db.transactions.toArray(), []) || [];
+  const allTransactions = useTransactions();
 
   const formatCurrency = (valInPKR: number) => formatSharedCurrency(valInPKR, currency, lang);
   const formatCompactCurrency = (valInPKR: number) => formatSharedCurrency(valInPKR, currency, lang, true);

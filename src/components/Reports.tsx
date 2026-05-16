@@ -1,6 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
 import { FileText, Download, FileSpreadsheet, Calendar, ArrowUpRight, ArrowDownRight, Wallet, Upload, Search, TrendingUp } from 'lucide-react';
 import { format, parseISO, endOfMonth, isWithinInterval, startOfYear, endOfYear } from 'date-fns';
@@ -11,14 +9,15 @@ import TransactionCalendar from './TransactionCalendar';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useSettings } from '../contexts/SettingsContext';
 import { useUIStore } from '../lib/store';
+import { useTransactions, useCategories } from '../hooks/useData';
 
 const CHART_COLORS = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#3b82f6', '#8b5cf6', '#14b8a6', '#ef4444'];
 
 export default function Reports() {
   const { lang, currency, activeContext } = useSettings();
   const { setImportModalOpen } = useUIStore();
-  const allTransactions = useLiveQuery(() => db.transactions.toArray()) || [];
-  const categories = useLiveQuery(() => db.categories.toArray()) || [];
+  const allTransactions = useTransactions();
+  const categories = useCategories();
 
   const transactions = allTransactions.filter(t => t.context === activeContext);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));

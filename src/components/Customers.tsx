@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, Customer } from '../db';
+import { Customer } from '../models';
 import { CustomerService } from '../services/CustomerService';
+import { useCustomers, useUdhaarEntries } from '../hooks/useData';
 import { t } from '../lib/i18n';
 import { Plus, Users, Search, Phone, ChevronRight, Trash2, UserRound, Truck, ArrowDownLeft, ArrowUpRight, Pencil, X } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
@@ -81,8 +81,8 @@ function EditCustomerModal({ customer, onClose }: { customer: Customer; onClose:
 export default function Customers() {
   const { lang, currency, activeContext } = useSettings();
   const { setAddCustomerModalOpen } = useUIStore();
-  const customers = useLiveQuery(() => db.customers.toArray()) || [];
-  const allUdhaarEntries = useLiveQuery(() => db.udhaarEntries.toArray()) || [];
+  const customers = useCustomers();
+  const allUdhaarEntries = useUdhaarEntries();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [deletingCustomerId, setDeletingCustomerId] = useState<number | null>(null);
