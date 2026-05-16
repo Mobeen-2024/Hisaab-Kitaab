@@ -191,12 +191,20 @@ export class HisaabKitaabDB extends Dexie {
   }
 
   async getCustomerBalance(customerId: number): Promise<number> {
+    const customer = await this.customers.get(customerId);
+    if (!customer) return 0;
+    
+    const isSupplier = customer.type === 'supplier';
     const entries = await this.udhaarEntries.where('customerId').equals(customerId).toArray();
+    
     return entries.reduce((sum, entry) => {
-      // give = debt increases (positive for they owe, negative for advance we gave?)
-      // wait, let's check the logic: give = we gave money/goods (they owe us more)
-      // receive = we got money/goods (they owe us less)
-      return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
+      if (isSupplier) {
+        // For supplier: receive (goods) increases what we owe (+), give (payment) decreases what we owe (-)
+        return sum + (entry.type === 'receive' ? entry.amount : -entry.amount);
+      } else {
+        // For customer: give (money/goods) increases what they owe (+), receive (payment) decreases what they owe (-)
+        return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
+      }
     }, 0);
   }
 }

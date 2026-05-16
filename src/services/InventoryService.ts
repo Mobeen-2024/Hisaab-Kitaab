@@ -26,6 +26,14 @@ export const InventoryService = {
     return db.inventory.update(id, { quantity: item.quantity + additionalQty });
   },
 
+  async updateQuantity(id: number, delta: number) {
+    const item = await db.inventory.get(id);
+    if (!item) throw new Error('Item not found');
+    const newQty = item.quantity + delta;
+    if (newQty < 0) throw new Error('Insufficient stock');
+    return db.inventory.update(id, { quantity: newQty });
+  },
+
   async upsert(data: InventoryItemInput, id?: number) {
     const validated = InventoryItemSchema.parse(data);
     return id ? db.inventory.update(id, validated) : db.inventory.add(validated as InventoryItem);

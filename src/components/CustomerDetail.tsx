@@ -33,7 +33,11 @@ export default function CustomerDetail({
   ) || [];
 
   const computedBalance = udhaarEntries.reduce((sum, entry) => {
-    return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
+    if (customer.type === 'supplier') {
+      return sum + (entry.type === 'receive' ? entry.amount : -entry.amount);
+    } else {
+      return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
+    }
   }, 0);
 
   const formatCurrency = (val: number) => {

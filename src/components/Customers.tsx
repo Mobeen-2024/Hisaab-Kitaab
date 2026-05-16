@@ -94,9 +94,16 @@ export default function Customers() {
   }
 
   const customersWithBalances = React.useMemo(() => customers.map(c => {
+    const isSupplier = c.type === 'supplier';
     const balance = allUdhaarEntries
       .filter(e => e.customerId === c.id)
-      .reduce((sum, e) => sum + (e.type === 'give' ? e.amount : -e.amount), 0);
+      .reduce((sum, e) => {
+        if (isSupplier) {
+          return sum + (e.type === 'receive' ? e.amount : -e.amount);
+        } else {
+          return sum + (e.type === 'give' ? e.amount : -e.amount);
+        }
+      }, 0);
     return { ...c, balance };
   }), [customers, allUdhaarEntries]);
 

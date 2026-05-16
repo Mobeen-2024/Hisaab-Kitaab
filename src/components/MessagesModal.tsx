@@ -7,6 +7,7 @@ import { db } from '../db';
 import { Lang, t } from '../lib/i18n';
 import { formatCurrency } from '../lib/currency';
 import { useMessages, useCustomers } from '../hooks/useData';
+import { MessageService } from '../services/MessageService';
 
 interface MessagesModalProps {
   isOpen: boolean;
@@ -22,7 +23,8 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
   const [isQrScanOpen, setIsQrScanOpen] = useState(false);
 
 
-  const messages = useMessages(activeChatId);
+  const messagesRaw = useMessages(activeChatId);
+  const messages = React.useMemo(() => [...messagesRaw].reverse(), [messagesRaw]);
   const customers = useCustomers();
   const activeCustomer = customers.find(c => `customer-${c.id}` === activeChatId);
 
@@ -39,24 +41,13 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
   const handleSend = async () => {
     if (!inputText.trim()) return;
 
-    const newMessage = {
-      chatId: activeChatId,
-      sender: 'user' as const,
-      content: inputText.trim(),
-      timestamp: new Date().toISOString()
-    };
-
-    await db.messages.add(newMessage);
+    const userContent = inputText.trim();
+    await MessageService.add(activeChatId, 'user', userContent);
     setInputText('');
 
     if (activeChatId === 'ai') {
       setTimeout(async () => {
-        await db.messages.add({
-          chatId: 'ai',
-          sender: 'ai',
-          content: getAIResponse(inputText),
-          timestamp: new Date().toISOString()
-        });
+        await MessageService.add('ai', 'ai', getAIResponse(userContent));
       }, 1000);
     }
   };
@@ -70,8 +61,7 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
   };
 
   const clearChat = async () => {
-    const ids = messages.map(m => m.id).filter((id): id is number => id !== undefined);
-    await db.messages.bulkDelete(ids);
+    await MessageService.clearChat(activeChatId);
   };
 
   const sendWhatsApp = (phone: string, message: string) => {

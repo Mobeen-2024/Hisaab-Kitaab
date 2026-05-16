@@ -3,7 +3,8 @@ import { X, Bell, AlertTriangle, Package, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Lang, t } from '../lib/i18n';
 import { formatCurrency } from '../lib/currency';
-import { useInventory, useCustomers } from '../hooks/useData';
+import { useInventory, useCustomers, useUdhaarEntries } from '../hooks/useData';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface NotificationsModalProps {
   isOpen: boolean;
@@ -13,12 +14,28 @@ interface NotificationsModalProps {
 }
 
 export default function NotificationsModal({ isOpen, onClose, lang, currency }: NotificationsModalProps) {
-  const inventory = useInventory();
+  const { activeContext } = useSettings();
+  const inventory = useInventory(activeContext);
   const customers = useCustomers();
+  const allUdhaarEntries = useUdhaarEntries();
+
+  const customersWithBalances = React.useMemo(() => customers.map(c => {
+    const isSupplier = c.type === 'supplier';
+    const balance = allUdhaarEntries
+      .filter(e => e.customerId === c.id)
+      .reduce((sum, e) => {
+        if (isSupplier) {
+          return sum + (e.type === 'receive' ? e.amount : -e.amount);
+        } else {
+          return sum + (e.type === 'give' ? e.amount : -e.amount);
+        }
+      }, 0);
+    return { ...c, balance };
+  }), [customers, allUdhaarEntries]);
 
   const lowStockItems = inventory.filter(item => item.quantity <= item.minQuantity);
-  const outstandingDebts = customers.filter(c => c.balance > 0 && c.type !== 'supplier');
-  const outstandingPayables = customers.filter(c => c.balance > 0 && c.type === 'supplier');
+  const outstandingDebts = customersWithBalances.filter(c => c.balance > 0 && c.type !== 'supplier');
+  const outstandingPayables = customersWithBalances.filter(c => c.balance > 0 && c.type === 'supplier');
 
   const hasNotifications = lowStockItems.length > 0 || outstandingDebts.length > 0 || outstandingPayables.length > 0;
 
