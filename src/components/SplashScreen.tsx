@@ -8,7 +8,7 @@ interface SplashScreenProps {
   onComplete: () => void;
 }
 
-function RealisticBird({ onLand }: { onLand: () => void }) {
+function RealisticBird({ onLand, isMobile }: { onLand: () => void; isMobile: boolean }) {
   const group = React.useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF('/Stork.glb');
   const { actions } = useAnimations(animations, group);
@@ -20,19 +20,31 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
       const action = actions[actionName];
       if (action) {
         action.play();
-        action.timeScale = 0.9; // Slower wing flapping
+        action.timeScale = 0.9;
       }
     }
   }, [actions]);
 
-  // Flight path — lands on top of the word "Kitaab"
-  // Title is centered, pushed up ~15vh. "Kitaab" is the right word.
-  // Camera: [0,0,10], fov 50. At Z=2, visible area ≈ ±6.4 wide, ±3.7 tall.
-  // "Kitaab" center ≈ X=1.8, top of letters ≈ Y=2.0
-  const startPos = React.useMemo(() => new THREE.Vector3(5, 5, 4), []);   // enters from upper-right
-  const endPos = React.useMemo(() => new THREE.Vector3(1.8, 0.76, 2), []); // right on top of "Kitaab" letters
-  const controlPos = React.useMemo(() => new THREE.Vector3(3.5, 3.0, 3), []); // smooth descending arc
+  // Flight path — responsive to screen size
+  // Desktop: frustum at Z=2 ≈ ±6.4 wide, ±3.7 tall (16:9, fov 50)
+  // Mobile:  frustum at Z=2 ≈ ±2.1 wide, ±3.7 tall (9:16, fov 50)
+  // Title on mobile is text-5xl (smaller), offset -10vh. "Kitaab" center ≈ X=0.7
+  // Title on desktop is text-8xl, offset -15vh. "Kitaab" center ≈ X=1.8
+  const startPos = React.useMemo(() =>
+    isMobile ? new THREE.Vector3(1.8, 4.5, 4) : new THREE.Vector3(5, 5, 4),
+  [isMobile]);
+
+  const endPos = React.useMemo(() =>
+    isMobile ? new THREE.Vector3(0.7, 0.9, 2) : new THREE.Vector3(1.8, 0.76, 2),
+  [isMobile]);
+
+  const controlPos = React.useMemo(() =>
+    isMobile ? new THREE.Vector3(1.5, 2.5, 3) : new THREE.Vector3(3.5, 3.0, 3),
+  [isMobile]);
+
   const curve = React.useMemo(() => new THREE.QuadraticBezierCurve3(startPos, controlPos, endPos), [startPos, controlPos, endPos]);
+
+  const birdScale = isMobile ? 0.008 : 0.012;
 
   const [progress, setProgress] = useState(0);
   const [landed, setLanded] = useState(false);
@@ -41,7 +53,7 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
     if (!group.current) return;
 
     if (progress < 1) {
-      const speed = 0.25; // Flight duration ~3.3s
+      const speed = 0.25;
       const nextProgress = Math.min(progress + delta * speed, 1);
       setProgress(nextProgress);
 
@@ -56,7 +68,6 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
       if (nextProgress === 1 && !landed) {
         setLanded(true);
         onLand();
-        // Slow down animation upon landing to simulate balancing/hovering
         if (actions && Object.keys(actions).length > 0) {
           const action = actions[Object.keys(actions)[0]];
           if (action) {
@@ -65,7 +76,6 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
         }
       }
     } else {
-      // Gentle hover effect after landing at right corner
       group.current.position.y = endPos.y + Math.sin(state.clock.elapsedTime * 3.5) * 0.04;
       group.current.position.x = endPos.x + Math.sin(state.clock.elapsedTime * 1.2) * 0.02;
     }
@@ -73,8 +83,7 @@ function RealisticBird({ onLand }: { onLand: () => void }) {
 
   return (
     <group ref={group}>
-      {/* Model scale & orientation adjustment - slightly smaller to fit neatly at title corner */}
-      <primitive object={scene} scale={0.012} rotation={[0, Math.PI / 2, 0]} />
+      <primitive object={scene} scale={birdScale} rotation={[0, Math.PI / 2, 0]} />
     </group>
   );
 }
@@ -142,7 +151,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               <directionalLight position={[10, 10, 10]} intensity={1.5} color="#93C5FD" />
               <Environment preset="night" />
               <React.Suspense fallback={null}>
-                <RealisticBird onLand={() => setHasLanded(true)} />
+                <RealisticBird isMobile={isMobile} onLand={() => setHasLanded(true)} />
               </React.Suspense>
             </Canvas>
           </div>
