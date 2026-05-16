@@ -95,7 +95,7 @@ export default function Sidebar() {
         <div className="block md:hidden lg:block shrink-0 border-t border-white/10 mt-4 pt-4">
           <div className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest px-6">Preferences</div>
           
-          <div className="px-4 space-y-4 mt-2 mb-6">
+          <div className="px-4 space-y-4 mt-2 mb-8">
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">{t(lang, 'currency')}</label>
               <div className="relative z-[50]">
@@ -114,13 +114,6 @@ export default function Sidebar() {
                 />
               </div>
             </div>
-          </div>
-          
-          <div className="mt-6 mb-2 flex flex-col items-center justify-center opacity-40 hover:opacity-100 transition-opacity duration-500 group">
-            <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400 mb-1">Created & Designed by</span>
-            <span className="text-[11px] font-black tracking-widest bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent group-hover:animate-pulse">
-              MOBEEN
-            </span>
           </div>
         </div>
       </div>

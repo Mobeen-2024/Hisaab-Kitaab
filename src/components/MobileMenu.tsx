@@ -153,14 +153,7 @@ export default function MobileMenu() {
         </div>
       </div>
 
-      <div className="text-center px-6 mt-8 flex flex-col items-center justify-center opacity-40 hover:opacity-100 transition-opacity duration-500 group">
-        <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400 mb-1">Created & Designed by</span>
-        <span className="text-[12px] font-black tracking-widest bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent group-hover:animate-pulse">
-          MOBEEN
-        </span>
-      </div>
-
-      <div className="text-center px-6 mt-6">
+      <div className="text-center px-6">
         <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">Hisaab-Kitaab v2.0</p>
         <p className="text-[9px] text-slate-700 mt-1 uppercase tracking-widest font-medium">Professional Financial Operating System</p>
       </div>

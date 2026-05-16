@@ -66,7 +66,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               duration: 1.5,
               ease: easing,
             }}
-            className="relative flex flex-col items-center z-10"
+            className="relative flex flex-col items-center z-10 mb-16 md:mb-28"
             style={{ transformStyle: "preserve-3d" }}
           >
             <div className="relative w-32 h-32 md:w-48 md:h-48 flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
@@ -159,6 +159,25 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
                 حساب کتاب
               </motion.div>
             </motion.div>
+          </motion.div>
+
+          {/* Creator Credits */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.5, duration: 0.8 }}
+            className="absolute bottom-10 left-0 w-full flex flex-col items-center justify-center z-20"
+          >
+            <p className="text-slate-500 text-[9px] md:text-[10px] font-semibold tracking-[0.3em] uppercase mb-1.5 opacity-80">
+              Created & Designed By
+            </p>
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-[1px] bg-gradient-to-r from-transparent to-blue-500/50"></span>
+              <p className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 text-sm md:text-base font-black tracking-[0.4em] uppercase drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]">
+                Mobeen
+              </p>
+              <span className="w-8 h-[1px] bg-gradient-to-l from-transparent to-purple-500/50"></span>
+            </div>
           </motion.div>
 
           {/* Progress bar */}
