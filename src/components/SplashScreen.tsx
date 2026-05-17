@@ -350,7 +350,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             <motion.div
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
-              transition={{ duration: 4.5, ease: "easeInOut" }}
+              transition={{ duration: 4.0, ease: "easeInOut" }}
               className="h-full bg-blue-600 origin-left shadow-[0_0_15px_rgba(37,99,235,0.5)]"
             />
           </div>
