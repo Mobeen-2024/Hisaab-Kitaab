@@ -64,7 +64,7 @@ export function QuickStats() {
             </div>
           </div>
           <div className="relative z-10 w-full mt-2 sm:mt-8 flex flex-col items-center sm:items-start">
-            <h3 className="text-3xl sm:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] text-center sm:text-left truncate w-full" style={{ color: '#e0eaff' }} dir="ltr">
+            <h3 className="text-sm sm:text-4xl lg:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] text-center sm:text-left w-full break-all sm:truncate" style={{ color: '#e0eaff' }} dir="ltr">
               {formatCompactCurrency(totalBalancePKR)}
             </h3>
           </div>
@@ -91,7 +91,7 @@ export function QuickStats() {
             </div>
           </div>
           <div className="relative z-10 w-full mt-2 sm:mt-8 flex flex-col items-center sm:items-start">
-            <h3 className="text-3xl sm:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] text-center sm:text-left truncate w-full" style={{ color: '#ffe0e6' }} dir="ltr">
+            <h3 className="text-sm sm:text-4xl lg:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] text-center sm:text-left w-full break-all sm:truncate" style={{ color: '#ffe0e6' }} dir="ltr">
               {formatCompactCurrency(todayExpensePKR)}
             </h3>
           </div>
@@ -144,7 +144,7 @@ export function QuickStats() {
           </div>
           
           <div className="relative z-10 w-full mt-2 sm:mt-8 flex flex-col items-center sm:items-start text-center sm:text-left">
-            <h3 className="text-base sm:text-5xl font-black tracking-tighter text-white tabular-nums leading-none truncate w-full" dir="ltr">
+            <h3 className="text-sm sm:text-4xl lg:text-5xl font-black tracking-tighter text-white tabular-nums leading-none w-full break-all sm:truncate" dir="ltr">
               {formatCompactCurrency(todayHighlightedSalesPKR)}
             </h3>
           </div>
