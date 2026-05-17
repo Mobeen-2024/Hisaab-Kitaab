@@ -60,6 +60,13 @@ function RealisticBird({ onLand, isMobile, onLoaded }: RealisticBirdProps) {
 
   const curve = useMemo(() => new THREE.QuadraticBezierCurve3(startPos, controlPos, endPos), [startPos, controlPos, endPos]);
 
+  // Analytical derivative vectors for Quadratic Bezier Curve to achieve true 100% allocation-free tangents.
+  // This bypasses Three.js's internal getTangent() which internally allocates multiple Vector3 instances per frame.
+  const segments = useMemo(() => ({
+    v1: new THREE.Vector3().subVectors(controlPos, startPos),
+    v2: new THREE.Vector3().subVectors(endPos, controlPos),
+  }), [startPos, controlPos, endPos]);
+
   const birdScale = isMobile ? 0.008 : 0.012;
 
   useFrame((state, delta) => {
@@ -76,7 +83,13 @@ function RealisticBird({ onLand, isMobile, onLoaded }: RealisticBirdProps) {
       group.current.position.copy(vectors.point);
 
       if (progressRef.current < 1) {
-        curve.getTangent(progressRef.current, vectors.tangent);
+        // Analytical tangent computation: B'(t) = 2*(1-t)*v1 + 2*t*v2
+        const t = progressRef.current;
+        vectors.tangent.copy(segments.v1)
+          .multiplyScalar(2 * (1 - t))
+          .addScaledVector(segments.v2, 2 * t)
+          .normalize();
+
         vectors.lookTarget.copy(vectors.point).add(vectors.tangent);
         group.current.lookAt(vectors.lookTarget);
       }
@@ -121,6 +134,35 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Ultimate Failsafe: Guarantee transition to dashboard after 8 seconds no matter what happens
+  // Empty dependency array ensures this timer NEVER resets even if App.tsx re-renders.
+  useEffect(() => {
+    const ultimateTimer = setTimeout(() => {
+      console.log("[SplashScreen] Ultimate Failsafe Triggered!");
+      onComplete();
+    }, 8000);
+    return () => clearTimeout(ultimateTimer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Forcefully call onComplete 600ms after we start the fade out, bypassing AnimatePresence bugs
+  useEffect(() => {
+    if (!isVisible) {
+      const exitTimer = setTimeout(() => {
+        console.log("[SplashScreen] Force exit timer triggered!");
+        onComplete();
+      }, 600);
+      return () => clearTimeout(exitTimer);
+    }
+  }, [isVisible]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Safety fallback: If 3D assets fail to load or hang due to network issues
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      if (!isModelLoaded) setIsModelLoaded(true);
+    }, 5000);
+    return () => clearTimeout(safetyTimer);
+  }, [isModelLoaded]);
+
   // Manage splash screen lifecycle, ensuring model is loaded before starting the final timer
   useEffect(() => {
     if (!isModelLoaded) return;
@@ -144,7 +186,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
       rotateX: [0, -15, 5, 0],
       z: 20,
       opacity: 1,
-      transition: { type: "spring", stiffness: 350, damping: 12 }
+      transition: { type: "spring" as const, stiffness: 350, damping: 12 }
     }
   };
 
@@ -152,6 +194,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     <AnimatePresence onExitComplete={onComplete}>
       {isVisible && (
         <motion.div
+          key="splash-screen"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.5, ease: "easeInOut" } }}
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#020617] overflow-hidden"
