@@ -31,7 +31,7 @@ export default function ReminderSystem({ settingsObj }: ReminderSystemProps) {
 
         // Also try system notification if permitted
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Hisaab-Kitab', {
+          new Notification('Hisaib-KItaib', {
             body: "Did you record today's spending?",
             icon: '/favicon.ico'
           });

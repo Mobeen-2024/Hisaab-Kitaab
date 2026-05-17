@@ -192,7 +192,7 @@ export default function MobileMenu() {
       </div>
 
       <div className="text-center px-6">
-        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">Hisaab-Kitaab v2.0</p>
+        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">Hisaib-KItaib v2.0</p>
         <p className="text-[9px] text-slate-700 mt-1 uppercase tracking-widest font-medium">Professional Financial Operating System</p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    dashboard: 'Hisaab (Dashboard)',
+    dashboard: 'Hisaib (Dashboard)',
     personal: 'Personal',
     business: 'Business',
     transactions: 'Len Den (Transactions)',

@@ -86,7 +86,7 @@ export default function Reports() {
     const csv = 'data:text/csv;charset=utf-8,' + headers.join(',') + '\n' + rows.map(r => r.join(',')).join('\n');
     const a = document.createElement('a');
     a.href = encodeURI(csv);
-    a.download = `HisaabKitab_Report_${selectedMonth}.csv`;
+    a.download = `HisaibKItaib_Report_${selectedMonth}.csv`;
     a.click();
   };
 
@@ -94,7 +94,7 @@ export default function Reports() {
     if (filteredTransactions.length === 0) return;
     const doc = new jsPDF();
     const fMonth = format(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1), 'MMMM yyyy');
-    doc.setFontSize(20); doc.text('Hisaab-Kitaab Financial Report', 14, 20);
+    doc.setFontSize(20); doc.text('Hisaib-KItaib Financial Report', 14, 20);
     doc.setFontSize(12);
     doc.text(`Month: ${fMonth}`, 14, 30);
     doc.text(`Total Income: ${formatCurrency(totalIncome)}`, 14, 40);
@@ -110,7 +110,7 @@ export default function Reports() {
       headStyles: { fillColor: [15, 23, 42] },
       alternateRowStyles: { fillColor: [245, 247, 250] },
     });
-    doc.save(`HisaabKitab_Report_${selectedMonth}.pdf`);
+    doc.save(`HisaibKItaib_Report_${selectedMonth}.pdf`);
   };
 
   return (
@@ -185,8 +185,8 @@ export default function Reports() {
                 </button>
                 <button
                   onClick={() => {
-                    const txt = `Hisaab-Kitaab Summary - ${format(parseISO(selectedMonth + '-01'), 'MMMM yyyy')}%0A%0A` +
-                      `Mode: ${activeContext}%0AIncome: ${formatCurrency(totalIncome)}%0AExpense: ${formatCurrency(totalExpense)}%0ANet: ${formatCurrency(netBalance)}%0A%0APowered by Hisaab-Kitaab`;
+                    const txt = `Hisaib-KItaib Summary - ${format(parseISO(selectedMonth + '-01'), 'MMMM yyyy')}%0A%0A` +
+                      `Mode: ${activeContext}%0AIncome: ${formatCurrency(totalIncome)}%0AExpense: ${formatCurrency(totalExpense)}%0ANet: ${formatCurrency(netBalance)}%0A%0APowered by Hisaib-KItaib`;
                     window.open(`https://wa.me/?text=${txt}`, '_blank');
                   }}
                   disabled={!filteredTransactions.length}

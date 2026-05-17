@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📒 Hisaab-Kitab (حساب کتاب)
+# 📒 Hisaib-KItaib (حساب کتاب)
 
 **The Modern Digital Ledger & Dairy Management System**
 
@@ -16,7 +16,7 @@
 
 <br />
 
-> **Hisaab-Kitab** is a localized, offline-first financial tool that brings the power of modern web technologies to the rural and micro-business economy. Say goodbye to paper registers and hello to real-time insights, AI-powered voice entries, and secure data management.
+> **Hisaib-KItaib** is a localized, offline-first financial tool that brings the power of modern web technologies to the rural and micro-business economy. Say goodbye to paper registers and hello to real-time insights, AI-powered voice entries, and secure data management.
 
 ---
 
@@ -37,7 +37,7 @@
 
 ## 🛠️ Tech Stack
 
-Hisaab-Kitab is built with a modern, high-performance web stack focused on reliability and user experience:
+Hisaib-KItaib is built with a modern, high-performance web stack focused on reliability and user experience:
 
 <div align="center">
   
@@ -89,12 +89,12 @@ Open [http://localhost:3000](http://localhost:3000) (or the port provided by Vit
 
 ## 📱 PWA Support
 
-Hisaab-Kitab is fully **Progressive Web App (PWA)** ready. 
+Hisaib-KItaib is fully **Progressive Web App (PWA)** ready. 
 You can install it directly to your mobile home screen or desktop application folder for a seamless, native-like experience—complete with offline capabilities and custom app icons.
 
 ## 📱 Native Android Build (APK)
 
-Hisaab-Kitab is configured with **Capacitor** to compile into a native Android APK, complete with custom splash screens and icons.
+Hisaib-KItaib is configured with **Capacitor** to compile into a native Android APK, complete with custom splash screens and icons.
 
 **1. Install Capacitor Assets**
 *(Used to generate your icon and splash screen)*

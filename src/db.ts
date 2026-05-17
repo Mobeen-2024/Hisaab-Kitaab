@@ -27,7 +27,7 @@ export type {
   AuditLog 
 };
 
-export class HisaabKitaabDB extends Dexie {
+export class HisaibKItaibDB extends Dexie {
   transactions!: Table<Transaction, number>;
   categories!: Table<Category, number>;
   settings!: Table<AppSettings, number>;
@@ -41,7 +41,7 @@ export class HisaabKitaabDB extends Dexie {
   messages!: Table<Message, number>;
 
   constructor() {
-    super('HisaabKitaabDB');
+    super('HisaibKItaibDB');
     this.version(1).stores({
       transactions: '++id, type, categoryId, context, date',
       categories: '++id, type, context',
@@ -191,7 +191,7 @@ export class HisaabKitaabDB extends Dexie {
   }
 }
 
-export const db = new HisaabKitaabDB();
+export const db = new HisaibKItaibDB();
 
 db.on('populate', async () => {
   await db.categories.bulkAdd([

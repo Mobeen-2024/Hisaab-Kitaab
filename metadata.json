@@ -1,5 +1,5 @@
 {
-  "name": "Hisaab-Kitaab - Pakistan Expense Manager",
+  "name": "Hisaib-KItaib - Pakistan Expense Manager",
   "description": "A localized income and expense tracker for Pakistan, featuring trilingual support (English, Urdu, Roman Urdu) and micro-business management (e.g., Milk Sales).",
   "requestFramePermissions": [
     "microphone"

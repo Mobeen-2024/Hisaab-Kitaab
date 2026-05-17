@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.hisaabkitaab.app',
-  appName: 'HisaabKitaab',
+  appName: 'HisaibKItaib',
   webDir: 'dist'
 };
 
