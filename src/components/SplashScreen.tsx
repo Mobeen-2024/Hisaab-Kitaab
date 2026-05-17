@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence, useAnimation } from 'motion/react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, useAnimations, Environment } from '@react-three/drei';
 import * as THREE from 'three';
@@ -8,16 +8,33 @@ interface SplashScreenProps {
   onComplete: () => void;
 }
 
-function RealisticBird({ onLand, isMobile }: { onLand: () => void; isMobile: boolean }) {
-  const group = React.useRef<THREE.Group>(null);
+interface RealisticBirdProps {
+  onLand: () => void;
+  isMobile: boolean;
+  onLoaded: () => void;
+}
+
+function RealisticBird({ onLand, isMobile, onLoaded }: RealisticBirdProps) {
+  const group = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF('/Stork.glb');
   const { actions } = useAnimations(animations, group);
 
-  // Use a ref for progress to avoid heavy re-renders in useFrame
-  const progressRef = React.useRef(0);
-  const landedRef = React.useRef(false);
+  // Pre-allocate vectors to prevent massive Garbage Collection spikes in useFrame
+  const vectors = useMemo(() => ({
+    point: new THREE.Vector3(),
+    tangent: new THREE.Vector3(),
+    lookTarget: new THREE.Vector3()
+  }), []);
 
-  React.useEffect(() => {
+  const progressRef = useRef(0);
+  const landedRef = useRef(false);
+
+  // Notify parent that the 3D model has fully loaded and mounted
+  useEffect(() => {
+    onLoaded();
+  }, [onLoaded]);
+
+  useEffect(() => {
     if (actions && Object.keys(actions).length > 0) {
       const actionName = Object.keys(actions)[0];
       const action = actions[actionName];
@@ -28,20 +45,20 @@ function RealisticBird({ onLand, isMobile }: { onLand: () => void; isMobile: boo
     }
   }, [actions]);
 
-  // Adjust positions to ensure the bird appears almost immediately
-  const startPos = React.useMemo(() =>
+  // Adjust positions to ensure the bird appears correctly
+  const startPos = useMemo(() =>
     isMobile ? new THREE.Vector3(2.0, 3.0, 4) : new THREE.Vector3(2.5, 2.8, 4),
     [isMobile]);
 
-  const endPos = React.useMemo(() =>
+  const endPos = useMemo(() =>
     isMobile ? new THREE.Vector3(0.7, 0.9, 2) : new THREE.Vector3(1.8, 1.2, 2),
     [isMobile]);
 
-  const controlPos = React.useMemo(() =>
+  const controlPos = useMemo(() =>
     isMobile ? new THREE.Vector3(1.3, 1.9, 3) : new THREE.Vector3(2.5, 2.2, 3),
     [isMobile]);
 
-  const curve = React.useMemo(() => new THREE.QuadraticBezierCurve3(startPos, controlPos, endPos), [startPos, controlPos, endPos]);
+  const curve = useMemo(() => new THREE.QuadraticBezierCurve3(startPos, controlPos, endPos), [startPos, controlPos, endPos]);
 
   const birdScale = isMobile ? 0.008 : 0.012;
 
@@ -49,17 +66,19 @@ function RealisticBird({ onLand, isMobile }: { onLand: () => void; isMobile: boo
     if (!group.current) return;
 
     if (progressRef.current < 1) {
-      // Faster flight: 0.5 means it takes 2 seconds total
-      const speed = 0.5;
-      progressRef.current = Math.min(progressRef.current + delta * speed, 1);
+      // Cap delta to prevent massive jumps on lag spikes
+      const safeDelta = Math.min(delta, 0.1);
+      const speed = 0.5; // Takes ~2 seconds total
+      progressRef.current = Math.min(progressRef.current + safeDelta * speed, 1);
 
-      const point = curve.getPoint(progressRef.current);
-      group.current.position.copy(point);
+      // Use pre-allocated vectors to avoid memory allocation in hot loop
+      curve.getPoint(progressRef.current, vectors.point);
+      group.current.position.copy(vectors.point);
 
       if (progressRef.current < 1) {
-        const tangent = curve.getTangent(progressRef.current);
-        const lookTarget = point.clone().add(tangent);
-        group.current.lookAt(lookTarget);
+        curve.getTangent(progressRef.current, vectors.tangent);
+        vectors.lookTarget.copy(vectors.point).add(vectors.tangent);
+        group.current.lookAt(vectors.lookTarget);
       }
 
       if (progressRef.current >= 1 && !landedRef.current) {
@@ -67,9 +86,7 @@ function RealisticBird({ onLand, isMobile }: { onLand: () => void; isMobile: boo
         onLand();
         if (actions && Object.keys(actions).length > 0) {
           const action = actions[Object.keys(actions)[0]];
-          if (action) {
-            action.timeScale = 0.3; // Slow down wings on landing
-          }
+          if (action) action.timeScale = 0.3; // Slow down wings on landing
         }
       }
     } else {
@@ -91,19 +108,33 @@ useGLTF.preload('/Stork.glb');
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
   const [hasLanded, setHasLanded] = useState(false);
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [isMobile, setIsMobile] = useState(false);
+  const [isModelLoaded, setIsModelLoaded] = useState(false);
+  
+  const [mountTime] = useState(() => Date.now());
 
+  // Handle responsive layout safely for SSR/Hydration
   useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile(); // Initial check
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Manage splash screen lifecycle, ensuring model is loaded before starting the final timer
+  useEffect(() => {
+    if (!isModelLoaded) return;
+
+    const elapsed = Date.now() - mountTime;
+    // Ensure splash shows for at least 4.5 seconds, but give at least 2 seconds after model loads
+    const remainingTime = Math.max(4500 - elapsed, 2000);
+
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(onComplete, 500);
-    }, 5000);
+    }, remainingTime);
 
     return () => clearTimeout(timer);
-  }, [onComplete]);
-
-  // Easing presets
-  const easing = [0.16, 1, 0.3, 1] as const;
+  }, [isModelLoaded, mountTime]);
 
   const textVariants = {
     hidden: { opacity: 0, y: 20, z: -20 },
@@ -113,18 +144,20 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
       rotateX: [0, -15, 5, 0],
       z: 20,
       opacity: 1,
-      transition: { type: "spring" as const, stiffness: 350, damping: 12 }
+      transition: { type: "spring", stiffness: 350, damping: 12 }
     }
   };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence onExitComplete={onComplete}>
       {isVisible && (
         <motion.div
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0.5 } }}
+          exit={{ opacity: 0, transition: { duration: 0.5, ease: "easeInOut" } }}
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#020617] overflow-hidden"
           style={{ perspective: "1200px", position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          role="presentation"
+          aria-hidden="true"
         >
           {/* Background Effects */}
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -149,31 +182,20 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               <pointLight position={[10, 10, 10]} intensity={4} color="#93C5FD" />
               <React.Suspense fallback={null}>
                 <Environment preset="city" />
-                <RealisticBird isMobile={isMobile} onLand={() => setHasLanded(true)} />
+                <RealisticBird 
+                  isMobile={isMobile} 
+                  onLand={() => setHasLanded(true)} 
+                  onLoaded={() => setIsModelLoaded(true)}
+                />
               </React.Suspense>
             </Canvas>
           </div>
 
           {/* 3D Logo Container */}
           <motion.div
-            initial={{
-              opacity: 0,
-              scale: 0.7,
-              rotateY: -35,
-              rotateX: 15,
-              z: -100
-            }}
-            animate={{
-              opacity: 1,
-              scale: 1,
-              rotateY: 0,
-              rotateX: 0,
-              z: 0
-            }}
-            transition={{
-              duration: 1.5,
-              ease: easing,
-            }}
+            initial={{ opacity: 0, scale: 0.7, rotateY: -35, rotateX: 15, z: -100 }}
+            animate={{ opacity: 1, scale: 1, rotateY: 0, rotateX: 0, z: 0 }}
+            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             className="relative flex flex-col items-center z-10 -translate-y-[10vh] md:-translate-y-[15vh]"
             style={{ transformStyle: "preserve-3d" }}
           >
@@ -181,15 +203,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               {/* Logo Glow Layer */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
-                animate={{
-                  opacity: [0.4, 0.8, 0.4],
-                  scale: [0.8, 1.2, 0.8]
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
+                animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.8, 1.2, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute inset-0 bg-blue-500/40 rounded-full blur-[60px] md:blur-[80px]"
                 style={{ transform: "translateZ(-40px)" }}
               />
@@ -205,15 +220,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               <motion.div
                 className="relative z-10 w-24 h-24 md:w-40 md:h-40"
                 style={{ transform: "translateZ(50px)" }}
-                animate={{
-                  y: [0, -8, 0],
-                  rotateZ: [0, 2, 0]
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
+                animate={{ y: [0, -8, 0], rotateZ: [0, 2, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
               >
                 <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
                   <path
