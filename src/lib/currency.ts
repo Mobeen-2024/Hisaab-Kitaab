@@ -24,21 +24,50 @@ export let exchangeRates: Record<string, number> = {
 export { exchangeRates as mockExchangeRates };
 
 export const fetchExchangeRates = async () => {
-  try {
-    // Using Frankfurter API (free, no key required)
-    const response = await fetch('https://api.frankfurter.app/latest?from=PKR');
-    const data = await response.json();
-    if (data && data.rates) {
-      exchangeRates = { ...exchangeRates, ...data.rates, 'PKR': 1 };
-      return true;
+  // Try multiple CORS-safe sources. The app works perfectly fine on static
+  // rates so any network failure is silently swallowed — NEVER throws.
+  const sources = [
+    // Source 1: ExchangeRate-API (free, CORS-enabled)
+    async () => {
+      const r = await fetch('https://open.er-api.com/v6/latest/PKR', { mode: 'cors' });
+      const d = await r.json();
+      if (d && d.rates) return d.rates as Record<string, number>;
+      return null;
+    },
+    // Source 2: Currency-API (free GitHub-hosted CDN, always CORS-open)
+    async () => {
+      const r = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/pkr.json');
+      const d = await r.json();
+      // Response shape: { pkr: { usd: 0.0036, eur: ... } }
+      if (d && d.pkr) {
+        const rates: Record<string, number> = {};
+        for (const [k, v] of Object.entries(d.pkr)) {
+          rates[k.toUpperCase()] = v as number;
+        }
+        return rates;
+      }
+      return null;
+    },
+  ];
+
+  for (const trySource of sources) {
+    try {
+      const rates = await trySource();
+      if (rates) {
+        exchangeRates = { ...exchangeRates, ...rates, PKR: 1 };
+        return true;
+      }
+    } catch {
+      // silently try next source
     }
-  } catch (error) {
-    console.error('Failed to fetch live exchange rates, using mocks:', error);
   }
+
+  // All sources failed — app continues using the static fallback rates above.
+  console.info('[Hisaib Kitaib] Exchange rates unavailable, using built-in static rates.');
   return false;
 };
 
-// Initial fetch attempt
+// Initial fetch — fire-and-forget, never blocks the UI
 fetchExchangeRates();
 
 
