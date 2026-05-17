@@ -53,7 +53,7 @@ export default function AddCustomerModal({
     // Validation using Zod
     const result = CustomerSchema.safeParse(payload);
     if (!result.success) {
-      const firstError = result.error.errors[0]?.message || 'Invalid input';
+      const firstError = result.error.issues[0]?.message || 'Invalid input';
       showToast(firstError, 'error');
       return;
     }

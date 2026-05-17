@@ -44,6 +44,8 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
     scrollToBottom();
   }, [messages, isOpen]);
 
+  if (!isOpen) return null;
+
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!inputText.trim() || isSubmitting) return;
@@ -100,29 +102,20 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
   };
 
   return (
-    <>
-      <AnimatePresence>
-        {isOpen && (
-          <div 
-            className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 pointer-events-auto"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="messages-modal-title"
-          >
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md cursor-pointer"
-            />
-            
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-6xl bg-[#0F172A] border border-white/10 h-[85vh] max-h-[800px] rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex overflow-hidden z-10"
-            >
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 pointer-events-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="messages-modal-title"
+    >
+      <div 
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer animate-in fade-in duration-200"
+      />
+      
+      <div 
+        className="w-full max-w-6xl bg-[#0F172A] border border-white/10 h-[85vh] max-h-[800px] rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl relative flex overflow-hidden z-10 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+      >
               {/* Sidebar */}
               <div className="w-80 border-r border-white/10 bg-white/5 flex flex-col hidden md:flex shrink-0">
                 <div className="p-6 border-b border-white/10">
@@ -333,10 +326,7 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
                   </form>
                 </div>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            </div>
 
       <QrScanModal 
         isOpen={isQrScanOpen} 
@@ -344,6 +334,6 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
         lang={lang} 
         activeContext="personal" 
       />
-    </>
+    </div>
   );
 }

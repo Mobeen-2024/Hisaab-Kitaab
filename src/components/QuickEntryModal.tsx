@@ -132,7 +132,7 @@ export default function QuickEntryModal({
 
         const result = TransactionSchema.safeParse(payload);
         if (!result.success) {
-          showToast(result.error.errors[0]?.message || "Invalid data", "error");
+          showToast(result.error.issues[0]?.message || "Invalid data", "error");
           setIsSubmitting(false);
           return;
         }
@@ -153,7 +153,7 @@ export default function QuickEntryModal({
 
         const result = UdhaarEntrySchema.safeParse(payload);
         if (!result.success) {
-          showToast(result.error.errors[0]?.message || "Invalid data", "error");
+          showToast(result.error.issues[0]?.message || "Invalid data", "error");
           setIsSubmitting(false);
           return;
         }
@@ -274,10 +274,9 @@ export default function QuickEntryModal({
               exchangeRate={exchangeRate}
               setExchangeRate={setExchangeRate}
               lang={lang}
-              disabled={isSubmitting}
             />
 
-            <TypeSelector type={type} setType={setType} lang={lang} disabled={isSubmitting} />
+            <TypeSelector type={type} setType={setType} lang={lang} />
 
             <CategoryCustomerSelector
               type={type}
@@ -289,10 +288,9 @@ export default function QuickEntryModal({
               customers={customers}
               onManageCategories={() => setIsManageCategoriesOpen(true)}
               lang={lang}
-              disabled={isSubmitting}
             />
 
-            <NoteInput value={description} onChange={setDescription} lang={lang} disabled={isSubmitting} />
+            <NoteInput value={description} onChange={setDescription} lang={lang} />
 
             <div className={`flex gap-2 items-center text-slate-400 relative z-40 ${rtl ? 'flex-row-reverse' : ''}`}>
               <Calendar size={18} className={`shrink-0 ${rtl ? 'mr-1' : 'ml-1'}`} />

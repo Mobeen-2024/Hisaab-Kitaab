@@ -49,31 +49,23 @@ export default function NotificationsModal({ isOpen, onClose, lang, currency }: 
     }))
   ], [lowStockItems, outstandingDebts, outstandingPayables, currency, lang]);
 
+  if (!isOpen) return null;
+
   return (
-    <>
-      <AnimatePresence>
-        {isOpen && (
-          <div 
-            className="fixed inset-0 z-[100] flex justify-end pointer-events-auto"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="notifications-modal-title"
-          >
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"
-            />
-            
-            <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="w-full max-w-md bg-[#0F172A] border-l border-white/10 h-full shadow-2xl relative flex flex-col z-10"
-            >
+    <div 
+      className="fixed inset-0 z-[100] flex justify-end pointer-events-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notifications-modal-title"
+    >
+      <div 
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer animate-in fade-in duration-200"
+      />
+      
+      <div 
+        className="w-full max-w-md bg-[#0F172A] border-l border-white/10 h-full shadow-2xl relative flex flex-col z-10 animate-in slide-in-from-right duration-300"
+      >
               <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5 backdrop-blur-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-600/20 flex items-center justify-center text-blue-400 border border-blue-500/20">
@@ -103,12 +95,9 @@ export default function NotificationsModal({ isOpen, onClose, lang, currency }: 
                   </div>
                 ) : (
                   notifications.map((notif) => (
-                    <motion.div 
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
+                    <div 
                       key={notif.id}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer group hover:scale-[1.02] active:scale-95 ${
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer group hover:scale-[1.02] active:scale-95 animate-in fade-in slide-in-from-bottom-2 duration-200 ${
                         notif.read ? 'bg-white/5 border-white/10' : 'bg-blue-600/10 border-blue-500/30 shadow-lg shadow-blue-500/5'
                       }`}
                     >
@@ -128,7 +117,7 @@ export default function NotificationsModal({ isOpen, onClose, lang, currency }: 
                           <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Just Now</span>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))
                 )}
               </div>
@@ -143,10 +132,7 @@ export default function NotificationsModal({ isOpen, onClose, lang, currency }: 
                   </button>
                 </div>
               )}
-            </motion.div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
-    </>
   );
 }
