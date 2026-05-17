@@ -123,7 +123,7 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
   const isUrdu = lang === 'ur';
 
   return (
-    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 ${rtl ? 'text-right' : 'text-left'}`}>
+    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 ${rtl ? 'text-right' : 'text-left'}`}>
       <div 
         className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 hide-scrollbar"
         dir={rtl ? 'rtl' : 'ltr'}
