@@ -23,7 +23,7 @@ export function WelcomeHeader() {
           <span className="text-white">{isUrdu ? '' : 'Hello, '}</span>
           <span className="relative">
             <span className="bg-gradient-to-r from-blue-300 via-indigo-200 to-purple-300 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(99,102,241,0.6)]">
-              {settingsObj?.ownerName || 'Arsalan'}
+              {settingsObj?.ownerName || 'Mobeen'}
             </span>
             <span className={`absolute -bottom-1 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500/0 via-indigo-400/80 to-purple-500/0 rounded-full ${isUrdu ? '' : 'blur-[1px]'}`} />
           </span>

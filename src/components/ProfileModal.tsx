@@ -172,7 +172,7 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={isUrdu ? 'مثال: ارسلان خان' : "e.g. Arsalan Khan"}
+                placeholder={isUrdu ? 'مثال: مبین' : "e.g. Mobeen"}
                 className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none placeholder:text-slate-500"
               />
             </div>

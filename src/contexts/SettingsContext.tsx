@@ -29,7 +29,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const currency = settingsObj?.currency || 'PKR';
   const activeContext = settingsObj?.activeContext || 'business';
   const rtl = isRTL(lang);
-  const ownerName = settingsObj?.ownerName || 'Arsalan Khan';
+  const ownerName = settingsObj?.ownerName || 'Mobeen';
   const ownerAvatar = settingsObj?.ownerAvatar || null;
   
   const activeUser = users.find(u => u.id === settingsObj?.activeUserId);
