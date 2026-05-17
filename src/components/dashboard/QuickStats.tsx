@@ -47,7 +47,7 @@ export function QuickStats() {
   };
 
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-6 md:gap-8" style={{ perspective: '1200px' }}>
+    <div className="grid grid-cols-3 gap-2 sm:gap-6 md:gap-8 relative z-[60]" style={{ perspective: '1200px' }}>
       {/* Total Balance Card */}
       <div className="group h-full lg:col-span-1 md:col-span-2">
         <div className="group h-full bg-gradient-to-br from-blue-950/60 via-slate-900/60 to-slate-900/60 border border-blue-500/10 hover:border-blue-400/40 p-3 sm:p-8 rounded-2xl sm:rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl">
