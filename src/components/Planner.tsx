@@ -3,7 +3,7 @@ import { Goal } from '../db';
 import { PlannerService } from '../services/PlannerService';
 import { useMemo } from 'react';
 import { Lang, t } from '../lib/i18n';
-import { Target, PieChart, TrendingUp, AlertCircle, Plus, X, Pencil, PiggyBank, Calendar, Trash2, Wallet } from 'lucide-react';
+import { Target, PieChart, TrendingUp, AlertCircle, Plus, X, Pencil, PiggyBank, Calendar, Trash2, Wallet, Loader2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
@@ -11,9 +11,12 @@ import DatePicker from './DatePicker';
 import RetentionCards from './RetentionCards';
 import { useGoals, useBudgets, useTransactions } from '../hooks/useData';
 import { useSettings } from '../contexts/SettingsContext';
+import { useToast } from '../contexts/ToastContext';
+import { GoalSchema, BudgetSchema } from '../models/schemas';
 
 export default function Planner() {
   const { lang, currency, activeContext } = useSettings();
+  const { showToast } = useToast();
   const currentMonth = format(new Date(), 'yyyy-MM');
   const monthStart = startOfMonth(new Date());
   const monthEnd = endOfMonth(new Date());
@@ -33,6 +36,7 @@ export default function Planner() {
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [deletingGoalId, setDeletingGoalId] = useState<number | null>(null);
   const [addFundsGoal, setAddFundsGoal] = useState<Goal | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatCurrency = (val: number) => {
     return formatSharedCurrency(val, currency, lang);
@@ -54,18 +58,27 @@ export default function Planner() {
     ? Math.min(100, Math.round((currentMonthExpenses / currentBudget.amount) * 100))
     : 0, [currentBudget, currentMonthExpenses]);
 
+  const handleDeleteGoal = async () => {
+    if (!deletingGoalId) return;
+    setIsSubmitting(true);
+    try {
+      await PlannerService.deleteGoal(deletingGoalId);
+      showToast('Goal deleted successfully', 'success');
+      setDeletingGoalId(null);
+    } catch (error: any) {
+      showToast(error.message || 'Failed to delete goal', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
       <RetentionCards lang={lang} currency={currency} />
       <ConfirmDialog
         isOpen={deletingGoalId !== null}
-        onClose={() => setDeletingGoalId(null)}
-        onConfirm={async () => {
-          if (deletingGoalId) {
-            await PlannerService.deleteGoal(deletingGoalId);
-            setDeletingGoalId(null);
-          }
-        }}
+        onClose={() => !isSubmitting && setDeletingGoalId(null)}
+        onConfirm={handleDeleteGoal}
         title="Delete Goal"
         message="Are you sure you want to delete this goal? This action cannot be undone."
       />
@@ -318,49 +331,100 @@ export default function Planner() {
 }
 
 function BudgetModal({ isOpen, onClose, activeContext, currentBudget, currentMonth, currency }: any) {
+  const { showToast } = useToast();
   const [amount, setAmount] = useState(currentBudget ? String(currentBudget.amount) : '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen && currentBudget) {
+      setAmount(String(currentBudget.amount));
+    }
+  }, [isOpen, currentBudget]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || isNaN(Number(amount))) return;
-
-    await PlannerService.upsertBudget({
+    const payload = {
       month: currentMonth,
       amount: Number(amount),
       context: activeContext
-    }, currentBudget?.id);
-    onClose();
+    };
+
+    const result = BudgetSchema.safeParse(payload);
+    if (!result.success) {
+      showToast(result.error.issues[0]?.message || 'Invalid amount', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await PlannerService.upsertBudget(payload as any, currentBudget?.id);
+      showToast('Budget updated successfully', 'success');
+      onClose();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update budget', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="budget-modal-title"
+    >
       <div className="bg-[#0F172A] border border-white/10 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
         <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <h2 id="budget-modal-title" className="text-xl font-bold text-white flex items-center gap-2">
             <TrendingUp className="text-amber-400" size={24} /> Set Monthly Limit
           </h2>
+          <button 
+            onClick={onClose} 
+            disabled={isSubmitting}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">Total Limit for {format(new Date(), 'MMMM yyyy')}</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1" htmlFor="budget-amount">Total Limit for {format(new Date(), 'MMMM yyyy')}</label>
             <div className="relative">
                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">{currency === 'PKR' ? 'Rs' : currency === 'USD' ? '$' : '€'}</span>
                <input
+                 id="budget-amount"
                  type="number"
                  value={amount}
                  onChange={(e) => setAmount(e.target.value)}
                  autoFocus
                  required
                  min="0"
-                 className="w-full bg-[#1E293B] border border-white/10 text-white text-xl rounded-xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-amber-500/50 outline-none"
+                 disabled={isSubmitting}
+                 className="w-full bg-[#1E293B] border border-white/10 text-white text-xl rounded-xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-amber-500/50 outline-none disabled:opacity-50"
                />
              </div>
           </div>
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-colors">Cancel</button>
-            <button type="submit" className="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-400 text-amber-950 rounded-xl text-sm font-bold transition-colors">Save Limit</button>
+            <button 
+              type="button" 
+              onClick={onClose} 
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={isSubmitting || !amount}
+              className="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-400 text-amber-950 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+              Save Limit
+            </button>
           </div>
         </form>
       </div>
@@ -369,36 +433,70 @@ function BudgetModal({ isOpen, onClose, activeContext, currentBudget, currentMon
 }
 
 function GoalModal({ isOpen, onClose, activeContext, currency }: any) {
+  const { showToast } = useToast();
   const [title, setTitle] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setTitle('');
+      setTargetAmount('');
+      setDeadline('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !targetAmount || isNaN(Number(targetAmount))) return;
-
-    await PlannerService.addGoal({
-      title,
+    const payload = {
+      title: title.trim(),
       targetAmount: Number(targetAmount),
       deadline: deadline || undefined,
-      context: activeContext
-    });
+      context: activeContext,
+      currentAmount: 0
+    };
 
-    setTitle('');
-    setTargetAmount('');
-    setDeadline('');
-    onClose();
+    const result = GoalSchema.safeParse(payload);
+    if (!result.success) {
+      showToast(result.error.issues[0]?.message || 'Invalid goal data', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await PlannerService.addGoal(payload as any);
+      showToast('Goal created successfully', 'success');
+      onClose();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to create goal', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0F172A] border border-white/10 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="goal-modal-title"
+    >
+      <div className="bg-[#0F172A] border border-white/10 rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl relative">
         <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <h2 id="goal-modal-title" className="text-xl font-bold text-white flex items-center gap-2">
             <Target className="text-purple-400" size={24} /> New Goal
           </h2>
+          <button 
+            onClick={onClose} 
+            disabled={isSubmitting}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
@@ -409,7 +507,8 @@ function GoalModal({ isOpen, onClose, activeContext, currency }: any) {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g., Emergency Fund"
               required
-              className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none"
+              disabled={isSubmitting}
+              className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none disabled:opacity-50"
             />
           </div>
           <div>
@@ -422,7 +521,8 @@ function GoalModal({ isOpen, onClose, activeContext, currency }: any) {
                  onChange={(e) => setTargetAmount(e.target.value)}
                  required
                  min="1"
-                 className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none"
+                 disabled={isSubmitting}
+                 className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none disabled:opacity-50"
                />
              </div>
           </div>
@@ -431,12 +531,26 @@ function GoalModal({ isOpen, onClose, activeContext, currency }: any) {
             <DatePicker
               value={deadline}
               onChange={(newDate) => setDeadline(newDate)}
-              className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-purple-500/50 outline-none"
+              className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-purple-500/50 outline-none disabled:opacity-50"
             />
           </div>
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-colors">Cancel</button>
-            <button type="submit" className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-bold transition-colors">Create Goal</button>
+            <button 
+              type="button" 
+              onClick={onClose} 
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={isSubmitting || !title || !targetAmount}
+              className="flex-1 px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSubmitting && <Loader2 size={16} className="animate-spin" />}
+              Create Goal
+            </button>
           </div>
         </form>
       </div>
@@ -445,24 +559,42 @@ function GoalModal({ isOpen, onClose, activeContext, currency }: any) {
 }
 
 function AddFundsModal({ goal, currency, onClose }: { goal: Goal, currency: string, onClose: () => void }) {
+  const { showToast } = useToast();
   const [amount, setAmount] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || isNaN(Number(amount))) return;
+    const numericAmount = Number(amount);
+    if (!amount || isNaN(numericAmount) || numericAmount <= 0) {
+      showToast('Please enter a valid amount', 'error');
+      return;
+    }
 
-    await PlannerService.addFunds(goal.id!, goal.currentAmount || 0, Number(amount));
-
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await PlannerService.addFunds(goal.id!, goal.currentAmount || 0, numericAmount);
+      showToast('Funds added to goal', 'success');
+      onClose();
+    } catch (error: any) {
+      showToast(error.message || 'Failed to add funds', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-      <div className="bg-[#0F172A] border border-white/10 rounded-[2rem] w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200 p-6 text-center">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-funds-title"
+    >
+      <div className="bg-[#0F172A] border border-white/10 rounded-[2rem] w-full max-w-sm shadow-2xl p-6 text-center">
         <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 mx-auto mb-4">
           <Wallet size={32} />
         </div>
-        <h3 className="text-xl font-bold text-white mb-2">Add Funds</h3>
+        <h3 id="add-funds-title" className="text-xl font-bold text-white mb-2">Add Funds</h3>
         <p className="text-sm text-slate-400 mb-6">Adding to: <span className="text-white font-bold">{goal.title}</span></p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -470,13 +602,26 @@ function AddFundsModal({ goal, currency, onClose }: { goal: Goal, currency: stri
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">{currency === 'PKR' ? 'Rs' : currency === 'USD' ? '$' : '€'}</span>
             <input
               type="number" autoFocus value={amount} onChange={e => setAmount(e.target.value)} min="1"
-              className="w-full bg-[#1E293B] border border-white/10 text-white text-2xl rounded-2xl pl-12 pr-4 py-4 focus:ring-2 focus:ring-purple-500/50 outline-none text-center"
+              disabled={isSubmitting}
+              className="w-full bg-[#1E293B] border border-white/10 text-white text-2xl rounded-2xl pl-12 pr-4 py-4 focus:ring-2 focus:ring-purple-500/50 outline-none text-center disabled:opacity-50"
               placeholder="0"
             />
           </div>
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-colors">Cancel</button>
-            <button type="submit" className="flex-1 px-4 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-lg shadow-purple-900/20">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              disabled={isSubmitting || !amount}
+              className="flex-1 px-4 py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold transition-colors shadow-lg shadow-purple-900/20 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSubmitting && <Loader2 size={16} className="animate-spin" />}
               Confirm
             </button>
           </div>

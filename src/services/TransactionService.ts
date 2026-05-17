@@ -1,12 +1,17 @@
 import { db } from '../db';
 import { Transaction, TransactionSchema } from '../models';
+import { CustomerService } from './CustomerService';
 
 export type TransactionInput = Transaction;
 
 export const TransactionService = {
   async add(input: TransactionInput) {
     const validated = TransactionSchema.parse(input);
-    return await db.transactions.add(validated as Transaction);
+    const id = await db.transactions.add(validated as Transaction);
+    if (validated.customerId) {
+      await CustomerService.syncBalance(validated.customerId);
+    }
+    return id;
   },
 
   async getAllByContext(context: 'personal' | 'business') {
@@ -18,7 +23,13 @@ export const TransactionService = {
   },
 
   async delete(id: number) {
-    return await db.transactions.delete(id);
+    const tx = await db.transactions.get(id);
+    if (!tx) return;
+
+    await db.transactions.delete(id);
+    if (tx.customerId) {
+      await CustomerService.syncBalance(tx.customerId);
+    }
   },
 
   async getRecent(limit = 100) {
@@ -59,6 +70,12 @@ export const TransactionService = {
   },
 
   async bulkAdd(transactions: Transaction[]) {
-    return await db.transactions.bulkAdd(transactions);
+    const result = await db.transactions.bulkAdd(transactions);
+    // Sync balances for all affected customers
+    const customerIds = [...new Set(transactions.map(t => t.customerId).filter(Boolean))];
+    for (const id of customerIds) {
+      await CustomerService.syncBalance(id as number);
+    }
+    return result;
   }
 };

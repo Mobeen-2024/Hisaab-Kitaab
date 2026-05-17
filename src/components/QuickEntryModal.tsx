@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { t, Lang, isRTL } from "../lib/i18n";
 import { useRecentTransactions, useCategories, useCustomers } from "../hooks/useData";
 import { useToast } from "../contexts/ToastContext";
-import { X, Calendar, Plus, Sparkles } from "lucide-react";
+import { X, Calendar, Plus, Sparkles, Loader2 } from "lucide-react";
 import ManageCategoriesModal from "./ManageCategoriesModal";
 import { AIService } from "../services/AIService";
 import { TransactionService } from "../services/TransactionService";
 import { UdhaarService } from "../services/UdhaarService";
 import DatePicker from "./DatePicker";
 import ConfirmDialog from "./ConfirmDialog";
+import { TransactionSchema, UdhaarEntrySchema } from "../models";
 
 // Sub-components
 import VoiceInterface from "./QuickEntry/VoiceInterface";
@@ -42,6 +43,7 @@ export default function QuickEntryModal({
   const [isRecording, setIsRecording] = useState(false);
   const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
   const [isConfirmingSave, setIsConfirmingSave] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Smart Voice State
   const [isSmartVoiceMode, setIsSmartVoiceMode] = useState(false);
@@ -111,13 +113,10 @@ export default function QuickEntryModal({
     const rate = transactionCurrency === "PKR" ? 1 : parseFloat(exchangeRate) || 1;
     const finalAmountInPKR = numericAmount * rate;
 
+    setIsSubmitting(true);
     try {
       if (type === "expense" || type === "income") {
-        if (!categoryId) {
-          showToast(lang === 'ur' ? 'براہ کرم زمرہ منتخب کریں' : 'Please select a category', 'error');
-          return;
-        }
-        await TransactionService.add({
+        const payload = {
           type,
           context: activeContext,
           amount: finalAmountInPKR,
@@ -126,15 +125,21 @@ export default function QuickEntryModal({
           exchangeRate: rate,
           categoryId: parseInt(categoryId, 10),
           date,
-          description,
+          description: description.trim(),
           paymentMethod: "cash",
-        });
-      } else {
-        if (!customerId) {
-          showToast(lang === 'ur' ? 'براہ کرم گاہک منتخب کریں' : 'Please select a customer', 'error');
+          customerId: customerId ? parseInt(customerId, 10) : undefined,
+        };
+
+        const result = TransactionSchema.safeParse(payload);
+        if (!result.success) {
+          showToast(result.error.errors[0]?.message || "Invalid data", "error");
+          setIsSubmitting(false);
           return;
         }
-        await UdhaarService.add({
+
+        await TransactionService.add(payload as any);
+      } else {
+        const payload = {
           customerId: parseInt(customerId, 10),
           type: type === "udhaar_give" ? "give" : "receive",
           amount: finalAmountInPKR,
@@ -142,19 +147,36 @@ export default function QuickEntryModal({
           originalAmount: numericAmount,
           exchangeRate: rate,
           date,
-          description,
+          description: description.trim(),
           isCompleted: false,
-        });
+        };
+
+        const result = UdhaarEntrySchema.safeParse(payload);
+        if (!result.success) {
+          showToast(result.error.errors[0]?.message || "Invalid data", "error");
+          setIsSubmitting(false);
+          return;
+        }
+
+        await UdhaarService.add(payload as any);
       }
 
       showToast(lang === 'ur' ? 'ریکارڈ محفوظ کر لیا گیا ہے' : 'Entry saved successfully', 'success');
+      
       if (closeAfterSave) {
         onClose();
+        setAmount("");
+        setDescription("");
+      } else {
+        // Clear just amount and description for "Another" entry
         setAmount("");
         setDescription("");
       }
     } catch (err: any) {
       showToast(err.message || 'Failed to save entry', 'error');
+    } finally {
+      setIsSubmitting(false);
+      setIsConfirmingSave(false);
     }
   };
 
@@ -199,23 +221,34 @@ export default function QuickEntryModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-[#0F172A]/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+    <div 
+      className="fixed inset-0 bg-[#0F172A]/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="quick-entry-title"
+    >
       <div className="bg-[#1E293B] border-t sm:border border-white/20 sm:rounded-3xl rounded-t-3xl w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar relative shadow-2xl animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-0 sm:zoom-in-95">
         
         {/* Header */}
         <div className={`flex justify-between items-center px-6 pt-6 pb-2 ${rtl ? 'flex-row-reverse' : ''}`}>
           <div className={`flex items-center gap-2 ${rtl ? 'flex-row-reverse' : ''}`}>
-            <h2 className="text-xl font-black text-white tracking-tight">Quick Add</h2>
+            <h2 id="quick-entry-title" className="text-xl font-black text-white tracking-tight">Quick Add</h2>
             <button
               onClick={() => setIsSmartVoiceMode(!isSmartVoiceMode)}
+              disabled={isSubmitting}
               className={`ml-2 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors flex items-center gap-1 ${
                 isSmartVoiceMode ? "bg-indigo-50 text-white" : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30"
-              }`}
+              } disabled:opacity-50`}
             >
               <Sparkles size={12} /> {rtl ? 'AI وائس فوکس' : 'AI Voice Focus'}
             </button>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors hidden-tap">
+          <button 
+            onClick={onClose} 
+            disabled={isSubmitting}
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors hidden-tap disabled:opacity-50"
+            aria-label="Close"
+          >
             <X size={20} />
           </button>
         </div>
@@ -241,9 +274,10 @@ export default function QuickEntryModal({
               exchangeRate={exchangeRate}
               setExchangeRate={setExchangeRate}
               lang={lang}
+              disabled={isSubmitting}
             />
 
-            <TypeSelector type={type} setType={setType} lang={lang} />
+            <TypeSelector type={type} setType={setType} lang={lang} disabled={isSubmitting} />
 
             <CategoryCustomerSelector
               type={type}
@@ -255,9 +289,10 @@ export default function QuickEntryModal({
               customers={customers}
               onManageCategories={() => setIsManageCategoriesOpen(true)}
               lang={lang}
+              disabled={isSubmitting}
             />
 
-            <NoteInput value={description} onChange={setDescription} lang={lang} />
+            <NoteInput value={description} onChange={setDescription} lang={lang} disabled={isSubmitting} />
 
             <div className={`flex gap-2 items-center text-slate-400 relative z-40 ${rtl ? 'flex-row-reverse' : ''}`}>
               <Calendar size={18} className={`shrink-0 ${rtl ? 'mr-1' : 'ml-1'}`} />
@@ -266,10 +301,20 @@ export default function QuickEntryModal({
             </div>
 
             <div className={`flex gap-2 pt-2 ${rtl ? 'flex-row-reverse' : ''}`}>
-              <button type="submit" className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-blue-500/20">
+              <button 
+                type="submit" 
+                disabled={isSubmitting || !amount}
+                className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSubmitting && <Loader2 size={20} className="animate-spin" />}
                 {rtl ? 'محفوظ کریں' : 'Save Details'}
               </button>
-              <button type="button" onClick={() => handleSave(false)} className="px-4 py-4 bg-white/5 border border-white/10 text-blue-400 rounded-xl font-bold transition-colors whitespace-nowrap flex items-center justify-center">
+              <button 
+                type="button" 
+                onClick={() => handleSave(false)} 
+                disabled={isSubmitting || !amount}
+                className="px-4 py-4 bg-white/5 border border-white/10 text-blue-400 rounded-xl font-bold transition-colors whitespace-nowrap flex items-center justify-center disabled:opacity-50"
+              >
                 <Plus size={20} className="mr-1" /> Another
               </button>
             </div>
@@ -286,7 +331,7 @@ export default function QuickEntryModal({
 
       <ConfirmDialog
         isOpen={isConfirmingSave}
-        onClose={() => setIsConfirmingSave(false)}
+        onClose={() => !isSubmitting && setIsConfirmingSave(false)}
         onConfirm={() => handleSave(true)}
         title="Confirm Transaction"
         message={`Are you sure you want to save this ${type.replace('_', ' ')} of ${amount} ${transactionCurrency}?`}

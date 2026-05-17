@@ -1,42 +1,42 @@
 import { db, InventoryItem } from '../db';
-import { z } from 'zod';
+import { InventoryItemSchema } from '../models/schemas';
 
-export const InventoryItemSchema = z.object({
-  name: z.string().min(1),
-  category: z.string(),
-  quantity: z.number(),
-  minQuantity: z.number(),
-  unitPrice: z.number(),
-  context: z.enum(['personal', 'business']),
-});
-
-export type InventoryItemInput = z.infer<typeof InventoryItemSchema>;
+export type InventoryItemInput = InventoryItem;
 
 export const InventoryService = {
-  async add(input: InventoryItemInput) {
+  async add(input: Omit<InventoryItem, 'id'>) {
     const validated = InventoryItemSchema.parse(input);
     return await db.inventory.add(validated as InventoryItem);
   },
 
   async restock(id: number, additionalQty: number) {
     if (!Number.isFinite(additionalQty) || additionalQty <= 0)
-      throw new Error('Invalid quantity');
+      throw new Error('Invalid quantity provided for restock');
+      
     const item = await db.inventory.get(id);
-    if (!item) throw new Error('Item not found');
-    return db.inventory.update(id, { quantity: item.quantity + additionalQty });
+    if (!item) throw new Error('Inventory item not found');
+    
+    const newQty = item.quantity + additionalQty;
+    return await db.inventory.update(id, { quantity: newQty });
   },
 
   async updateQuantity(id: number, delta: number) {
     const item = await db.inventory.get(id);
-    if (!item) throw new Error('Item not found');
+    if (!item) throw new Error('Inventory item not found');
+    
     const newQty = item.quantity + delta;
-    if (newQty < 0) throw new Error('Insufficient stock');
-    return db.inventory.update(id, { quantity: newQty });
+    if (newQty < 0) throw new Error(`Insufficient stock for "${item.name}"`);
+    
+    return await db.inventory.update(id, { quantity: newQty });
   },
 
-  async upsert(data: InventoryItemInput, id?: number) {
+  async upsert(data: Omit<InventoryItem, 'id'>, id?: number) {
     const validated = InventoryItemSchema.parse(data);
-    return id ? db.inventory.update(id, validated) : db.inventory.add(validated as InventoryItem);
+    if (id) {
+      return await db.inventory.update(id, validated);
+    } else {
+      return await db.inventory.add(validated as InventoryItem);
+    }
   },
 
   async getAllByContext(context: 'personal' | 'business') {
@@ -44,6 +44,8 @@ export const InventoryService = {
   },
 
   async delete(id: number) {
+    const item = await db.inventory.get(id);
+    if (!item) throw new Error('Item not found');
     return await db.inventory.delete(id);
   },
 
