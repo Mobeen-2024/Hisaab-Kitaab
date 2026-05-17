@@ -1,11 +1,13 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useInventory } from '../../hooks/useData';
 
 export function InventoryAlert() {
   const { lang, activeContext } = useSettings();
+  const navigate = useNavigate();
   const inventory = useInventory(activeContext);
   const lowStockItems = inventory.filter(item => item.quantity <= item.minQuantity);
   const isUrdu = lang === 'ur';
@@ -28,7 +30,10 @@ export function InventoryAlert() {
           <p className="text-white text-sm font-bold">{lowStockItems.length} {isUrdu ? 'چیزیں اسٹاک میں کم ہیں' : 'items are running low on stock'}</p>
         </div>
       </div>
-      <button className="text-[10px] font-black uppercase tracking-widest bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-400 transition-colors relative z-10">
+      <button 
+        onClick={() => navigate('/inventory')}
+        className="text-[10px] font-black uppercase tracking-widest bg-rose-500 text-white px-4 py-2 rounded-lg hover:bg-rose-400 transition-colors relative z-10 cursor-pointer"
+      >
         {isUrdu ? 'چیک کریں' : 'View Stock'}
       </button>
     </motion.div>

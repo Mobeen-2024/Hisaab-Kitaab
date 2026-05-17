@@ -79,9 +79,10 @@ export default function TopHeader({
         </button>
 
         {/* Profile */}
-        <div
-          className="flex items-center gap-3 pl-2 sm:pl-4 border-l border-white/10 cursor-pointer group"
+        <button
+          className="flex items-center gap-3 pl-2 sm:pl-4 border-l border-white/10 cursor-pointer group text-left outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-lg"
           onClick={onProfileOpen}
+          aria-label="Profile settings"
         >
           <div className="hidden sm:flex flex-col items-end">
             <span className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">{ownerName}</span>
@@ -94,7 +95,7 @@ export default function TopHeader({
               <span className="text-sm font-bold text-white">{ownerName.charAt(0).toUpperCase()}</span>
             )}
           </div>
-        </div>
+        </button>
       </div>
     </header>
   );
