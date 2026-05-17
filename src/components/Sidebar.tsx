@@ -32,7 +32,7 @@ export default function Sidebar() {
           <span className="font-black text-white text-xl">HK</span>
         </div>
         <div className="hidden lg:block shrink-0">
-          <h1 className="text-xl font-black tracking-tighter text-white leading-none">Hisaib-KItaib</h1>
+          <h1 className="text-xl font-black tracking-tighter text-white leading-none">Hisaib Kitaib</h1>
           <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1 block">حساب کتاب</span>
         </div>
       </div>

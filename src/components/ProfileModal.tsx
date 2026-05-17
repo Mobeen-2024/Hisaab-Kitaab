@@ -87,7 +87,7 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `HisaibKItaib_Backup_${new Date().toISOString().split('T')[0]}.bak`;
+      a.download = `HisaibKitaib_Backup_${new Date().toISOString().split('T')[0]}.bak`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

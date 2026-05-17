@@ -28,7 +28,7 @@ export default function TopHeader({
             <span className="font-black text-white text-sm">HK</span>
           </div>
           <div className="shrink-0 flex flex-col justify-center">
-            <h1 className="text-lg font-black tracking-tighter text-white leading-none">Hisaib-KItaib</h1>
+            <h1 className="text-lg font-black tracking-tighter text-white leading-none">Hisaib Kitaib</h1>
             <span className="text-[9px] text-blue-400 font-bold uppercase tracking-wider leading-none mt-0.5">حساب کتاب</span>
           </div>
         </div>
