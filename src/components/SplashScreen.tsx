@@ -345,15 +345,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             </div>
           </motion.div>
 
-          {/* Progress bar */}
-          <div className="absolute bottom-0 left-0 w-full h-1.5 bg-white/5">
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 4.0, ease: "easeInOut" }}
-              className="h-full bg-blue-600 origin-left shadow-[0_0_15px_rgba(37,99,235,0.5)]"
-            />
-          </div>
+
         </motion.div>
       )}
     </AnimatePresence>
