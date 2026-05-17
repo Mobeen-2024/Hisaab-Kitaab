@@ -126,6 +126,12 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   
   const [mountTime] = useState(() => Date.now());
 
+  // Preload the dashboard component so Vite compiles it in the background while splash plays
+  // This completely eliminates the 'loading' spinner after the transition!
+  useEffect(() => {
+    import('./DashboardWrapper').catch(() => {});
+  }, []);
+
   // Handle responsive layout safely for SSR/Hydration
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -134,13 +140,13 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Ultimate Failsafe: Guarantee transition to dashboard after 8 seconds no matter what happens
+  // Ultimate Failsafe: Guarantee transition to dashboard after 6 seconds
   // Empty dependency array ensures this timer NEVER resets even if App.tsx re-renders.
   useEffect(() => {
     const ultimateTimer = setTimeout(() => {
       console.log("[SplashScreen] Ultimate Failsafe Triggered!");
       onComplete();
-    }, 8000);
+    }, 6000);
     return () => clearTimeout(ultimateTimer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -159,7 +165,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   useEffect(() => {
     const safetyTimer = setTimeout(() => {
       if (!isModelLoaded) setIsModelLoaded(true);
-    }, 5000);
+    }, 3000);
     return () => clearTimeout(safetyTimer);
   }, [isModelLoaded]);
 
@@ -168,8 +174,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     if (!isModelLoaded) return;
 
     const elapsed = Date.now() - mountTime;
-    // Ensure splash shows for at least 4.5 seconds, but give at least 2 seconds after model loads
-    const remainingTime = Math.max(4500 - elapsed, 2000);
+    // Ensure splash shows for at least 4 seconds, but give at least 1 second after model loads
+    const remainingTime = Math.max(4000 - elapsed, 1000);
 
     const timer = setTimeout(() => {
       setIsVisible(false);
