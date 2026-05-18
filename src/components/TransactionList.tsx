@@ -3,9 +3,10 @@ import { t, Lang, isRTL } from '../lib/i18n';
 import { useTransactions, useCategories, useAppSettings, useAppUsers } from '../hooks/useData';
 import { TransactionService } from '../services/TransactionService';
 import { format } from 'date-fns';
-import { ArrowUpRight, ArrowDownRight, Trash2, Search } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Trash2, Search, Edit2 } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
+import EditTransactionModal from './EditTransactionModal';
 
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -19,9 +20,11 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
   const activeUser = users.find(u => u.id === settingsObj?.activeUserId);
   const activeRole = activeUser?.role || 'owner';
   const canDelete = activeRole === 'owner' || activeRole === 'spouse';
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [now, setNow] = useState(new Date());
+
+  const [editingTransactionId, setEditingTransactionId] = useState<number | null>(null);
 
   // Update 'now' every minute to keep relative dates (if any) or day boundaries fresh
   useEffect(() => {
@@ -77,7 +80,7 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
       return (b.id || 0) - (a.id || 0);
     }).slice(0, 20);
   }, [transactionsData, searchQuery, categories, lang]);
-  
+
   const rtl = isRTL(lang);
 
   return (
@@ -105,7 +108,7 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
           </div>
         </div>
       )}
-      
+
       {hideTitle && (
         <div className="p-4 border-b border-white/5 flex items-center justify-between gap-4">
           <div className="relative w-full">
@@ -120,7 +123,7 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
           </div>
         </div>
       )}
-      
+
       <div className="divide-y divide-white/5">
         {filteredTransactions.length === 0 ? (
           <div className="p-8 text-center text-slate-500">No transactions found</div>
@@ -128,11 +131,10 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
           filteredTransactions.map(tx => (
             <div key={tx.id} className={`${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-6'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-white/5 transition-colors group`}>
               <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto overflow-hidden">
-                <div className={`${compact ? 'h-8 w-8 sm:h-10 sm:w-10' : 'h-10 w-10 sm:h-12 sm:w-12'} shrink-0 rounded-xl flex items-center justify-center border ${
-                  tx.type === 'income' 
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                <div className={`${compact ? 'h-8 w-8 sm:h-10 sm:w-10' : 'h-10 w-10 sm:h-12 sm:w-12'} shrink-0 rounded-xl flex items-center justify-center border ${tx.type === 'income'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                     : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                }`}>
+                  }`}>
                   {tx.type === 'income' ? <ArrowDownRight size={18} className="sm:w-5 sm:h-5" /> : <ArrowUpRight size={18} className="sm:w-5 sm:h-5" />}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -145,32 +147,49 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
                   {tx.description && <p className={`text-slate-400 mt-1 truncate ${compact ? 'text-[10px]' : 'text-[11px] sm:text-xs'}`}>{tx.description}</p>}
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-between w-full sm:w-auto sm:flex-col sm:items-end gap-1 pl-13 sm:pl-0">
                 <div className="flex flex-col items-start sm:items-end">
-                   <div className={`font-bold ${tx.type === 'income' ? 'text-emerald-400' : 'text-slate-300'} ${compact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>
-                     {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
-                   </div>
-                   {tx.originalCurrency && tx.originalCurrency !== 'PKR' && (
-                     <div className="text-[9px] sm:text-[10px] text-slate-500 font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10 mt-1">
-                       {tx.originalAmount} {tx.originalCurrency}
-                     </div>
-                   )}
+                  <div className={`font-bold ${tx.type === 'income' ? 'text-emerald-400' : 'text-slate-300'} ${compact ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>
+                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                  </div>
+                  {tx.originalCurrency && tx.originalCurrency !== 'PKR' && (
+                    <div className="text-[9px] sm:text-[10px] text-slate-500 font-medium bg-white/5 px-2 py-0.5 rounded border border-white/10 mt-1">
+                      {tx.originalAmount} {tx.originalCurrency}
+                    </div>
+                  )}
                 </div>
-                 {canDelete && (
-                   <button 
-                     onClick={() => setConfirmDeleteId(tx.id!)} 
-                     className="p-2 sm:p-1.5 transition-colors cursor-pointer rounded-full text-slate-500 hover:text-rose-400 hover:bg-white/10 bg-white/5 sm:bg-transparent"
-                     title="Delete"
-                   >
-                     <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                   </button>
-                 )}
+                {canDelete && (
+                  <div className="flex gap-1 mt-1 sm:mt-2">
+                    <button
+                      onClick={() => setEditingTransactionId(tx.id!)}
+                      className="p-2 sm:p-1.5 transition-colors cursor-pointer rounded-full text-slate-500 hover:text-blue-400 hover:bg-white/10 bg-white/5 sm:bg-transparent"
+                      title="Edit"
+                    >
+                      <Edit2 size={14} className="sm:w-4 sm:h-4" />
+                    </button>
+                    <button
+                      onClick={() => setConfirmDeleteId(tx.id!)}
+                      className="p-2 sm:p-1.5 transition-colors cursor-pointer rounded-full text-slate-500 hover:text-rose-400 hover:bg-white/10 bg-white/5 sm:bg-transparent"
+                      title="Delete"
+                    >
+                      <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
+
+      <EditTransactionModal
+        isOpen={editingTransactionId !== null}
+        onClose={() => setEditingTransactionId(null)}
+        transaction={transactionsData.find(t => t.id === editingTransactionId) || null}
+        lang={lang}
+        activeContext={activeContext}
+      />
     </div>
   );
 }

@@ -22,6 +22,21 @@ export const TransactionService = {
     return await db.transactions.clear();
   },
 
+  async update(id: number, input: Partial<TransactionInput>) {
+    const tx = await db.transactions.get(id);
+    if (!tx) throw new Error("Transaction not found");
+    const oldCustomerId = tx.customerId;
+
+    await db.transactions.update(id, input);
+
+    if (oldCustomerId) {
+      await CustomerService.syncBalance(oldCustomerId);
+    }
+    if (input.customerId && input.customerId !== oldCustomerId) {
+      await CustomerService.syncBalance(input.customerId);
+    }
+  },
+
   async delete(id: number) {
     const tx = await db.transactions.get(id);
     if (!tx) return;
@@ -59,7 +74,7 @@ export const TransactionService = {
   async search(query: string, context: 'personal' | 'business') {
     const q = query.toLowerCase();
     const txs = await this.getByContext(context);
-    return txs.filter(t => 
+    return txs.filter(t =>
       (t.description?.toLowerCase().includes(q)) ||
       (t.amount.toString().includes(q))
     );

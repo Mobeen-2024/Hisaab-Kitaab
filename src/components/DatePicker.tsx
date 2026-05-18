@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  format, 
-  addMonths, 
-  subMonths, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  isSameMonth, 
-  isSameDay, 
+import {
+  format,
+  addMonths,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  isSameMonth,
+  isSameDay,
   eachDayOfInterval,
   parseISO
 } from 'date-fns';
@@ -19,9 +19,10 @@ interface DatePickerProps {
   value: string; // YYYY-MM-DD
   onChange: (dateObj: string) => void;
   className?: string;
+  disabled?: boolean;
 }
 
-export default function DatePicker({ value, onChange, className = '' }: DatePickerProps) {
+export default function DatePicker({ value, onChange, className = '', disabled = false }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -69,8 +70,9 @@ export default function DatePicker({ value, onChange, className = '' }: DatePick
       {/* Trigger Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-transparent text-sm font-medium text-white hover:text-blue-400 focus:outline-none transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5"
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 bg-transparent text-sm font-medium text-white hover:text-blue-400 focus:outline-none transition-colors px-2 py-1.5 rounded-lg hover:bg-white/5 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span className="tabular-nums">{format(parsedDate, 'dd MMM yyyy')}</span>
       </button>
