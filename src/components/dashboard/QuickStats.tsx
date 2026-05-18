@@ -69,9 +69,9 @@ export function QuickStats() {
           glowColor="rgba(59,130,246,0.3)"
         >
           <div className={`absolute -top-8 -right-8 w-24 h-24 sm:w-52 sm:h-52 bg-blue-500/20 rounded-full ${isUrdu ? 'blur-[15px] opacity-30' : 'blur-[30px]'} transition-all duration-700 group-hover:bg-blue-400/35 group-hover:scale-125`} />
-          <div className="absolute top-0 left-2 right-2 sm:left-8 sm:right-8 h-[1px] bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
+          <div className="absolute top-0 left-2 right-2 sm:left-8 sm:right-8 h-[1px] bg-gradient-to-r from-transparent via-blue-400/60 to-transparent opacity-0" />
 
-          <div className={`flex flex-col sm:flex-row justify-between items-start relative z-10 ${rtl ? 'flex-row-reverse' : ''} gap-1 sm:gap-0`}>
+          <div className={`flex flex-col sm:flex-row justify-between items-center sm:items-center relative z-10 ${rtl ? 'flex-row-reverse' : ''} gap-1 sm:gap-0`}>
             <p className={`text-[8px] sm:text-[10px] font-black uppercase text-blue-300/90 flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center sm:text-left ${isUrdu ? '' : 'tracking-widest'} w-full sm:w-auto`}>
               <Wallet size={14} strokeWidth={3} className="hidden sm:block" />
               <span className="truncate">{activeContext === 'business' ? (isUrdu ? 'مجموعی آمدنی' : 'Cumulative') : (isUrdu ? 'کل بیلنس' : 'Liquidity')}</span>
@@ -80,7 +80,10 @@ export function QuickStats() {
               <ArrowDownRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
             </div>
           </div>
-          <div className="relative z-10 w-full mt-2 sm:mt-8 flex flex-col items-center sm:items-start">
+
+          <div className="w-full h-[1px] bg-gradient-to-r from-blue-400/10 via-blue-400/60 to-blue-400/10 mt-1 mb-3 sm:mt-1 sm:mb-6 shadow-[0_0_10px_rgba(59,130,246,0.5)] relative z-10" />
+
+          <div className="relative z-10 w-full mt-1 sm:mt-2 flex flex-col items-center sm:items-start">
             <h3 className="text-sm sm:text-4xl lg:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] text-center sm:text-left w-full break-all sm:truncate" style={{ color: '#e0eaff' }} dir="ltr">
               {formatCompactCurrency(totalBalancePKR)}
             </h3>
@@ -99,9 +102,9 @@ export function QuickStats() {
           glowColor="rgba(244,63,94,0.3)"
         >
           <div className={`absolute -top-8 -right-8 w-24 h-24 sm:w-52 sm:h-52 bg-rose-500/20 rounded-full ${isUrdu ? 'blur-[15px] opacity-30' : 'blur-[30px]'} transition-all duration-700 group-hover:bg-rose-400/35 group-hover:scale-125`} />
-          <div className="absolute top-0 left-2 right-2 sm:left-8 sm:right-8 h-[1px] bg-gradient-to-r from-transparent via-rose-400/60 to-transparent" />
+          <div className="absolute top-0 left-2 right-2 sm:left-8 sm:right-8 h-[1px] bg-gradient-to-r from-transparent via-rose-400/60 to-transparent opacity-0" />
 
-          <div className={`flex flex-col sm:flex-row justify-between items-start relative z-10 ${rtl ? 'flex-row-reverse' : ''} gap-1 sm:gap-0`}>
+          <div className={`flex flex-col sm:flex-row justify-between items-center sm:items-center relative z-10 ${rtl ? 'flex-row-reverse' : ''} gap-1 sm:gap-0`}>
             <p className={`text-[8px] sm:text-[10px] font-black uppercase text-rose-300/90 flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center sm:text-left ${isUrdu ? '' : 'tracking-widest'} w-full sm:w-auto`}>
               <TrendingDown size={14} strokeWidth={3} className="hidden sm:block" />
               <span className="truncate">{activeContext === 'business' ? (isUrdu ? 'آج کی خریداری' : 'Cost Today') : (isUrdu ? 'آج کے اخراجات' : 'Burn Today')}</span>
@@ -110,7 +113,10 @@ export function QuickStats() {
               <ArrowUpRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />
             </div>
           </div>
-          <div className="relative z-10 w-full mt-2 sm:mt-8 flex flex-col items-center sm:items-start">
+
+          <div className="w-full h-[1px] bg-gradient-to-r from-rose-400/10 via-rose-400/60 to-rose-400/10 mt-1 mb-3 sm:mt-1 sm:mb-6 shadow-[0_0_10px_rgba(244,63,94,0.5)] relative z-10" />
+
+          <div className="relative z-10 w-full mt-1 sm:mt-2 flex flex-col items-center sm:items-start">
             <h3 className="text-sm sm:text-4xl lg:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] text-center sm:text-left w-full break-all sm:truncate" style={{ color: '#ffe0e6' }} dir="ltr">
               {formatCompactCurrency(todayExpensePKR)}
             </h3>
@@ -128,9 +134,9 @@ export function QuickStats() {
           glowColor="rgba(245,158,11,0.25)"
         >
           <div className={`absolute -top-8 -right-8 w-24 h-24 sm:w-52 sm:h-52 bg-amber-500/20 rounded-full ${isUrdu ? 'blur-[15px] opacity-30' : 'blur-[30px]'} transition-all duration-700 group-hover:bg-amber-400/35 group-hover:scale-125`} />
-          <div className="absolute top-0 left-2 right-2 sm:left-8 sm:right-8 h-[1px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
+          <div className="absolute top-0 left-2 right-2 sm:left-8 sm:right-8 h-[1px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent opacity-0" />
 
-          <div className={`flex flex-col sm:flex-row justify-between items-start relative z-50 ${rtl ? 'flex-row-reverse' : ''} gap-1 sm:gap-0`}>
+          <div className={`flex flex-col sm:flex-row justify-between items-center sm:items-center relative z-50 ${rtl ? 'flex-row-reverse' : ''} gap-1 sm:gap-0`}>
             <div className="relative inline-block w-full sm:w-auto flex justify-center sm:block">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -165,7 +171,9 @@ export function QuickStats() {
             </div>
           </div>
 
-          <div className="relative z-10 w-full mt-2 sm:mt-8 flex flex-col items-center sm:items-start text-center sm:text-left">
+          <div className="w-full h-[1px] bg-gradient-to-r from-amber-400/10 via-amber-400/60 to-amber-400/10 mt-1 mb-3 sm:mt-1 sm:mb-6 shadow-[0_0_10px_rgba(245,158,11,0.5)] relative z-10" />
+
+          <div className="relative z-10 w-full mt-1 sm:mt-2 flex flex-col items-center sm:items-start text-center sm:text-left">
             <h3 className="text-sm sm:text-4xl lg:text-5xl font-black tracking-tighter text-white tabular-nums leading-none w-full break-all sm:truncate" dir="ltr">
               {formatCompactCurrency(todayHighlightedSalesPKR)}
             </h3>
