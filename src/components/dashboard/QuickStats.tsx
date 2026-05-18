@@ -17,11 +17,24 @@ export function QuickStats() {
   const settingsObj = useAppSettings();
   const categories = useCategories();
 
-  const totalIncomePKR = transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
-  const totalExpensePKR = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
+  const { totalIncomePKR, totalExpensePKR } = React.useMemo(() => {
+    let inc = 0; let exp = 0;
+    for (let i = 0; i < transactions.length; i++) {
+      if (transactions[i].type === 'income') inc += transactions[i].amount;
+      else if (transactions[i].type === 'expense') exp += transactions[i].amount;
+    }
+    return { totalIncomePKR: inc, totalExpensePKR: exp };
+  }, [transactions]);
+
   const totalBalancePKR = totalIncomePKR - totalExpensePKR;
 
-  const todayExpensePKR = todayTransactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
+  const todayExpensePKR = React.useMemo(() => {
+    let exp = 0;
+    for (let i = 0; i < todayTransactions.length; i++) {
+      if (todayTransactions[i].type === 'expense') exp += todayTransactions[i].amount;
+    }
+    return exp;
+  }, [todayTransactions]);
 
   const incomeCategories = categories.filter(c => c.type === 'income' && c.context === 'business');
   const defaultCategory = incomeCategories.length > 0 ? incomeCategories[0] : null;

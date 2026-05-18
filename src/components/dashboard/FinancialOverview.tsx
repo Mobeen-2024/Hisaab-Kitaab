@@ -17,7 +17,13 @@ export function FinancialOverview() {
   const budgets = useBudgets(activeContext, currentMonth);
   const budget = budgets[0] || null;
 
-  const totalExpensePKR = transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
+  const currentMonthTransactions = useMemo(() => {
+    return transactions.filter(t => t.date.startsWith(currentMonth));
+  }, [transactions, currentMonth]);
+
+  const totalExpensePKR = useMemo(() => {
+    return currentMonthTransactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
+  }, [currentMonthTransactions]);
 
   const formatCompactCurrency = (valInPKR: number) => {
     return formatSharedCurrency(valInPKR, currency, lang, true);
@@ -51,12 +57,12 @@ export function FinancialOverview() {
             <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="name" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
@@ -67,7 +73,7 @@ export function FinancialOverview() {
           </ResponsiveContainer>
         </div>
       </div>
-      
+
       {/* Goals Progress */}
       <div className="bg-[#0F172A]/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-6 lg:p-7 shadow-2xl flex flex-col h-full">
         <div className={`flex justify-between items-center mb-6 ${rtl ? 'flex-row-reverse' : ''}`}>
