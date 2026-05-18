@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">HisaabKitaab</string>
-    <string name="title_activity_main">HisaabKitaab</string>
+    <string name="app_name">Hisaib Kitaib</string>
+    <string name="title_activity_main">Hisaib Kitaib</string>
     <string name="package_name">com.hisaabkitaab.app</string>
     <string name="custom_url_scheme">com.hisaabkitaab.app</string>
 </resources>
