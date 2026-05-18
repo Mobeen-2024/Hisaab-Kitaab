@@ -136,6 +136,11 @@ cd android
 
 *Your final compiled APK will be available in the `android/app/build/outputs/apk/debug/` folder.*
 
+## 📄 License
+
+This project is licensed under the **MIT License**. See the `LICENSE` file for details.
+Copyright &copy; 2024 **M. Mobeen**
+
 ---
 
 <div align="center">
