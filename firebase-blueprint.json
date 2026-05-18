@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial transactions",
+      "type": "object",
+      "properties": {
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "categoryId": { "type": ["string", "number"] },
+        "context": { "type": "string", "enum": ["personal", "business"] },
+        "date": { "type": "string" },
+        "description": { "type": "string" },
+        "customerId": { "type": ["string", "number"] }
+      },
+      "required": ["amount", "type", "categoryId", "context", "date"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customers for Udhaar",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "balance": { "type": "number" },
+        "type": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "phone", "createdAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Categories for Transactions",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "context": { "type": "string", "enum": ["personal", "business"] }
+      },
+      "required": ["name", "type", "context"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Inventory Item",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "quantity": { "type": "number" },
+        "minQuantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "context": { "type": "string", "enum": ["personal", "business"] }
+      },
+      "required": ["name", "category", "quantity", "minQuantity", "unitPrice", "context"]
+    },
+    "AppUser": {
+      "title": "AppUser",
+      "description": "Application Users",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "contextAccess": { "type": "string" },
+        "passcode": { "type": "string" }
+      },
+      "required": ["name", "role", "contextAccess", "passcode"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "User specific app settings",
+      "type": "object",
+      "properties": {
+        "language": { "type": "string" },
+        "currency": { "type": "string" },
+        "activeContext": { "type": "string" }
+      },
+      "required": ["language", "currency", "activeContext"]
+    },
+    "UdhaarEntry": {
+      "title": "UdhaarEntry",
+      "description": "Credit/Debit entries for customers",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": ["string", "number"] },
+        "type": { "type": "string", "enum": ["give", "receive"] },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["customerId", "type", "amount", "date"]
+    }
+  },
+  "firestore": {
+    "users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "User transactions"
+    },
+    "users/{userId}/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "User customers"
+    },
+    "users/{userId}/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "User categories"
+    },
+    "users/{userId}/inventory/{inventoryId}": {
+      "schema": { "$ref": "#/entities/InventoryItem" },
+      "description": "User inventory"
+    },
+    "users/{userId}/appUsers/{appUserId}": {
+      "schema": { "$ref": "#/entities/AppUser" },
+      "description": "User staff members"
+    },
+    "users/{userId}/settings/profile": {
+      "schema": { "$ref": "#/entities/Settings" },
+      "description": "User settings"
+    },
+    "users/{userId}/udhaarEntries/{udhaarId}": {
+      "schema": { "$ref": "#/entities/UdhaarEntry" },
+      "description": "User udhaar history"
+    }
+  }
+}
