@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import DatePicker from './DatePicker';
+import { useToast } from '../contexts/ToastContext';
 
 export default function CustomerDetail({
   customer,
@@ -28,6 +29,8 @@ export default function CustomerDetail({
   const [isAddEntryModalOpen, setIsAddEntryModalOpen] = useState(false);
   const [entryType, setEntryType] = useState<'give' | 'receive'>('give');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isForceDeleting, setIsForceDeleting] = useState(false);
+  const { showToast } = useToast();
 
   const udhaarEntries = useUdhaarEntries(customer.id);
   const transactions = useCustomerTransactions(customer.id);
@@ -107,8 +110,32 @@ export default function CustomerDetail({
 
   const handleDelete = async () => {
     if (customer.id) {
-      await CustomerService.delete(Number(customer.id));
-      onBack();
+      try {
+        await CustomerService.delete(Number(customer.id));
+        setIsDeleting(false);
+        onBack();
+      } catch (err: any) {
+        setIsDeleting(false);
+        if (err.message.includes('force delete')) {
+          setIsForceDeleting(true);
+        } else {
+          showToast(err.message || 'Failed to delete customer', 'error');
+        }
+      }
+    }
+  };
+
+  const handleForceDelete = async () => {
+    if (customer.id) {
+      try {
+        await CustomerService.delete(Number(customer.id), true);
+        setIsForceDeleting(false);
+        showToast('Customer and all related transactions force deleted', 'success');
+        onBack();
+      } catch (err: any) {
+        showToast(err.message || 'Failed to force delete customer', 'error');
+        setIsForceDeleting(false);
+      }
     }
   };
 
@@ -120,6 +147,15 @@ export default function CustomerDetail({
         onConfirm={handleDelete}
         title="Delete Customer"
         message="Are you sure you want to delete this customer? This will also remove their transactions and Udhaar history. This action cannot be undone."
+      />
+      <ConfirmDialog
+        isOpen={isForceDeleting}
+        onClose={() => setIsForceDeleting(false)}
+        onConfirm={handleForceDelete}
+        title="Force Delete Contact?"
+        message="This customer has an active balance. Are you sure you want to delete them AND all their related transactions? This cannot be undone."
+        confirmText="Force Delete"
+        isDestructive={true}
       />
       {/* Header */}
       <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 relative overflow-hidden">
