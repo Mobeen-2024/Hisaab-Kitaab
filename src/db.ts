@@ -1,30 +1,30 @@
 import Dexie, { Table } from 'dexie';
-import { 
-  Category, 
-  Customer, 
-  InventoryItem, 
-  Transaction, 
-  UdhaarEntry, 
-  Goal, 
-  Budget, 
-  AppSettings, 
-  AppUser, 
-  Message, 
-  AuditLog 
+import {
+  Category,
+  Customer,
+  InventoryItem,
+  Transaction,
+  UdhaarEntry,
+  Goal,
+  Budget,
+  AppSettings,
+  AppUser,
+  Message,
+  AuditLog
 } from './models';
 
-export type { 
-  Category, 
-  Customer, 
-  InventoryItem, 
-  Transaction, 
-  UdhaarEntry, 
-  Goal, 
-  Budget, 
-  AppSettings, 
-  AppUser, 
-  Message, 
-  AuditLog 
+export type {
+  Category,
+  Customer,
+  InventoryItem,
+  Transaction,
+  UdhaarEntry,
+  Goal,
+  Budget,
+  AppSettings,
+  AppUser,
+  Message,
+  AuditLog
 };
 
 export class HisaibKItaibDB extends Dexie {
@@ -79,42 +79,47 @@ export class HisaibKItaibDB extends Dexie {
 
     this.on('ready', () => {
       const tablesToAudit = ['transactions', 'customers', 'udhaarEntries', 'goals', 'budgets', 'inventory'];
-      
+
       for (const tableName of tablesToAudit) {
         const table = this.table(tableName);
-        
-        table.hook('creating', function(primKey, obj) {
-          // Use onsuccess to capture the auto-incremented primary key
+
+        table.hook('creating', function (primKey, obj) {
           this.onsuccess = (resultKey) => {
-            db.auditLogs.add({
-              entityType: tableName as any,
-              entityId: resultKey as number,
-              action: 'create',
-              timestamp: new Date().toISOString(),
-              context: obj.context || undefined
-            }).catch(console.error);
+            Dexie.ignoreTransaction(() => {
+              db.auditLogs.add({
+                entityType: tableName as any,
+                entityId: resultKey as number,
+                action: 'create',
+                timestamp: new Date().toISOString(),
+                context: obj.context || undefined
+              }).catch(console.error);
+            });
           };
         });
 
         table.hook('updating', (modifications, primKey, obj, transaction) => {
-          db.auditLogs.add({
-            entityType: tableName as any,
-            entityId: primKey || obj.id || 0,
-            action: 'update',
-            timestamp: new Date().toISOString(),
-            details: JSON.stringify(Object.keys(modifications)),
-            context: obj.context || undefined
-          }).catch(console.error);
+          Dexie.ignoreTransaction(() => {
+            db.auditLogs.add({
+              entityType: tableName as any,
+              entityId: primKey || obj.id || 0,
+              action: 'update',
+              timestamp: new Date().toISOString(),
+              details: JSON.stringify(Object.keys(modifications)),
+              context: obj.context || undefined
+            }).catch(console.error);
+          });
         });
 
         table.hook('deleting', (primKey, obj, transaction) => {
-          db.auditLogs.add({
-            entityType: tableName as any,
-            entityId: primKey || obj.id || 0,
-            action: 'delete',
-            timestamp: new Date().toISOString(),
-            context: obj.context || undefined
-          }).catch(console.error);
+          Dexie.ignoreTransaction(() => {
+            db.auditLogs.add({
+              entityType: tableName as any,
+              entityId: primKey || obj.id || 0,
+              action: 'delete',
+              timestamp: new Date().toISOString(),
+              context: obj.context || undefined
+            }).catch(console.error);
+          });
         });
       }
     });
@@ -125,18 +130,18 @@ export class HisaibKItaibDB extends Dexie {
     for (const table of this.tables) {
       data[table.name] = await table.toArray();
     }
-    
+
     const payload = JSON.stringify({
       version: 1,
       timestamp: new Date().toISOString(),
       data
     });
-    
+
     const uint8Array = new TextEncoder().encode(payload);
     let binary = '';
     const len = uint8Array.byteLength;
     for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(uint8Array[i]);
+      binary += String.fromCharCode(uint8Array[i]);
     }
     return btoa(binary);
   }
@@ -146,11 +151,11 @@ export class HisaibKItaibDB extends Dexie {
       const binary = atob(base64Payload);
       const uint8Array = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) {
-          uint8Array[i] = binary.charCodeAt(i);
+        uint8Array[i] = binary.charCodeAt(i);
       }
       const payload = new TextDecoder().decode(uint8Array);
       const parsed = JSON.parse(payload);
-      
+
       if (!parsed.data) throw new Error("Invalid backup file");
 
       if (parsed.version && parsed.version !== 1) {
@@ -185,7 +190,7 @@ export class HisaibKItaibDB extends Dexie {
         details,
         context
       });
-    } catch(e) {
+    } catch (e) {
       console.error("Failed to log audit", e);
     }
   }
@@ -203,7 +208,7 @@ db.on('populate', async () => {
     { name: 'Transport', type: 'expense', context: 'personal' },
     { name: 'Cattle Feed (Chara)', type: 'expense', context: 'business' },
   ]);
-  
+
   await db.settings.add({
     language: 'en',
     currency: 'PKR',
