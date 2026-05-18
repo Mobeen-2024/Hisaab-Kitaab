@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
+import { TiltCard } from '../ui/TiltCard';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useTransactions, useAppSettings, useCategories, useTodayTransactions } from '../../hooks/useData';
 import { SettingsService } from '../../services/SettingsService';
@@ -50,7 +51,10 @@ export function QuickStats() {
     <div className="grid grid-cols-3 gap-2 sm:gap-6 md:gap-8 relative z-[60]" style={{ perspective: '1200px' }}>
       {/* Total Balance Card */}
       <div className="group h-full lg:col-span-1 md:col-span-2">
-        <div className="group h-full bg-gradient-to-br from-blue-950/60 via-slate-900/60 to-slate-900/60 border border-blue-500/10 hover:border-blue-400/40 p-3 sm:p-8 rounded-2xl sm:rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl">
+        <TiltCard 
+          className="group h-full bg-gradient-to-br from-blue-950/60 via-slate-900/60 to-slate-900/60 border border-blue-500/10 hover:border-blue-400/40 p-3 sm:p-8 rounded-2xl sm:rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl" 
+          glowColor="rgba(59,130,246,0.3)"
+        >
           <div className={`absolute -top-8 -right-8 w-24 h-24 sm:w-52 sm:h-52 bg-blue-500/20 rounded-full ${isUrdu ? 'blur-[15px] opacity-30' : 'blur-[30px]'} transition-all duration-700 group-hover:bg-blue-400/35 group-hover:scale-125`} />
           <div className="absolute top-0 left-2 right-2 sm:left-8 sm:right-8 h-[1px] bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
           
@@ -72,12 +76,15 @@ export function QuickStats() {
             <TrendingUp size={12} strokeWidth={3} />
             {isUrdu ? 'فعال' : 'Operational'}
           </div>
-        </div>
+        </TiltCard>
       </div>
 
       {/* Today's Expenses Card */}
       <div className="group h-full">
-        <div className="group h-full bg-gradient-to-br from-rose-950/50 via-slate-900/60 to-slate-900/60 border border-rose-500/10 hover:border-rose-400/40 p-3 sm:p-8 rounded-2xl sm:rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl">
+        <TiltCard 
+          className="group h-full bg-gradient-to-br from-rose-950/50 via-slate-900/60 to-slate-900/60 border border-rose-500/10 hover:border-rose-400/40 p-3 sm:p-8 rounded-2xl sm:rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl"
+          glowColor="rgba(244,63,94,0.3)"
+        >
           <div className={`absolute -top-8 -right-8 w-24 h-24 sm:w-52 sm:h-52 bg-rose-500/20 rounded-full ${isUrdu ? 'blur-[15px] opacity-30' : 'blur-[30px]'} transition-all duration-700 group-hover:bg-rose-400/35 group-hover:scale-125`} />
           <div className="absolute top-0 left-2 right-2 sm:left-8 sm:right-8 h-[1px] bg-gradient-to-r from-transparent via-rose-400/60 to-transparent" />
 
@@ -98,12 +105,15 @@ export function QuickStats() {
           <div className={`hidden sm:inline-flex mt-8 text-rose-300/90 text-[10px] font-black uppercase bg-rose-500/10 px-5 py-2 rounded-xl border border-rose-400/20 relative z-10 ${isUrdu ? '' : 'tracking-widest'}`}>
             {isUrdu ? 'لائیو فیڈ' : 'Live Feed'}
           </div>
-        </div>
+        </TiltCard>
       </div>
 
       {/* Highlighted Category Card */}
       <div className="group h-full">
-        <div className="group h-full bg-gradient-to-br from-amber-950/40 via-slate-900/60 to-slate-900/60 border border-amber-500/10 hover:border-amber-400/40 p-3 sm:p-8 rounded-2xl sm:rounded-[2.5rem] relative z-20 overflow-visible transition-all duration-700 shadow-2xl">
+        <TiltCard 
+          className="group h-full bg-gradient-to-br from-amber-950/40 via-slate-900/60 to-slate-900/60 border border-amber-500/10 hover:border-amber-400/40 p-3 sm:p-8 rounded-2xl sm:rounded-[2.5rem] relative z-20 overflow-visible transition-all duration-700 shadow-2xl"
+          glowColor="rgba(245,158,11,0.25)"
+        >
           <div className={`absolute -top-8 -right-8 w-24 h-24 sm:w-52 sm:h-52 bg-amber-500/20 rounded-full ${isUrdu ? 'blur-[15px] opacity-30' : 'blur-[30px]'} transition-all duration-700 group-hover:bg-amber-400/35 group-hover:scale-125`} />
           <div className="absolute top-0 left-2 right-2 sm:left-8 sm:right-8 h-[1px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
           
@@ -151,7 +161,7 @@ export function QuickStats() {
           <div className={`hidden sm:inline-flex mt-8 text-amber-400/80 text-[10px] font-black uppercase bg-amber-500/5 px-5 py-2 rounded-xl border border-amber-500/10 ${isUrdu ? '' : 'tracking-widest'}`}>
             {isUrdu ? 'کارکردگی' : 'Performance Focus'}
           </div>
-        </div>
+        </TiltCard>
       </div>
     </div>
   );
