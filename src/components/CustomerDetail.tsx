@@ -4,7 +4,7 @@ import { Customer } from '../db';
 import { CustomerService } from '../services/CustomerService';
 import { UdhaarService } from '../services/UdhaarService';
 import { InventoryService } from '../services/InventoryService';
-import { useUdhaarEntries, useInventory } from '../hooks/useData';
+import { useUdhaarEntries, useCustomerTransactions, useInventory } from '../hooks/useData';
 import { t, Lang } from '../lib/i18n';
 import { ArrowLeft, Phone, Calendar, ArrowUpRight, ArrowDownRight, MessageSquare, Plus, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -12,16 +12,16 @@ import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import DatePicker from './DatePicker';
 
-export default function CustomerDetail({ 
-  customer, 
-  onBack, 
-  lang, 
+export default function CustomerDetail({
+  customer,
+  onBack,
+  lang,
   currency,
   activeContext
-}: { 
-  customer: Customer; 
-  onBack: () => void; 
-  lang: Lang; 
+}: {
+  customer: Customer;
+  onBack: () => void;
+  lang: Lang;
   currency: string;
   activeContext: 'personal' | 'business';
 }) {
@@ -30,14 +30,57 @@ export default function CustomerDetail({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const udhaarEntries = useUdhaarEntries(customer.id);
+  const transactions = useCustomerTransactions(customer.id);
 
-  const computedBalance = udhaarEntries.reduce((sum, entry) => {
-    if (customer.type === 'supplier') {
-      return sum + (entry.type === 'receive' ? entry.amount : -entry.amount);
-    } else {
-      return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
+  const computedBalance = customer.balance;
+
+  const unifiedHistory = React.useMemo(() => {
+    const history: any[] = [];
+
+    // Initial Balance Entry (pseudo layout)
+    if (customer.initialBalance) {
+      history.push({
+        id: 'initial',
+        syntheticId: 'init-1',
+        isUdhaar: false,
+        isInitial: true,
+        type: customer.initialBalance > 0 ? 'give' : 'receive',
+        amount: Math.abs(customer.initialBalance),
+        date: customer.createdAt || new Date(0).toISOString(),
+        description: 'Initial Balance'
+      });
     }
-  }, 0);
+
+    udhaarEntries.forEach(entry => {
+      history.push({
+        id: entry.id,
+        syntheticId: `u-${entry.id}`,
+        isUdhaar: true,
+        type: entry.type, // give or receive
+        amount: entry.amount,
+        date: entry.date,
+        dueDate: entry.dueDate,
+        description: entry.description
+      });
+    });
+
+    transactions.forEach(tx => {
+      // Map transaction to give/receive concept for unified display
+      // Expense = money out (we gave)
+      // Income = money in (we received)
+      history.push({
+        id: tx.id,
+        syntheticId: `t-${tx.id}`,
+        isUdhaar: false,
+        type: tx.type === 'expense' ? 'give' : 'receive',
+        amount: tx.amount,
+        date: tx.date,
+        description: tx.description || 'Transaction Payment'
+      });
+    });
+
+    return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [udhaarEntries, transactions, customer]);
 
   const formatCurrency = (val: number) => {
     return formatSharedCurrency(val, currency, lang);
@@ -49,16 +92,16 @@ export default function CustomerDetail({
       return;
     }
     const amount = formatCurrency(Math.abs(computedBalance));
-    const message = computedBalance > 0 
+    const message = computedBalance > 0
       ? `Asalam-o-Alaikum ${customer.name}, you have a pending amount of ${amount}. Please pay your balance at your earliest convenience.`
       : `Asalam-o-Alaikum ${customer.name}, your advance balance is ${amount}.`;
-    
+
     // Format phone for whatsapp (remove leading 0 and add 92 for PK, this is basic formatting)
     let phoneNum = customer.phone.replace(/[^0-9]/g, '');
     if (phoneNum.startsWith('0')) {
       phoneNum = '92' + phoneNum.substring(1);
     }
-    
+
     window.open(`https://wa.me/${phoneNum}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -83,7 +126,7 @@ export default function CustomerDetail({
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={onBack}
               className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors text-slate-400 hover:text-white"
             >
@@ -97,9 +140,9 @@ export default function CustomerDetail({
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={handleSendReminder}
               disabled={!customer.phone}
               className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-bold transition-colors"
@@ -128,9 +171,9 @@ export default function CustomerDetail({
               {computedBalance > 0 ? (customer.type === 'supplier' ? 'You owe them' : 'They owe you') : computedBalance < 0 ? (customer.type === 'supplier' ? 'Advance given to them' : 'Advance from them') : 'Account settled'}
             </p>
           </div>
-          
+
           <div className="flex flex-col gap-3">
-            <button 
+            <button
               onClick={() => { setEntryType('give'); setIsAddEntryModalOpen(true); }}
               className="flex-1 flex items-center justify-between p-4 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-2xl transition-colors group text-left"
             >
@@ -142,7 +185,7 @@ export default function CustomerDetail({
                 <ArrowUpRight size={20} />
               </div>
             </button>
-            <button 
+            <button
               onClick={() => { setEntryType('receive'); setIsAddEntryModalOpen(true); }}
               className="flex-1 flex items-center justify-between p-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-2xl transition-colors group text-left"
             >
@@ -163,21 +206,25 @@ export default function CustomerDetail({
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <h3 className="text-lg font-bold tracking-tight text-white">Payment History</h3>
         </div>
-        
-        {udhaarEntries.length === 0 ? (
+
+        {unifiedHistory.length === 0 ? (
           <div className="p-12 text-center text-slate-500">
-            No udhaar history found for this customer.
+            No history found for this customer.
           </div>
         ) : (
           <div className="divide-y divide-white/5">
-            {udhaarEntries.map(entry => (
-              <div key={entry.id} className="p-6 hover:bg-white/5 transition-colors flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            {unifiedHistory.map(entry => (
+              <div key={entry.syntheticId} className="p-6 hover:bg-white/5 transition-colors flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div className="flex items-start gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${entry.type === 'give' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                     {entry.type === 'give' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
                   </div>
                   <div>
-                    <h4 className="font-bold text-white leading-tight">{entry.description || (entry.type === 'give' ? (customer.type === 'supplier' ? 'Credit Purchase' : 'Given Udhaar') : (customer.type === 'supplier' ? 'Given Payment' : 'Payment Received'))}</h4>
+                    <h4 className="font-bold text-white leading-tight">
+                      {entry.description || (entry.type === 'give' ? (customer.type === 'supplier' ? 'Credit Purchase' : 'Given Udhaar') : (customer.type === 'supplier' ? 'Given Payment' : 'Payment Received'))}
+                      {!entry.isUdhaar && !entry.isInitial && <span className="ml-2 text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full">Transaction</span>}
+                      {entry.isInitial && <span className="ml-2 text-[10px] bg-slate-500/20 text-slate-400 px-2 py-0.5 rounded-full">Initial Balance</span>}
+                    </h4>
                     <div className="flex items-center gap-3 mt-1 text-sm text-slate-400">
                       <span className="flex items-center gap-1"><Calendar size={14} /> {format(new Date(entry.date), 'dd MMM yy')}</span>
                       {entry.dueDate && (
@@ -195,9 +242,9 @@ export default function CustomerDetail({
         )}
       </div>
 
-      <AddUdhaarEntryModal 
-        isOpen={isAddEntryModalOpen} 
-        onClose={() => setIsAddEntryModalOpen(false)} 
+      <AddUdhaarEntryModal
+        isOpen={isAddEntryModalOpen}
+        onClose={() => setIsAddEntryModalOpen(false)}
         customer={customer}
         type={entryType}
         lang={lang}
@@ -207,17 +254,17 @@ export default function CustomerDetail({
   );
 }
 
-function AddUdhaarEntryModal({ 
-  isOpen, 
-  onClose, 
-  customer, 
+function AddUdhaarEntryModal({
+  isOpen,
+  onClose,
+  customer,
   type,
   lang,
   activeContext
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  customer: Customer; 
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  customer: Customer;
   type: 'give' | 'receive';
   lang: Lang;
   activeContext: 'personal' | 'business';
@@ -226,7 +273,7 @@ function AddUdhaarEntryModal({
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [dueDate, setDueDate] = useState('');
-  
+
   const [inventoryItemId, setInventoryItemId] = useState<string>('');
   const [inventoryQty, setInventoryQty] = useState('');
 
@@ -240,7 +287,7 @@ function AddUdhaarEntryModal({
     if (!amount || isNaN(Number(amount)) || !customer.id) return;
 
     const numAmount = Number(amount);
-    
+
     // Add entry
     await UdhaarService.add({
       customerId: customer.id,
@@ -290,7 +337,7 @@ function AddUdhaarEntryModal({
             )}
           </h2>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-1">Amount</label>
@@ -307,7 +354,7 @@ function AddUdhaarEntryModal({
               />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-1 z-50">Date</label>
             <DatePicker
@@ -336,8 +383,8 @@ function AddUdhaarEntryModal({
                       setInventoryItemId(e.target.value);
                       const item = inventoryItems.find((i: any) => i.id === Number(e.target.value));
                       if (item && !description && !amount) {
-                         setDescription(customer.type === 'supplier' ? `Bought ${item.name}` : `Sold ${item.name}`);
-                         // optionally we could set amount if we knew qty, but user can edit.
+                        setDescription(customer.type === 'supplier' ? `Bought ${item.name}` : `Sold ${item.name}`);
+                        // optionally we could set amount if we knew qty, but user can edit.
                       }
                     }}
                     className="flex-1 bg-[#1E293B] border border-white/10 text-white rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none appearance-none"
@@ -358,7 +405,7 @@ function AddUdhaarEntryModal({
                         setInventoryQty(e.target.value);
                         const item = inventoryItems.find((i: any) => i.id === Number(inventoryItemId));
                         if (item && e.target.value) {
-                           setAmount(String(item.unitPrice * Number(e.target.value)));
+                          setAmount(String(item.unitPrice * Number(e.target.value)));
                         }
                       }}
                       placeholder="Qty"
@@ -391,9 +438,8 @@ function AddUdhaarEntryModal({
             </button>
             <button
               type="submit"
-              className={`flex-1 px-4 py-3 rounded-xl text-white text-sm font-bold shadow-lg transition-colors ${
-                type === 'give' ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
-              }`}
+              className={`flex-1 px-4 py-3 rounded-xl text-white text-sm font-bold shadow-lg transition-colors ${type === 'give' ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-500/20' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/20'
+                }`}
             >
               Save {type === 'give' ? 'Udhaar' : 'Payment'}
             </button>
