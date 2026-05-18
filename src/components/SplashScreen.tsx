@@ -14,9 +14,11 @@ interface RealisticBirdProps {
   onLoaded: () => void;
 }
 
+const storkUrl = 'https://raw.githubusercontent.com/Mobeen-2024/Hisaab-Kitaab/main/public/Stork.glb';
+
 function RealisticBird({ onLand, isMobile, onLoaded }: RealisticBirdProps) {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF('/Stork.glb');
+  const { scene, animations } = useGLTF(storkUrl);
   const { actions } = useAnimations(animations, group);
 
   // Pre-allocate vectors to prevent massive Garbage Collection spikes in useFrame
@@ -116,7 +118,7 @@ function RealisticBird({ onLand, isMobile, onLoaded }: RealisticBirdProps) {
   );
 }
 
-useGLTF.preload('/Stork.glb');
+useGLTF.preload(storkUrl);
 
 export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isVisible, setIsVisible] = useState(true);
