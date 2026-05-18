@@ -1,8 +1,21 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Download, Upload, Shield, AlertTriangle, Trash2 } from 'lucide-react';
+import { 
+  Download, 
+  Upload, 
+  Shield, 
+  AlertTriangle, 
+  Trash2, 
+  Cloud, 
+  RefreshCw, 
+  User, 
+  Lock, 
+  CheckCircle, 
+  LogOut 
+} from 'lucide-react';
 import { SettingsService } from '../../services/SettingsService';
 import { TransactionService } from '../../services/TransactionService';
+import { FirebaseSyncService } from '../../services/FirebaseSyncService';
 
 interface DataManagementProps {
   setImportModalOpen: (open: boolean) => void;
@@ -12,6 +25,27 @@ interface DataManagementProps {
 
 export default function DataManagement({ setImportModalOpen, confirmModal, setConfirmModal }: DataManagementProps) {
   const backupInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync state
+  const [isSyncEnabled, setIsSyncEnabled] = useState(FirebaseSyncService.isEnabled());
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(localStorage.getItem('firebase_sync_email'));
+  
+  // Form state
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Sync now action state
+  const [isSyncingNow, setIsSyncingNow] = useState(false);
+
+  // Refresh status periodically or on state change
+  useEffect(() => {
+    setIsSyncEnabled(FirebaseSyncService.isEnabled());
+    setCurrentUserEmail(localStorage.getItem('firebase_sync_email'));
+  }, []);
 
   const handleExportData = async () => {
     try {
@@ -52,6 +86,93 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
     }
   };
 
+  // Handle Firebase Sign In
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setErrorMessage("Please enter both email and password.");
+      return;
+    }
+    
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsSubmitting(true);
+    
+    try {
+      await FirebaseSyncService.login(email, password);
+      setIsSyncEnabled(true);
+      setCurrentUserEmail(email);
+      setSuccessMessage("Cloud Sync activated successfully!");
+      setEmail('');
+      setPassword('');
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to sign in. Please verify your credentials.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle Firebase Account Registration
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setErrorMessage("Please enter both email and password.");
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters long.");
+      return;
+    }
+    
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsSubmitting(true);
+    
+    try {
+      await FirebaseSyncService.register(email, password);
+      setIsSyncEnabled(true);
+      setCurrentUserEmail(email);
+      setSuccessMessage("Shop Account registered and Cloud Sync activated!");
+      setEmail('');
+      setPassword('');
+    } catch (err: any) {
+      setErrorMessage(err.message || "Registration failed. Try a different email.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Trigger immediate upload sync
+  const handleSyncNow = async () => {
+    const user = FirebaseSyncService.getCurrentUser();
+    if (!user) return;
+
+    setIsSyncingNow(true);
+    setSuccessMessage('');
+    setErrorMessage('');
+    
+    try {
+      await FirebaseSyncService.uploadAllLocalData(user.uid);
+      setSuccessMessage("All local data synchronized to Cloud successfully!");
+    } catch (err: any) {
+      setErrorMessage("Data synchronization encountered an issue: " + err.message);
+    } finally {
+      setIsSyncingNow(false);
+    }
+  };
+
+  // Disable sync and log out
+  const handleLogout = async () => {
+    try {
+      await FirebaseSyncService.logout();
+      setIsSyncEnabled(false);
+      setCurrentUserEmail(null);
+      setSuccessMessage("Cloud Sync disabled. Your data remains safe locally on this device.");
+    } catch (err: any) {
+      setErrorMessage("Logout encountered an issue.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Security & Data Section */}
@@ -85,6 +206,151 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
             <span>Backup Data</span>
           </button>
         </div>
+      </div>
+
+      {/* Cloud Sync & Multi-Device Support Section */}
+      <div className="bg-[#0F172A]/50 p-4 lg:p-5 rounded-xl border border-white/5 space-y-4">
+        <div className="flex items-start gap-4">
+          <div className="p-2.5 bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl shrink-0">
+            <Cloud size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h3 className="text-sm font-bold text-white">Cloud Sync & Multi-Device</h3>
+              {isSyncEnabled ? (
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Active
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                  Offline Only
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Authenticate your shop to enable real-time cloud backup and allow staff members to use the digital ledger simultaneously.
+            </p>
+          </div>
+        </div>
+
+        {/* Message Banner Feed */}
+        {errorMessage && (
+          <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-semibold leading-relaxed">
+            {errorMessage}
+          </div>
+        )}
+        {successMessage && (
+          <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-semibold leading-relaxed flex items-center gap-2">
+            <CheckCircle size={14} className="shrink-0" />
+            <span>{successMessage}</span>
+          </div>
+        )}
+
+        {isSyncEnabled && currentUserEmail ? (
+          /* CONNECTED STATE VIEW */
+          <div className="space-y-4 pt-2">
+            <div className="p-4 bg-slate-900/60 border border-white/5 rounded-xl space-y-2">
+              <div className="text-xs text-slate-400">Shop Connected Account:</div>
+              <div className="text-sm font-bold text-white flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+                {currentUserEmail}
+              </div>
+              <div className="text-[11px] text-slate-500 leading-relaxed mt-1">
+                Your data is automatically synced locally and uploaded in the background. Changes on other coupled devices will update this screen instantly.
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={handleSyncNow}
+                disabled={isSyncingNow}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-600/20 hover:bg-sky-600/30 disabled:opacity-50 border border-sky-500/30 text-sky-300 rounded-xl text-sm font-bold transition-all"
+              >
+                <RefreshCw size={16} className={`text-sky-400 ${isSyncingNow ? 'animate-spin' : ''}`} />
+                <span>{isSyncingNow ? 'Syncing...' : 'Sync Cloud Now'}</span>
+              </button>
+              
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#1E293B] hover:bg-slate-700 border border-white/10 text-slate-300 rounded-xl text-sm font-bold transition-all"
+              >
+                <LogOut size={16} className="text-slate-400" />
+                <span>Disable & Disconnect</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* AUTHENTICATION FORM VIEW */
+          <div className="pt-2 space-y-4">
+            {/* Tabs for switching authentication */}
+            <div className="flex border-b border-white/5">
+              <button
+                onClick={() => { setActiveTab('login'); setErrorMessage(''); setSuccessMessage(''); }}
+                className={`flex-1 pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'login' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-white'}`}
+              >
+                Sign In Shop
+              </button>
+              <button
+                onClick={() => { setActiveTab('register'); setErrorMessage(''); setSuccessMessage(''); }}
+                className={`flex-1 pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'register' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-400 hover:text-white'}`}
+              >
+                Register Shop
+              </button>
+            </div>
+
+            <form onSubmit={activeTab === 'login' ? handleLogin : handleRegister} className="space-y-3.5">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Shop Email Address</label>
+                <div className="relative flex items-center">
+                  <User size={16} className="absolute left-3.5 text-slate-500" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. shopowner@hisaibkitaib.com"
+                    className="w-full pl-10 pr-4 py-3 bg-[#1E293B]/70 border border-white/10 text-white rounded-xl text-sm focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 focus:outline-none transition-all placeholder:text-slate-600"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Shop Access Password</label>
+                <div className="relative flex items-center">
+                  <Lock size={16} className="absolute left-3.5 text-slate-500" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter security password (6+ chars)"
+                    className="w-full pl-10 pr-4 py-3 bg-[#1E293B]/70 border border-white/10 text-white rounded-xl text-sm focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/50 focus:outline-none transition-all placeholder:text-slate-600"
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 mt-2 px-4 py-3.5 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md shadow-sky-500/10 transition-colors cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin text-white" />
+                    <span>Processing Setup...</span>
+                  </>
+                ) : (
+                  <>
+                    <Cloud size={16} className="text-white" />
+                    <span>{activeTab === 'login' ? 'Enable & Connect Shop' : 'Register & Enable Cloud'}</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Danger Zone */}
@@ -145,9 +411,12 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
                     onClick={async () => {
                       if (confirmModal.type === 'clear') await TransactionService.clearAll();
                       else {
-                        // Global database deletion is special, usually handled by SettingsService or direct db access as it's a "factory reset"
-                        // Since I'm abstracting, I'll assume SettingsService.factoryReset handles it.
-                        // For now I'll use db.delete() if SettingsService doesn't have it, but I'll add it to SettingsService.
+                        // If Cloud Sync is active, disable it as well during full reset
+                        if (FirebaseSyncService.isEnabled()) {
+                          await FirebaseSyncService.logout();
+                          setIsSyncEnabled(false);
+                          setCurrentUserEmail(null);
+                        }
                         await SettingsService.factoryReset();
                       }
                       setConfirmModal({ ...confirmModal, isOpen: false });

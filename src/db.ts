@@ -84,7 +84,18 @@ export class HisaibKItaibDB extends Dexie {
         const table = this.table(tableName);
 
         table.hook('creating', function (primKey, obj) {
+          if (!obj.remoteId) {
+            obj.remoteId = typeof crypto !== 'undefined' && crypto.randomUUID 
+              ? crypto.randomUUID() 
+              : Math.random().toString(36).substring(2) + Date.now().toString(36);
+          }
+
           this.onsuccess = (resultKey) => {
+            // Save to Firestore
+            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+              FirebaseSyncService.saveToFirestore(tableName, obj.remoteId, obj);
+            }).catch(console.error);
+
             Dexie.ignoreTransaction(() => {
               db.auditLogs.add({
                 entityType: tableName as any,
@@ -98,6 +109,14 @@ export class HisaibKItaibDB extends Dexie {
         });
 
         table.hook('updating', (modifications, primKey, obj, transaction) => {
+          // Merge modifications into copy of obj to sync complete data
+          const updatedObj = { ...obj, ...modifications };
+          if (updatedObj.remoteId) {
+            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+              FirebaseSyncService.saveToFirestore(tableName, updatedObj.remoteId, updatedObj);
+            }).catch(console.error);
+          }
+
           Dexie.ignoreTransaction(() => {
             db.auditLogs.add({
               entityType: tableName as any,
@@ -111,6 +130,12 @@ export class HisaibKItaibDB extends Dexie {
         });
 
         table.hook('deleting', (primKey, obj, transaction) => {
+          if (obj.remoteId) {
+            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+              FirebaseSyncService.deleteFromFirestore(tableName, obj.remoteId);
+            }).catch(console.error);
+          }
+
           Dexie.ignoreTransaction(() => {
             db.auditLogs.add({
               entityType: tableName as any,

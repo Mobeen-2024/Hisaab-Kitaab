@@ -4,6 +4,7 @@ export const LangSchema = z.enum(['en', 'ur', 'ru', 'hi', 'es', 'fr', 'ar', 'zh'
 
 export const CategorySchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   name: z.string().min(1),
   type: z.enum(['income', 'expense']),
   context: z.enum(['personal', 'business']),
@@ -11,6 +12,7 @@ export const CategorySchema = z.object({
 
 export const CustomerSchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   name: z.string().min(1),
   phone: z.string(),
   balance: z.number().default(0),
@@ -21,6 +23,7 @@ export const CustomerSchema = z.object({
 
 export const InventoryItemSchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   name: z.string().min(1),
   category: z.string(),
   quantity: z.number(),
@@ -31,6 +34,7 @@ export const InventoryItemSchema = z.object({
 
 export const TransactionSchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   amount: z.number().positive(),
   type: z.enum(['income', 'expense']),
   categoryId: z.number(),
@@ -48,6 +52,7 @@ export const TransactionSchema = z.object({
 
 export const UdhaarEntrySchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   customerId: z.number(),
   type: z.enum(['give', 'receive']),
   amount: z.number().positive(),
@@ -62,6 +67,7 @@ export const UdhaarEntrySchema = z.object({
 
 export const GoalSchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   title: z.string().min(1),
   targetAmount: z.number().positive(),
   currentAmount: z.number().default(0),
@@ -71,6 +77,7 @@ export const GoalSchema = z.object({
 
 export const BudgetSchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   month: z.string(), // 'YYYY-MM'
   amount: z.number().positive(),
   context: z.enum(['personal', 'business']),
@@ -78,6 +85,7 @@ export const BudgetSchema = z.object({
 
 export const AppSettingsSchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   language: LangSchema.default('en'),
   currency: z.string().default('PKR'),
   highlightedCategoryId: z.number().optional(),
@@ -96,6 +104,7 @@ export const AppSettingsSchema = z.object({
 
 export const AppUserSchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   name: z.string().min(1),
   role: z.enum(['owner', 'spouse', 'cashier', 'employee']),
   contextAccess: z.enum(['personal', 'business', 'both']),
@@ -105,6 +114,7 @@ export const AppUserSchema = z.object({
 
 export const MessageSchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   chatId: z.string(),
   sender: z.enum(['user', 'ai', 'system']),
   content: z.string(),
@@ -113,6 +123,7 @@ export const MessageSchema = z.object({
 
 export const AuditLogSchema = z.object({
   id: z.number().optional(),
+  remoteId: z.string().optional(),
   entityType: z.enum(['transaction', 'customer', 'udhaar', 'goal', 'budget', 'inventory']),
   entityId: z.number(),
   action: z.enum(['create', 'update', 'delete']),

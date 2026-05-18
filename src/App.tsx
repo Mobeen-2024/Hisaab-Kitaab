@@ -49,6 +49,12 @@ function AppRoutes() {
 export default function App() {
   const [showSplash, setShowSplash] = React.useState(true);
 
+  React.useEffect(() => {
+    import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+      FirebaseSyncService.initSyncOnAuth();
+    }).catch(console.error);
+  }, []);
+
   return (
     <SettingsProvider>
       <ToastProvider>
