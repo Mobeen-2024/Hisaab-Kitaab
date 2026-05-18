@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Button } from './ui/Button';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ export default function ConfirmDialog({
             <button 
               onClick={onClose}
               className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-2"
+              aria-label="Close dialog"
             >
               <X size={20} />
             </button>
@@ -61,25 +63,25 @@ export default function ConfirmDialog({
             <p className="text-slate-400 font-medium mb-8">{message}</p>
             
             <div className="flex gap-3 w-full relative z-10">
-              <button
+              <Button
+                variant="outline"
                 onClick={onClose}
-                className="flex-1 py-3.5 rounded-2xl text-slate-300 bg-white/5 hover:bg-white/10 font-bold transition-all active:scale-95 border border-white/10"
+                className="flex-1"
+                size="lg"
               >
                 {cancelText}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={isDestructive ? 'danger' : 'blue'}
                 onClick={() => {
                   onConfirm();
                   onClose();
                 }}
-                className={`flex-1 py-3.5 rounded-2xl font-black transition-all active:scale-95 shadow-lg ${
-                  isDestructive 
-                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20' 
-                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20'
-                }`}
+                className="flex-1"
+                size="lg"
               >
                 {confirmText}
-              </button>
+              </Button>
             </div>
           </motion.div>
         </div>

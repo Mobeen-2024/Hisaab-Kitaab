@@ -3,14 +3,23 @@ import { Customer } from '../models';
 import { CustomerService } from '../services/CustomerService';
 import { useCustomers, useUdhaarEntries } from '../hooks/useData';
 import { t } from '../lib/i18n';
-import { Plus, Users, Search, Phone, ChevronRight, Trash2, UserRound, Truck, ArrowDownLeft, ArrowUpRight, Pencil, X } from 'lucide-react';
+import { Plus, Users, Search, Phone, ChevronRight, Trash2, UserRound, Truck, ArrowDownLeft, ArrowUpRight, Pencil } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import CustomerDetail from './CustomerDetail';
 import ConfirmDialog from './ConfirmDialog';
 import { useSettings } from '../contexts/SettingsContext';
 import { useUIStore } from '../lib/store';
+import { Modal } from './ui/Modal';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Label } from './ui/Label';
 
-function EditCustomerModal({ customer, onClose }: { customer: Customer; onClose: () => void }) {
+interface EditCustomerModalProps {
+  customer: Customer;
+  onClose: () => void;
+}
+
+function EditCustomerModal({ customer, onClose }: EditCustomerModalProps) {
   const [name, setName] = useState(customer.name);
   const [phone, setPhone] = useState(customer.phone);
   const [type, setType] = useState<'customer' | 'supplier'>(customer.type || 'customer');
@@ -28,53 +37,77 @@ function EditCustomerModal({ customer, onClose }: { customer: Customer; onClose:
     }
   };
 
+  const themeColor = type === 'customer' ? 'emerald' : 'blue';
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0F172A] border border-white/10 rounded-[2rem] w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/5 rounded-t-[2rem]">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Pencil size={18} className="text-emerald-400" /> Edit Contact
-          </h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400">
-            <X size={16} />
-          </button>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={
+        <span className="flex items-center gap-2">
+          <Pencil size={18} className="text-emerald-400" /> Edit Contact
+        </span>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <Label htmlFor="edit-name" required>Full Name</Label>
+          <Input
+            id="edit-name"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+            autoFocus
+            focusColor={themeColor}
+          />
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">Full Name</label>
-            <input
-              type="text" value={name} onChange={e => setName(e.target.value)} required autoFocus
-              className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none"
-            />
+        <div>
+          <Label htmlFor="edit-phone">Phone Number</Label>
+          <Input
+            id="edit-phone"
+            type="tel"
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            focusColor={themeColor}
+          />
+        </div>
+        <div>
+          <Label>Contact Type</Label>
+          <div className="flex bg-white/5 p-1 rounded-xl">
+            {(['customer', 'supplier'] as const).map(t => (
+              <Button
+                key={t}
+                variant={type === t ? (t === 'customer' ? 'emerald' : 'blue') : 'ghost'}
+                size="sm"
+                className="flex-1"
+                onClick={() => setType(t)}
+                leftIcon={t === 'customer' ? <UserRound size={12} /> : <Truck size={12} />}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </Button>
+            ))}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-1">Phone Number</label>
-            <input
-              type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-              className="w-full bg-[#1E293B] border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-400 mb-2">Contact Type</label>
-            <div className="flex bg-white/5 p-1 rounded-xl">
-              {(['customer', 'supplier'] as const).map(t => (
-                <button key={t} type="button" onClick={() => setType(t)}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 ${type === t ? (t === 'customer' ? 'bg-emerald-600/60 text-white' : 'bg-blue-600/60 text-white') : 'text-slate-400 hover:text-white'}`}>
-                  {t === 'customer' ? <UserRound size={12} /> : <Truck size={12} />}
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-sm font-bold transition-colors">Cancel</button>
-            <button type="submit" disabled={saving} className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-xl text-sm font-bold transition-colors">
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+        <div className="flex gap-3 pt-4 border-t border-white/5">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="flex-1 text-slate-300"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant={themeColor}
+            className="flex-1"
+            isLoading={saving}
+          >
+            Save Changes
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -166,28 +199,42 @@ export default function Customers() {
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
-                type="text" placeholder="Search contacts…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-[#0F172A]/50 border border-white/10 text-white rounded-xl pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none placeholder:text-slate-600"
+              <Input
+                type="text"
+                placeholder="Search contacts…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                leftIcon={<Search size={16} />}
+                className="py-2.5 rounded-xl placeholder:text-slate-600 bg-[#0F172A]/50 border border-white/10 text-white"
+                focusColor="emerald"
               />
             </div>
-            <button onClick={() => setAddCustomerModalOpen(true)}
-              className="hidden lg:flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/20 transition-colors whitespace-nowrap">
-              <Plus size={16} /> Add Contact
-            </button>
+            <Button
+              variant="emerald"
+              onClick={() => setAddCustomerModalOpen(true)}
+              leftIcon={<Plus size={16} />}
+              className="hidden lg:flex"
+            >
+              Add Contact
+            </Button>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex bg-white/5 p-1 rounded-xl w-full max-w-sm mt-5">
           {([['all', 'All', null], ['customer', 'Customers', 'emerald'], ['supplier', 'Suppliers', 'blue']] as const).map(([tab, label, color]) => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 ${activeTab === tab ? (color ? `bg-${color}-600/50 text-white` : 'bg-slate-700 text-white') : 'text-slate-400 hover:text-white'}`}>
-              {tab === 'customer' && <UserRound size={12} />}
-              {tab === 'supplier' && <Truck size={12} />}
+            <Button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              variant={activeTab === tab ? (color === 'emerald' ? 'emerald' : color === 'blue' ? 'blue' : 'secondary') : 'ghost'}
+              size="sm"
+              className="flex-1"
+              leftIcon={
+                tab === 'customer' ? <UserRound size={12} /> : tab === 'supplier' ? <Truck size={12} /> : undefined
+              }
+            >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -197,9 +244,13 @@ export default function Customers() {
             <div className="col-span-full py-16 text-center">
               <Users size={40} className="mx-auto mb-4 text-slate-600" />
               <p className="text-slate-500 font-medium">No contacts found.</p>
-              <button onClick={() => setAddCustomerModalOpen(true)} className="mt-4 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors">
+              <Button
+                variant="emerald"
+                onClick={() => setAddCustomerModalOpen(true)}
+                className="mt-4"
+              >
                 Add First Contact
-              </button>
+              </Button>
             </div>
           ) : (
             filteredCustomers.map(customer => {
