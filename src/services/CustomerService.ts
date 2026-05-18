@@ -70,7 +70,7 @@ export const CustomerService = {
     const txIds = await db.transactions.where('customerId').equals(id).primaryKeys();
     const udhaarIds = await db.udhaarEntries.where('customerId').equals(id).primaryKeys();
 
-    return await db.transaction('rw', [db.transactions, db.udhaarEntries, db.customers], async () => {
+    return await db.transaction('rw', [db.transactions, db.udhaarEntries, db.customers, db.auditLogs], async () => {
       if (txIds.length > 0) await db.transactions.bulkDelete(txIds);
       if (udhaarIds.length > 0) await db.udhaarEntries.bulkDelete(udhaarIds);
       await db.customers.delete(id);
