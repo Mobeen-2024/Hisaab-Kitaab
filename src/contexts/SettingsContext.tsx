@@ -1,6 +1,6 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { AppSettings } from '../db';
+import { AppSettings, db } from '../db';
 import { Lang, isRTL } from '../lib/i18n';
 import { SettingsService } from '../services/SettingsService';
 import { AppUserService } from '../services/AppUserService';
@@ -15,15 +15,28 @@ interface SettingsContextType {
   activeRole: string;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
   isLoading: boolean;
+  dbError: Error | null;
+  resetDatabase: () => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
+  const [dbError, setDbError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    // Proactively initialize and test the Dexie connection on system boot
+    db.open().catch((err) => {
+      console.error("Dexie database failed to open on boot:", err);
+      setDbError(err);
+    });
+  }, []);
+
   const settingsObj = useLiveQuery(() => SettingsService.get());
   const users = useLiveQuery(() => AppUserService.getAll()) || [];
   
-  const isLoading = settingsObj === undefined;
+  // Bypass loading block if the database is in a crashed state so fallbacks can mount
+  const isLoading = settingsObj === undefined && !dbError;
 
   const lang = (settingsObj?.language || 'en') as Lang;
   const currency = settingsObj?.currency || 'PKR';
@@ -39,6 +52,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     await SettingsService.update({ [key]: value });
   };
 
+  const resetDatabase = async () => {
+    try {
+      await db.delete();
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to delete Dexie database, using native indexedDB drop:", err);
+      // Hard fallback database purge
+      indexedDB.deleteDatabase('HisaibKItaibDB');
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
+  };
+
   const value = {
     lang,
     currency,
@@ -48,7 +75,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     ownerAvatar,
     activeRole,
     updateSetting,
-    isLoading
+    isLoading,
+    dbError,
+    resetDatabase
   };
 
   return (

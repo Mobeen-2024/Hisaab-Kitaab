@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { CloudAuthProvider } from './contexts/CloudAuthContext';
+import DatabaseErrorScreen from './components/common/DatabaseErrorScreen';
 import MainLayout from './layouts/MainLayout';
 import SplashScreen from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -20,8 +21,12 @@ const Settings = lazy(() => import('./components/Settings'));
 const MobileMenu = lazy(() => import('./components/MobileMenu'));
 
 function AppRoutes() {
-  const { isLoading } = useSettings();
+  const { isLoading, dbError, resetDatabase } = useSettings();
   const location = useLocation();
+
+  if (dbError) {
+    return <DatabaseErrorScreen error={dbError} onReset={resetDatabase} />;
+  }
 
   if (isLoading) return <PageLoader />;
 
