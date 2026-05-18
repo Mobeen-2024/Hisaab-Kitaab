@@ -13,7 +13,7 @@ export function DashboardCalendar() {
 
   const calendarStart = startOfWeek(startOfMonth(currentDisplayMonth));
   const calendarEnd = endOfWeek(endOfMonth(currentDisplayMonth));
-  
+
   const calendarDays = useMemo(() => {
     const days = [];
     let currentDay = calendarStart;
@@ -24,11 +24,23 @@ export function DashboardCalendar() {
     return days;
   }, [currentDisplayMonth]);
 
+  const transactionsByDate = useMemo(() => {
+    const grouped: Record<string, { income: number; expense: number }> = {};
+    transactions.forEach(t => {
+      // Extract the YYYY-MM-DD part reliably, handling full iso strings or short ones
+      const dateKey = t.date.split('T')[0];
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = { income: 0, expense: 0 };
+      }
+      if (t.type === 'income') grouped[dateKey].income += t.amount;
+      if (t.type === 'expense') grouped[dateKey].expense += t.amount;
+    });
+    return grouped;
+  }, [transactions]);
+
   const getDaySummary = (date: Date) => {
-    const dayTxs = transactions.filter(t => isSameDay(new Date(t.date), date));
-    const income = dayTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const expense = dayTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    return { income, expense };
+    const dateKey = format(date, 'yyyy-MM-dd');
+    return transactionsByDate[dateKey] || { income: 0, expense: 0 };
   };
 
   const maxDailyValue = useMemo(() => {
@@ -57,7 +69,7 @@ export function DashboardCalendar() {
           </div>
         </div>
         <div className={`flex items-center gap-2 bg-[#0F172A]/60 backdrop-blur-md border border-white/10 rounded-xl p-1 ${rtl ? 'flex-row-reverse' : ''}`}>
-          <button 
+          <button
             onClick={() => setCurrentDisplayMonth(subMonths(currentDisplayMonth, 1))}
             className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
           >
@@ -66,7 +78,7 @@ export function DashboardCalendar() {
           <span className="text-xs font-black text-white min-w-[90px] text-center uppercase tracking-widest tabular-nums">
             {format(currentDisplayMonth, 'MMM yyyy')}
           </span>
-          <button 
+          <button
             onClick={() => setCurrentDisplayMonth(addMonths(currentDisplayMonth, 1))}
             className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
           >
@@ -74,7 +86,7 @@ export function DashboardCalendar() {
           </button>
         </div>
       </div>
-      
+
       <div className="relative">
         <div className="grid grid-cols-7 mb-4">
           {DAYS_SHORT.map((day, i) => (
@@ -83,16 +95,16 @@ export function DashboardCalendar() {
             </div>
           ))}
         </div>
-        
+
         <div className="grid grid-cols-7 gap-2 bg-white/5 p-2 rounded-2xl border border-white/5 shadow-inner">
           {calendarDays.map((date, i) => {
             const isCurrentMonth = isSameMonth(date, currentDisplayMonth);
             const isTodayDate = isToday(date);
             const summary = getDaySummary(date);
-            
+
             return (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className={`flex flex-col p-1.5 aspect-square rounded-2xl transition-all duration-300 relative group/day border
                   ${isCurrentMonth ? 'bg-white/[0.03] border-white/5 text-slate-200' : 'bg-transparent border-transparent text-slate-700'}
                   ${isTodayDate ? 'bg-blue-600/10 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)] scale-105 z-10' : 'hover:bg-white/10 hover:border-white/10'}
@@ -104,26 +116,26 @@ export function DashboardCalendar() {
                 `}>
                   {format(date, 'd')}
                 </div>
-                
+
                 <div className="flex flex-col gap-1 mt-auto items-center">
                   {summary.income > 0 && (
-                    <div 
+                    <div
                       className="w-full h-1 bg-emerald-500/20 rounded-full overflow-hidden relative"
                       title={`Income: ${summary.income}`}
                     >
-                      <div 
-                        className="absolute inset-y-0 left-0 bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-500" 
+                      <div
+                        className="absolute inset-y-0 left-0 bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all duration-500"
                         style={{ width: `${Math.max(10, (summary.income / maxDailyValue) * 100)}%` }}
                       ></div>
                     </div>
                   )}
                   {summary.expense > 0 && (
-                    <div 
+                    <div
                       className="w-full h-1 bg-rose-500/20 rounded-full overflow-hidden relative"
                       title={`Expense: ${summary.expense}`}
                     >
-                      <div 
-                        className="absolute inset-y-0 left-0 bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.5)] transition-all duration-500" 
+                      <div
+                        className="absolute inset-y-0 left-0 bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.5)] transition-all duration-500"
                         style={{ width: `${Math.max(10, (summary.expense / maxDailyValue) * 100)}%` }}
                       ></div>
                     </div>
