@@ -117,28 +117,12 @@ export default function Customers() {
   const customers = useCustomers();
   const allUdhaarEntries = useUdhaarEntries();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [deletingCustomerId, setDeletingCustomerId] = useState<number | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'customer' | 'supplier'>('all');
 
-  if (selectedCustomer) {
-    return <CustomerDetail customer={selectedCustomer} onBack={() => setSelectedCustomer(null)} lang={lang} currency={currency} activeContext={activeContext} />;
-  }
-
-  const customersWithBalances = React.useMemo(() => customers.map(c => {
-    const isSupplier = c.type === 'supplier';
-    const balance = allUdhaarEntries
-      .filter(e => e.customerId === c.id)
-      .reduce((sum, e) => {
-        if (isSupplier) {
-          return sum + (e.type === 'receive' ? e.amount : -e.amount);
-        } else {
-          return sum + (e.type === 'give' ? e.amount : -e.amount);
-        }
-      }, 0);
-    return { ...c, balance };
-  }), [customers, allUdhaarEntries]);
+  const customersWithBalances = customers;
 
   const filteredCustomers = React.useMemo(() => customersWithBalances.filter(c => {
     if (activeTab !== 'all' && (c.type || 'customer') !== activeTab) return false;
@@ -151,6 +135,12 @@ export default function Customers() {
   const settledCount = customersWithBalances.filter(c => c.balance === 0).length;
 
   const formatCurrency = (val: number) => formatSharedCurrency(val, currency, lang);
+
+  const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
+
+  if (selectedCustomer) {
+    return <CustomerDetail customer={selectedCustomer} onBack={() => setSelectedCustomerId(null)} lang={lang} currency={currency} activeContext={activeContext} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -173,15 +163,15 @@ export default function Customers() {
       <div className="bg-[#1E293B]/80 backdrop-blur-md rounded-3xl border border-white/10 p-3 sm:p-4 flex flex-row divide-x divide-white/10 shadow-lg relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
         <div className="flex-1 py-2 px-1 sm:px-2 flex flex-col items-center justify-center text-center">
-          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1"><ArrowDownLeft size={14} className="text-emerald-400 hidden sm:block"/> <span className="truncate">To Receive</span></p>
+          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1"><ArrowDownLeft size={14} className="text-emerald-400 hidden sm:block" /> <span className="truncate">To Receive</span></p>
           <p className="text-sm sm:text-2xl font-black text-emerald-400 tabular-nums leading-none truncate w-full px-1" title={formatCurrency(totalReceivable)}>{formatCurrency(totalReceivable)}</p>
         </div>
         <div className="flex-1 py-2 px-1 sm:px-2 flex flex-col items-center justify-center text-center">
-          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1"><ArrowUpRight size={14} className="text-rose-400 hidden sm:block"/> <span className="truncate">To Pay</span></p>
+          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1"><ArrowUpRight size={14} className="text-rose-400 hidden sm:block" /> <span className="truncate">To Pay</span></p>
           <p className="text-sm sm:text-2xl font-black text-rose-400 tabular-nums leading-none truncate w-full px-1" title={formatCurrency(totalPayable)}>{formatCurrency(totalPayable)}</p>
         </div>
         <div className="flex-1 py-2 px-1 sm:px-2 flex flex-col items-center justify-center text-center">
-          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1"><Users size={14} className="text-blue-400 hidden sm:block"/> <span className="truncate">Contacts</span></p>
+          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1"><Users size={14} className="text-blue-400 hidden sm:block" /> <span className="truncate">Contacts</span></p>
           <p className="text-sm sm:text-2xl font-black text-white tabular-nums leading-none truncate w-full px-1">{customers.length} <span className="text-[9px] sm:text-[11px] text-slate-500 font-medium block sm:inline">({settledCount})</span></p>
         </div>
       </div>
@@ -256,7 +246,7 @@ export default function Customers() {
             filteredCustomers.map(customer => {
               const isSupplier = customer.type === 'supplier';
               return (
-                <div key={customer.id} onClick={() => setSelectedCustomer(customer)}
+                <div key={customer.id} onClick={() => setSelectedCustomerId(customer.id!)}
                   className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-all cursor-pointer group hover:-translate-y-0.5 relative">
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="font-bold text-white text-base flex items-center gap-2 truncate">

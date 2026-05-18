@@ -1,11 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { 
-  Transaction, 
-  Customer, 
-  Category, 
-  UdhaarEntry, 
-  InventoryItem, 
-  Goal, 
+import type {
+  Transaction,
+  Customer,
+  Category,
+  UdhaarEntry,
+  InventoryItem,
+  Goal,
   Budget,
   AppSettings,
   AppUser,
@@ -22,6 +22,7 @@ import { SettingsService } from '../services/SettingsService';
 import { AuditService } from '../services/AuditService';
 import { AppUserService } from '../services/AppUserService';
 import { CategoryService } from '../services/CategoryService';
+import { db } from '../db';
 
 export function useTransactions(context?: 'personal' | 'business') {
   return useLiveQuery(
@@ -32,6 +33,19 @@ export function useTransactions(context?: 'personal' | 'business') {
       return TransactionService.getAll();
     },
     [context],
+    [] as Transaction[]
+  );
+}
+
+export function useCustomerTransactions(customerId?: number) {
+  return useLiveQuery(
+    () => {
+      if (customerId) {
+        return db.transactions.where('customerId').equals(customerId).reverse().toArray();
+      }
+      return Promise.resolve([]);
+    },
+    [customerId],
     [] as Transaction[]
   );
 }
@@ -149,7 +163,7 @@ export function useMessages(chatId?: string) {
       return MessageService.getAll();
     },
     [chatId],
-    undefined as Message[] | undefined
+    [] as Message[]
   );
 }
 

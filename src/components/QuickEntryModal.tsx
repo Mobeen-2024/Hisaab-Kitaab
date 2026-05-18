@@ -139,9 +139,14 @@ export default function QuickEntryModal({
 
         await TransactionService.add(payload as any);
       } else {
+        const selectedCustomer = customers.find(c => c.id === parseInt(customerId, 10));
+        const isSupplier = selectedCustomer?.type === 'supplier';
+
         const payload = {
           customerId: parseInt(customerId, 10),
-          type: type === "udhaar_give" ? "give" : "receive",
+          type: isSupplier
+            ? (type === "udhaar_give" ? "receive" : "give")
+            : (type === "udhaar_give" ? "give" : "receive"),
           amount: finalAmountInPKR,
           originalCurrency: transactionCurrency,
           originalAmount: numericAmount,

@@ -1,16 +1,17 @@
 import { db } from '../db';
 import { Customer, CustomerSchema } from '../models';
 
-export type CustomerInput = Omit<Customer, 'id' | 'createdAt'> & { id?: number; createdAt?: string };
+export type CustomerInput = Omit<Customer, 'id' | 'createdAt'> & { id?: number; createdAt?: string; initialBalance?: number };
 
 export const CustomerService = {
   async add(input: CustomerInput) {
     const dataToValidate = {
       ...input,
       createdAt: input.createdAt || new Date().toISOString(),
-      balance: input.balance ?? 0
+      balance: input.balance ?? 0,
+      initialBalance: input.initialBalance ?? input.balance ?? 0
     };
-    
+
     const validated = CustomerSchema.parse(dataToValidate);
     return await db.customers.add(validated as Customer);
   },
@@ -27,15 +28,17 @@ export const CustomerService = {
     if (!customer) return;
 
     const isSupplier = customer.type === 'supplier';
-    
+
+    // Start with initial balance
+    let balance = customer.initialBalance || 0;
+
     // Sum from Udhaar entries
+    // For both customers and suppliers:
+    // - 'give' (Gave Udhaar / Credit Bought) increases the outstanding balance we owe or they owe.
+    // - 'receive' (Got Payment / Given Payment) decreases the outstanding balance.
     const entries = await db.udhaarEntries.where('customerId').equals(customerId).toArray();
-    let balance = entries.reduce((sum, entry) => {
-      if (isSupplier) {
-        return sum + (entry.type === 'receive' ? entry.amount : -entry.amount);
-      } else {
-        return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
-      }
+    balance += entries.reduce((sum, entry) => {
+      return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
     }, 0);
 
     // Sum from Transactions (Payments)
@@ -81,8 +84,8 @@ export const CustomerService = {
   async search(query: string) {
     const q = query.toLowerCase();
     const all = await this.getAll();
-    return all.filter(c => 
-      c.name.toLowerCase().includes(q) || 
+    return all.filter(c =>
+      c.name.toLowerCase().includes(q) ||
       (c.phone && c.phone.includes(q))
     );
   }

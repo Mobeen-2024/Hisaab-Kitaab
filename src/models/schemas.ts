@@ -14,6 +14,7 @@ export const CustomerSchema = z.object({
   name: z.string().min(1),
   phone: z.string(),
   balance: z.number().default(0),
+  initialBalance: z.number().default(0).optional(),
   type: z.enum(['customer', 'supplier']).optional(),
   createdAt: z.string(),
 });

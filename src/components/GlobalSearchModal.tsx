@@ -51,10 +51,10 @@ export default function GlobalSearchModal({
         setInventoryResults([]);
         return;
       }
-      
+
       const matchedTxs = await TransactionService.search(query, activeContext);
       const cats = await CategoryService.getAll();
-      
+
       const enrichedTxs = matchedTxs.map(tx => {
         const cat = cats.find(c => c.id === tx.categoryId);
         return { ...tx, categoryName: cat ? t(lang, cat.name) : 'Unknown' };
@@ -124,8 +124,8 @@ export default function GlobalSearchModal({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-sm font-bold ${c.balance > 0 ? 'text-emerald-400' : c.balance < 0 ? 'text-rose-400' : 'text-slate-400'}`}>
-                      {Math.abs(c.balance)} {currency} {c.balance > 0 ? 'You owe' : c.balance < 0 ? 'Owes you' : ''}
+                    <p className={`text-sm font-bold ${c.balance > 0 ? 'text-rose-400' : c.balance < 0 ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {Math.abs(c.balance).toLocaleString()} {currency} {c.balance > 0 ? (c.type === 'supplier' ? 'You owe' : 'Owes you') : c.balance < 0 ? 'Advance' : ''}
                     </p>
                   </div>
                 </div>
