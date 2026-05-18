@@ -9,6 +9,7 @@ import CustomerDetail from './CustomerDetail';
 import ConfirmDialog from './ConfirmDialog';
 import { useSettings } from '../contexts/SettingsContext';
 import { useUIStore } from '../lib/store';
+import { useToast } from '../contexts/ToastContext';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -112,6 +113,7 @@ function EditCustomerModal({ customer, onClose }: EditCustomerModalProps) {
 }
 
 export default function Customers() {
+  const { showToast } = useToast();
   const { lang, currency, activeContext } = useSettings();
   const { setAddCustomerModalOpen } = useUIStore();
   const customers = useCustomers();
@@ -119,6 +121,7 @@ export default function Customers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [deletingCustomerId, setDeletingCustomerId] = useState<number | null>(null);
+  const [forceDeleteCustomerId, setForceDeleteCustomerId] = useState<number | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'customer' | 'supplier'>('all');
 
@@ -151,12 +154,42 @@ export default function Customers() {
         onClose={() => setDeletingCustomerId(null)}
         onConfirm={async () => {
           if (deletingCustomerId) {
-            await CustomerService.delete(deletingCustomerId);
-            setDeletingCustomerId(null);
+            try {
+              await CustomerService.delete(deletingCustomerId);
+              setDeletingCustomerId(null);
+            } catch (err: any) {
+              if (err.message.includes('force delete')) {
+                setForceDeleteCustomerId(deletingCustomerId);
+              } else {
+                showToast(err.message || 'Failed to delete customer', 'error');
+              }
+              setDeletingCustomerId(null);
+            }
           }
         }}
         title="Delete Contact"
         message="This will remove all transactions and Udhaar history for this contact. Cannot be undone."
+      />
+
+      <ConfirmDialog
+        isOpen={forceDeleteCustomerId !== null}
+        onClose={() => setForceDeleteCustomerId(null)}
+        onConfirm={async () => {
+          if (forceDeleteCustomerId) {
+            try {
+              await CustomerService.delete(forceDeleteCustomerId, true);
+              setForceDeleteCustomerId(null);
+              showToast('Contact and all related transactions force deleted', 'success');
+            } catch (err: any) {
+              showToast(err.message || 'Failed to force delete customer', 'error');
+              setForceDeleteCustomerId(null);
+            }
+          }
+        }}
+        title="Force Delete Contact?"
+        message="This contact has an active balance. Are you sure you want to delete them AND all their related transactions? This cannot be undone."
+        confirmText="Force Delete"
+        isDestructive={true}
       />
 
       {/* Stats Bar */}
