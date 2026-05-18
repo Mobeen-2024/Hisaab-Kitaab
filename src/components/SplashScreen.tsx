@@ -123,14 +123,14 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [hasLanded, setHasLanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
-  
+
   const [mountTime] = useState(() => Date.now());
 
   // Defer preloading the dashboard component until after the bird has landed
   // to completely avoid main thread blocking and lag spikes during the flight animation!
   useEffect(() => {
     if (hasLanded) {
-      import('./DashboardWrapper').catch(() => {});
+      import('./DashboardWrapper').catch(() => { });
     }
   }, [hasLanded]);
 
@@ -186,18 +186,6 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
     return () => clearTimeout(timer);
   }, [isModelLoaded, mountTime]);
 
-  const textVariants = {
-    hidden: { opacity: 0, y: 20, z: -20 },
-    visible: { opacity: 1, y: 0, z: 20, transition: { duration: 0.8, delay: 0.8 } },
-    bounce: {
-      y: [0, 15, -2, 0],
-      rotateX: [0, -15, 5, 0],
-      z: 20,
-      opacity: 1,
-      transition: { type: "spring" as const, stiffness: 350, damping: 12 }
-    }
-  };
-
   return (
     <AnimatePresence onExitComplete={onComplete}>
       {isVisible && (
@@ -228,8 +216,8 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
 
           {/* 3D Canvas Overlay */}
           <div className="absolute inset-0 z-[110] pointer-events-none overflow-hidden">
-            <Canvas 
-              camera={{ position: [0, 0, 10], fov: 50 }} 
+            <Canvas
+              camera={{ position: [0, 0, 10], fov: 50 }}
               dpr={[1, 1.5]}
               gl={{ alpha: true, antialias: false, stencil: false, powerPreference: "high-performance" }}
             >
@@ -237,9 +225,9 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               <pointLight position={[10, 10, 10]} intensity={4} color="#93C5FD" />
               <directionalLight position={[-5, 5, 2]} intensity={1.5} color="#FFFFFF" />
               <React.Suspense fallback={null}>
-                <RealisticBird 
-                  isMobile={isMobile} 
-                  onLand={() => setHasLanded(true)} 
+                <RealisticBird
+                  isMobile={isMobile}
+                  onLand={() => setHasLanded(true)}
                   onLoaded={() => setIsModelLoaded(true)}
                 />
               </React.Suspense>
@@ -309,10 +297,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             </div>
 
             {/* Text with slight Z offset */}
-            <motion.div
-              variants={textVariants}
-              initial="hidden"
-              animate={hasLanded ? "bounce" : "visible"}
+            <div
               className="text-center mt-8"
               style={{ transformStyle: "preserve-3d" }}
             >
@@ -321,15 +306,12 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
                 <span>Kitaib</span>
               </h1>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
+              <div
                 className="mt-3 text-xl md:text-3xl text-blue-300/70 font-medium tracking-[0.3em]"
               >
                 حساب کتاب
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           </motion.div>
 
           {/* Creator Credits */}
