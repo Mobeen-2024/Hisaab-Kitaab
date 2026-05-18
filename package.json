@@ -38,6 +38,7 @@
     "pdfjs-dist": "^5.7.284",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-is": "^19.2.6",
     "react-router-dom": "^7.14.2",
     "recharts": "^3.8.1",
     "tailwind-merge": "^3.5.0",
