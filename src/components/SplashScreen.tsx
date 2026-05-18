@@ -126,11 +126,13 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   
   const [mountTime] = useState(() => Date.now());
 
-  // Preload the dashboard component so Vite compiles it in the background while splash plays
-  // This completely eliminates the 'loading' spinner after the transition!
+  // Defer preloading the dashboard component until after the bird has landed
+  // to completely avoid main thread blocking and lag spikes during the flight animation!
   useEffect(() => {
-    import('./DashboardWrapper').catch(() => {});
-  }, []);
+    if (hasLanded) {
+      import('./DashboardWrapper').catch(() => {});
+    }
+  }, [hasLanded]);
 
   // Handle responsive layout safely for SSR/Hydration
   useEffect(() => {
@@ -220,17 +222,21 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             <motion.div
               animate={{ opacity: [0.05, 0.15, 0.05] }}
               transition={{ duration: 4, repeat: Infinity }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-blue-600/10 rounded-full blur-[120px]"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-[radial-gradient(circle,_rgba(37,99,235,0.15)_0%,_rgba(0,0,0,0)_70%)]"
             />
           </div>
 
           {/* 3D Canvas Overlay */}
           <div className="absolute inset-0 z-[110] pointer-events-none overflow-hidden">
-            <Canvas camera={{ position: [0, 0, 10], fov: 50 }} gl={{ alpha: true, antialias: true, stencil: false }}>
+            <Canvas 
+              camera={{ position: [0, 0, 10], fov: 50 }} 
+              dpr={[1, 1.5]}
+              gl={{ alpha: true, antialias: false, stencil: false, powerPreference: "high-performance" }}
+            >
               <ambientLight intensity={1.5} />
               <pointLight position={[10, 10, 10]} intensity={4} color="#93C5FD" />
+              <directionalLight position={[-5, 5, 2]} intensity={1.5} color="#FFFFFF" />
               <React.Suspense fallback={null}>
-                <Environment preset="city" />
                 <RealisticBird 
                   isMobile={isMobile} 
                   onLand={() => setHasLanded(true)} 
@@ -254,14 +260,14 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.8, 1.2, 0.8] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute inset-0 bg-blue-500/40 rounded-full blur-[60px] md:blur-[80px]"
+                className="absolute inset-0 bg-[radial-gradient(circle,_rgba(59,130,246,0.4)_0%,_rgba(0,0,0,0)_70%)]"
                 style={{ transform: "translateZ(-40px)" }}
               />
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.6 }}
                 transition={{ delay: 0.5, duration: 1 }}
-                className="absolute inset-[-20%] bg-blue-400/20 rounded-full blur-[40px]"
+                className="absolute inset-[-20%] bg-[radial-gradient(circle,_rgba(96,165,250,0.2)_0%,_rgba(0,0,0,0)_70%)]"
                 style={{ transform: "translateZ(-20px)" }}
               />
 
