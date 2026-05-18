@@ -1,14 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
+import { useCloudAuth } from '../contexts/CloudAuthContext';
 import { t } from '../lib/i18n';
-import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, MessageSquare, Bell, ChevronRight, LayoutDashboard } from 'lucide-react';
+import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, MessageSquare, Bell, ChevronRight, LayoutDashboard, Cloud } from 'lucide-react';
 import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
 import { useUIStore } from '../lib/store';
 
 export default function MobileMenu() {
   const { lang, currency, activeContext, updateSetting } = useSettings();
+  const { user, isAuthenticated, isSyncEnabled } = useCloudAuth();
   const { setMessagesOpen, setNotificationsOpen } = useUIStore();
   
   const activeUserRole = 'owner';
@@ -146,7 +148,31 @@ export default function MobileMenu() {
             </div>
           ))}
           
-          <div className="pt-4 border-t border-white/5">
+          <div className="pt-4 border-t border-white/5 space-y-2">
+            {/* Cloud Sync Status Indicator */}
+            <NavLink
+              to="/settings"
+              className="flex items-center justify-between px-4 py-2.5 rounded-2xl text-sm font-bold transition-all duration-300 group hover:bg-white/10 border border-transparent"
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center relative ${isAuthenticated && isSyncEnabled ? 'bg-sky-400/10 text-sky-400 animate-pulse' : 'bg-slate-500/10 text-slate-500'}`}>
+                  <Cloud size={20} />
+                  {isAuthenticated && isSyncEnabled && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-slate-950" />
+                  )}
+                </div>
+                <div>
+                  <div className="text-left font-bold text-white text-sm leading-tight">
+                    {isAuthenticated && isSyncEnabled ? 'Cloud Synced' : 'Offline Mode'}
+                  </div>
+                  <div className="text-left text-[11px] font-medium text-slate-400 truncate max-w-[180px] mt-0.5">
+                    {isAuthenticated && isSyncEnabled ? user?.email : 'Connect Cloud Sync'}
+                  </div>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-slate-600 group-hover:text-slate-400 transition-colors" />
+            </NavLink>
+
             <NavLink
               to="/settings"
               className={({ isActive }) => 

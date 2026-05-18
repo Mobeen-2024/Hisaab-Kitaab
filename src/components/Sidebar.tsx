@@ -1,13 +1,15 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
+import { useCloudAuth } from '../contexts/CloudAuthContext';
 import { t } from '../lib/i18n';
-import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, LayoutGrid } from 'lucide-react';
+import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, LayoutGrid, Cloud } from 'lucide-react';
 import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
 
 export default function Sidebar() {
   const { lang, currency, activeContext, updateSetting, activeRole } = useSettings();
+  const { user, isAuthenticated, isSyncEnabled } = useCloudAuth();
 
   const canViewReports = activeRole === 'owner' || activeRole === 'spouse';
   const canViewPlanner = activeRole === 'owner' || activeRole === 'spouse';
@@ -81,6 +83,38 @@ export default function Sidebar() {
       </div>
 
       <div className="block shrink-0 px-2 pb-2 mt-auto border-t border-white/5 bg-black/20 backdrop-blur-md">
+        {/* Cloud Sync Status Indicator */}
+        <div className="px-2 py-1.5 shrink-0 rounded-xl hover:bg-white/5 transition-all">
+          <NavLink to="/settings" className="flex items-center gap-3 w-full text-left">
+            {isAuthenticated && isSyncEnabled ? (
+              <>
+                <div className="relative shrink-0 flex items-center justify-center">
+                  <Cloud size={20} className="text-sky-400" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-slate-950 animate-pulse" />
+                </div>
+                <div className="block md:hidden lg:block overflow-hidden">
+                  <div className="text-[10px] font-bold text-sky-400 uppercase tracking-widest leading-none mb-0.5">Cloud Synced</div>
+                  <div className="text-xs text-slate-300 font-semibold truncate max-w-[140px] leading-tight">
+                    {user?.email || 'Active'}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="shrink-0 flex items-center justify-center">
+                  <Cloud size={20} className="text-slate-500" />
+                </div>
+                <div className="block md:hidden lg:block">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-0.5">Offline Mode</div>
+                  <div className="text-xs text-slate-400 font-semibold leading-tight hover:text-white transition-colors">
+                    Connect Cloud Sync
+                  </div>
+                </div>
+              </>
+            )}
+          </NavLink>
+        </div>
+
         <NavLink
           to="/settings"
           className={({ isActive }) => 

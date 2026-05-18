@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { CloudAuthProvider } from './contexts/CloudAuthContext';
 import MainLayout from './layouts/MainLayout';
 import SplashScreen from './components/SplashScreen';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -49,23 +50,19 @@ function AppRoutes() {
 export default function App() {
   const [showSplash, setShowSplash] = React.useState(true);
 
-  React.useEffect(() => {
-    import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-      FirebaseSyncService.initSyncOnAuth();
-    }).catch(console.error);
-  }, []);
-
   return (
     <SettingsProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          {showSplash ? (
-            <SplashScreen onComplete={() => setShowSplash(false)} />
-          ) : (
-            <AppRoutes />
-          )}
-        </BrowserRouter>
-      </ToastProvider>
+      <CloudAuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            {showSplash ? (
+              <SplashScreen onComplete={() => setShowSplash(false)} />
+            ) : (
+              <AppRoutes />
+            )}
+          </BrowserRouter>
+        </ToastProvider>
+      </CloudAuthProvider>
     </SettingsProvider>
   );
 }
