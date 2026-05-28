@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useRef, useEffect, useCallb
 import { useSettings } from './SettingsContext';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { LiveVoiceService } from '../services/LiveVoiceService';
+import { TransactionService } from '../services/TransactionService';
 
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'processing' | 'speaking' | 'error';
 
@@ -236,6 +237,23 @@ Always execute the corresponding tool as soon as you have the required parameter
             if (activeCallbacksRef.current.onAddTransaction) {
               activeCallbacksRef.current.onAddTransaction(args);
               output = { success: true, message: 'Transaction added to manual entries.' };
+            } else {
+              try {
+                await TransactionService.add({
+                  amount: Number(args.amount),
+                  type: args.type || 'expense',
+                  description: args.description || 'Voice Entry',
+                  date: args.date || new Date().toISOString().split('T')[0],
+                  categoryId: 0,
+                  context: activeContext || 'business',
+                  source: 'voice',
+                  paymentMethod: 'cash'
+                });
+                output = { success: true, message: 'Transaction successfully saved to ledger.' };
+              } catch (err: any) {
+                console.error("Failed to add transaction via Voice:", err);
+                output = { success: false, message: `Failed to save: ${err.message}` };
+              }
             }
           } else if (name === 'update_form_field') {
             if (activeCallbacksRef.current.onFillReceiptForm) {
