@@ -181,6 +181,10 @@ Always execute the corresponding tool as soon as you have the required parameter
           setState('listening');
           // Start actual mic recording
           startRecording((text) => {
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+              console.log('[LiveVoice] Ignoring transcript while AI is speaking (Echo cancellation)');
+              return;
+            }
             if (text && text.trim().length > 0) {
               if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();

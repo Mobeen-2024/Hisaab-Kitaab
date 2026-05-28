@@ -95,18 +95,18 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
         recognition.interimResults = true;
         recognition.lang = 'en-US';
         
-        let lastFinalTranscript = '';
+        let processedIndex = 0;
         
         recognition.onresult = (event: any) => {
-          let currentFinal = '';
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
+          let newText = '';
+          for (let i = processedIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
-              currentFinal += event.results[i][0].transcript;
+              newText += event.results[i][0].transcript + ' ';
+              processedIndex = i + 1;
             }
           }
-          if (currentFinal && currentFinal !== lastFinalTranscript) {
-            lastFinalTranscript = currentFinal;
-            onTranscript(currentFinal);
+          if (newText.trim()) {
+            onTranscript(newText.trim());
           }
         };
         
@@ -117,6 +117,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
         recognition.onend = () => {
           // If still marked as recording, auto-restart
           if (isRecordingRef.current) {
+             processedIndex = 0; // Reset index for new session
              try { recognition.start(); } catch (e) {}
           }
         };

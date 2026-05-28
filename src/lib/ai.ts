@@ -8,7 +8,7 @@ export const AI_MODELS = {
   default: 'gemini-3.1-flash-lite',
   fast: 'gemini-3.1-flash-lite',
   vision: 'gemini-3.1-flash-lite',
-  live: 'gemini-2.0-flash-exp',
+  live: 'gemini-3.1-flash-lite',
 } as const;
 
 export const AI_TIMEOUT_MS = 90000;
