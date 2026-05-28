@@ -1,8 +1,8 @@
 import type { Transaction } from '../models';
 import * as pdfjsLib from 'pdfjs-dist';
+import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Use a CDN link for the worker to avoid complex Vite worker configuration issues in this environment
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
 export interface ParsedTransaction {
   date: string;

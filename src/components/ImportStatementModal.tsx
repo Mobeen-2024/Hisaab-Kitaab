@@ -9,10 +9,9 @@ import { AIService } from '../services/AIService';
 import { parseJazzCashCSV, parseEasypaisaCSV, parseGenericCSV, ParsedTransaction, generateDeterministicId, extractTextFromPDF } from '../utils/statementParsers';
 
 // Sub-components
-import SourceSelector, { ImportSource } from './ImportStatement/SourceSelector';
+import SmartIngestion from './ImportStatement/SmartIngestion';
 import PreviewTable from './ImportStatement/PreviewTable';
 import SuccessView from './ImportStatement/SuccessView';
-import AIInput from './ImportStatement/AIInput';
 import { Button } from './ui/Button';
 
 interface ImportStatementModalProps {
@@ -22,15 +21,12 @@ interface ImportStatementModalProps {
 
 export default function ImportStatementModal({ isOpen, onClose }: ImportStatementModalProps) {
   const [step, setStep] = useState<'select' | 'preview' | 'success'>('select');
-  const [source, setSource] = useState<ImportSource>('easypaisa');
-  const [pastedText, setPastedText] = useState('');
+  const [detectedPlatform, setDetectedPlatform] = useState<string>('other');
   const [parsedData, setParsedData] = useState<(ParsedTransaction & { categoryId?: number; isSelected: boolean })[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicatesSkipped, setDuplicatesSkipped] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { activeContext } = useSettings();
 
   const categories = useCategories();
@@ -40,8 +36,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   React.useEffect(() => {
     if (isOpen) {
       setStep('select');
-      setSource('easypaisa');
-      setPastedText('');
+      setDetectedPlatform('other');
       setParsedData([]);
       setError(null);
       setIsLoading(false);
@@ -97,173 +92,16 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
     setStep('preview');
   };
 
-  const processFile = async (file: File) => {
-    setIsLoading(true);
-    setError(null);
 
-    try {
-      if (file.type === 'application/pdf') {
-        const text = await extractTextFromPDF(file);
-        setPastedText(text);
-        
-        if (source === 'ai') {
-          setStep('select');
-        } else {
-          await handleLocalParsing(text);
-        }
-        setIsLoading(false);
-        return;
-      }
 
-      const text = await file.text();
-      let results: ParsedTransaction[] = [];
-
-      if (source === 'jazzcash') results = parseJazzCashCSV(text);
-      else if (source === 'easypaisa') results = parseEasypaisaCSV(text);
-      else results = parseGenericCSV(text);
-
-      if (results.length === 0) {
-        throw new Error("No transactions found in this file.");
-      }
-
-      await enhanceAndSetResults(results);
-    } catch (err: any) {
-      setError(err.message || "Failed to parse file.");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSmartResult = async (rawResults: ParsedTransaction[], platform: string) => {
+    setDetectedPlatform(platform);
+    await enhanceAndSetResults(rawResults);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      await processFile(file);
-    }
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      await processFile(file);
-    }
-  };
-
-  const handleAIParsing = async () => {
-    if (!pastedText.trim()) {
-      setError("Please paste some text to parse.");
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const rawResults = await AIService.parseStatement(pastedText);
-      await enhanceAndSetResults(rawResults);
-    } catch (err: any) {
-      setError(err.message || "AI parsing failed.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLocalParsing = async (textToParse?: string) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const text = typeof textToParse === 'string' ? textToParse : pastedText;
-      const lines = text.split('\n');
-      const results: ParsedTransaction[] = [];
-      
-      const dateRegex = /(\d{1,4}[-/.\s](?:[A-Za-z]{3}|\d{1,2})[-/.\s]\d{2,4})|((?:[A-Za-z]{3}|\d{1,2})[-/.\s]\d{1,2}[-/.\s]\d{2,4})/;
-      
-      const rawTxns: { date: string, lines: string[] }[] = [];
-      let currentTxn: { date: string, lines: string[] } | null = null;
-
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed.length < 3) return;
-
-        const dateMatch = trimmed.match(dateRegex);
-        if (dateMatch && trimmed.indexOf(dateMatch[0]) < 20) {
-          if (currentTxn) rawTxns.push(currentTxn);
-          currentTxn = { date: dateMatch[0], lines: [trimmed] };
-        } else if (currentTxn) {
-          currentTxn.lines.push(trimmed);
-        }
-      });
-      if (currentTxn) rawTxns.push(currentTxn);
-
-      rawTxns.forEach(txn => {
-        const fullText = txn.lines.join(' ');
-        const numRegex = /(?:^|\s)([\d,]+(?:\.\d+)?)(?=\s|$)/g;
-        let match;
-        const numbers: string[] = [];
-        while ((match = numRegex.exec(fullText)) !== null) {
-          numbers.push(match[1]);
-        }
-
-        let amount = 0;
-        let type: 'income' | 'expense' = 'expense';
-        let foundAmount = false;
-
-        if (numbers.length >= 3) {
-          const bal = parseFloat(numbers[numbers.length - 1].replace(/,/g, ''));
-          const cdt = parseFloat(numbers[numbers.length - 2].replace(/,/g, ''));
-          const dbt = parseFloat(numbers[numbers.length - 3].replace(/,/g, ''));
-
-          if (!isNaN(bal) && !isNaN(cdt) && !isNaN(dbt)) {
-            if (dbt > 0) { amount = dbt; type = 'expense'; foundAmount = true; }
-            else if (cdt > 0) { amount = cdt; type = 'income'; foundAmount = true; }
-          }
-        }
-
-        if (!foundAmount) {
-          const amountMatches = fullText.match(/[\d,]+\.\d{2}|[\d,]{4,}/g);
-          if (amountMatches && amountMatches.length > 0) {
-            const amountStr = amountMatches.find(m => m.includes('.')) || amountMatches[amountMatches.length - 1];
-            amount = parseFloat(amountStr.replace(/,/g, ''));
-            foundAmount = true;
-          }
-        }
-
-        if (!foundAmount || isNaN(amount) || amount === 0) return;
-
-        let description = fullText.replace(txn.date, '').replace(/[Rr]s\.?|PKR|[\$€£]/g, '');
-        if (numbers.length >= 3 && foundAmount) {
-          description = description
-            .replace(new RegExp(`\\b${numbers[numbers.length - 1].replace(/\./g, '\\.')}\\b`), '')
-            .replace(new RegExp(`\\b${numbers[numbers.length - 2].replace(/\./g, '\\.')}\\b`), '')
-            .replace(new RegExp(`\\b${numbers[numbers.length - 3].replace(/\./g, '\\.')}\\b`), '');
-        }
-        description = description.replace(/\s+/g, ' ').trim();
-
-        if (type === 'expense' && numbers.length < 3) {
-          const lowerLine = fullText.toLowerCase();
-          if (lowerLine.includes(' cr') || lowerLine.endsWith('cr') || lowerLine.includes('deposited')) type = 'income';
-          else if (lowerLine.includes(' dr') || lowerLine.endsWith('dr') || lowerLine.includes('withdrawn')) type = 'expense';
-          else if (['received', 'credited', 'inward', 'deposit', 'transfer-in', 'salary', 'profit'].some(k => lowerLine.includes(k))) type = 'income';
-        }
-
-        let finalDesc = description || "Transaction";
-        results.push({
-          date: txn.date,
-          description: finalDesc,
-          amount: amount,
-          type: type,
-          referenceId: generateDeterministicId(txn.date, amount, finalDesc)
-        });
-      });
-
-      if (results.length === 0) throw new Error("Local parser couldn't find transactions.");
-      await enhanceAndSetResults(results);
-    } catch (err: any) {
-      setError(`Local parsing failed: ${err.message}.`);
-      if (step === 'select' && source !== 'ai') setSource('ai');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleManualEntry = async (transaction: ParsedTransaction) => {
+    setDetectedPlatform('manual');
+    await enhanceAndSetResults([transaction]);
   };
 
   const handleImport = async () => {
@@ -277,7 +115,10 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
 
     try {
       const currentContext = activeContext || 'business';
-      const mappedSource = source === 'bank' ? 'bank_import' : source;
+      const mappedSource = 
+        detectedPlatform === 'easypaisa' ? 'easypaisa' :
+        detectedPlatform === 'jazzcash' ? 'jazzcash' :
+        detectedPlatform === 'bank' ? 'bank_import' : 'ai';
 
       const transactionsToSave: Transaction[] = selectedData.map(pt => ({
         amount: Math.abs(pt.amount),
@@ -345,47 +186,12 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                   <p className="text-slate-400 text-sm">Initializing import system...</p>
                 </div>
               ) : step === 'select' ? (
-                <div className="space-y-6">
-                  <SourceSelector source={source} setSource={setSource} />
-
-                  {source === 'ai' ? (
-                    <AIInput 
-                      pastedText={pastedText} 
-                      setPastedText={setPastedText} 
-                      isLoading={isLoading} 
-                      handleAIParsing={handleAIParsing} 
-                      handleLocalParsing={() => handleLocalParsing()} 
-                    />
-                  ) : (
-                    <div 
-                      onClick={() => fileInputRef.current?.click()}
-                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                      onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
-                      onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-3xl p-12 flex flex-col items-center gap-4 transition-all cursor-pointer group ${
-                        isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5'
-                      }`}
-                    >
-                      <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-transform ${
-                        isDragging ? 'bg-blue-500/20 text-blue-300 scale-110' : 'bg-blue-500/10 text-blue-400 group-hover:scale-110'
-                      }`}>
-                        {isLoading ? <Loader2 size={32} className="animate-spin" /> : <Upload size={32} />}
-                      </div>
-                      <div className="text-center">
-                        <p className="text-white font-medium">Click or Drag to upload statement</p>
-                        <p className="text-slate-500 text-sm mt-1">Supports .csv or .pdf statements</p>
-                      </div>
-                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv,.pdf" className="hidden" />
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-400">
-                      <AlertCircle size={20} />
-                      <p className="text-sm font-medium">{error}</p>
-                    </div>
-                  )}
-                </div>
+                <SmartIngestion
+                  onResult={handleSmartResult}
+                  onManualEntry={handleManualEntry}
+                  isLoading={isLoading}
+                  setIsLoading={setIsLoading}
+                />
               ) : step === 'preview' ? (
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

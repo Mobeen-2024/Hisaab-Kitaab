@@ -143,5 +143,73 @@ If no data found, return: {"amount": 0, "type": "expense", "description": "Unkno
     );
     const textResponse = response.text || '';
     return parseAIJson(textResponse, null);
+  },
+
+  async analyzeDocument(
+    payload: { type: 'text'; content: string } | { type: 'image'; base64: string; mimeType: string }
+  ): Promise<{
+    type: 'receipt' | 'electric_bill' | 'csv_export' | 'bank_statement' | 'unknown';
+    platform: 'jazzcash' | 'easypaisa' | 'bank' | 'other';
+    transactions: ParsedTransaction[];
+    confidence: number;
+  }> {
+    const ai = await getGeminiInstance();
+    
+    const systemPrompt = `You are an expert financial transaction analyzer. 
+Analyze the provided document (which could be extracted text or an image of a receipt/statement) and return a structured JSON response.
+You must auto-detect the type of document (receipt, electric_bill, csv_export, bank_statement, or unknown) and determine which platform it belongs to (jazzcash, easypaisa, bank, or other).
+Extract ALL transaction entries found in the document.
+
+Each transaction must have:
+- date: YYYY-MM-DD format (infer year if not explicitly stated, using current year 2026 if not clear)
+- amount: positive number
+- type: 'income' or 'expense'
+- description: clear, sanitized description of the transaction
+- referenceId: unique identifier/reference number from the statement or a deterministically unique string
+
+Return ONLY a valid JSON object matching this structure:
+{
+  "type": "receipt" | "electric_bill" | "csv_export" | "bank_statement" | "unknown",
+  "platform": "jazzcash" | "easypaisa" | "bank" | "other",
+  "transactions": [
+    { "date": "YYYY-MM-DD", "amount": 1500, "type": "expense", "description": "Electric Bill Payment", "referenceId": "12345" }
+  ],
+  "confidence": number (between 0.0 and 1.0)
+}`;
+
+    let response;
+    if (payload.type === 'text') {
+      const prompt = `${systemPrompt}\n\nDocument Text Content:\n${payload.content}`;
+      response = await withTimeout(
+        ai.models.generateContent({
+          model: AI_MODELS.default,
+          contents: prompt
+        }),
+        AI_TIMEOUT_MS
+      );
+    } else {
+      const contents = [
+        { role: 'user', parts: [
+          { text: systemPrompt },
+          { inlineData: { mimeType: payload.mimeType as any, data: payload.base64 } }
+        ]}
+      ];
+      response = await withTimeout(
+        ai.models.generateContent({
+          model: AI_MODELS.vision,
+          contents: contents as any
+        }),
+        AI_TIMEOUT_MS
+      );
+    }
+
+    const text = response.text || '';
+    const defaultResult = {
+      type: 'unknown' as const,
+      platform: 'other' as const,
+      transactions: [],
+      confidence: 0
+    };
+    return parseAIJson(text, defaultResult);
   }
 };
