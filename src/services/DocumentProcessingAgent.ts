@@ -60,13 +60,34 @@ export interface ConfirmedExtractionResult {
   };
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Document processing request timed out')), timeoutMs)
-    ),
-  ]);
+async function withTimeout<T>(promiseFn: () => Promise<T>, timeoutMs: number, retries = 2, defaultDelayMs = 15000): Promise<T> {
+  let attempt = 0;
+  while (true) {
+    let timeoutId: any;
+    try {
+      return await Promise.race([
+        promiseFn(),
+        new Promise<T>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Document processing request timed out')), timeoutMs);
+        })
+      ]);
+    } catch (error: any) {
+      if (attempt < retries && (error?.status === 429 || error?.message?.includes('429') || error?.status === 503 || error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('timed out'))) {
+        let waitTimeMs = defaultDelayMs;
+        const retryMatch = error?.message?.match(/retry in ([\d\.]+)s/);
+        if (retryMatch && retryMatch[1]) {
+          waitTimeMs = (parseFloat(retryMatch[1]) + 1) * 1000;
+        }
+        console.warn(`API Error (${error?.status || 503}). Retrying in ${Math.round(waitTimeMs / 1000)}s...`);
+        await new Promise(resolve => setTimeout(resolve, waitTimeMs));
+        attempt++;
+        continue;
+      }
+      throw error;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  }
 }
 
 // Utility to convert file to base64
@@ -113,10 +134,11 @@ export const DocumentProcessingAgent = {
     const systemPrompt = `You are a precision document extraction engine. Your output will be directly edited by a human.
 
 NON-NEGOTIABLE RULES:
-1. Extract ONLY what is clearly visible. Never infer, guess, or fabricate data.
-2. Any blurry, cut-off, or unreadable value MUST be set to the exact string "[Unreadable]".
-3. Never set a field to 0, null, or empty string when the value exists but is unreadable — use "[Unreadable]".
-4. Return ONLY a valid JSON object matching the DocumentExtractionResult TypeScript interface. No markdown blocks outside the JSON, no commentary.
+1. Extract ONLY what is clearly visible. Never infer, guess, fabricate, or hallucinate data (especially Dates and Amounts).
+2. For dates, extract the EXACT string as it appears in the document. Do NOT reformat it into a different month or date. If it says "29-Apr-2025 to 27-Apr-2026", output EXACTLY that.
+3. Any blurry, cut-off, or unreadable value MUST be set to the exact string "[Unreadable]".
+4. Never set a field to 0, null, or empty string when the value exists but is unreadable — use "[Unreadable]".
+5. Return ONLY a valid JSON object matching the DocumentExtractionResult TypeScript interface. No markdown blocks outside the JSON, no commentary.
 
 TypeScript Interface Reference:
 interface DocumentExtractionResult {
@@ -148,14 +170,14 @@ interface DocumentExtractionResult {
 
 EXTRACTION RULES:
 - Receipts: vendor name, date (YYYY-MM-DD), each line item (name, qty, unitPrice, total), subtotal, tax, grand total, currency symbol/code.
-- CSVs/Tables/Statements: headers, and rows of values, keeping tabular format exactly.
+- CSVs/Tables/Statements: headers, and rows of values. CRITICAL: You MUST ensure EVERY row has EXACTLY the same number of cells as the headers. If a column (like INST. NO.) is empty for a row, you MUST output an empty string "" or "-" for that cell so columns do not shift left. Also, merge broken multiline descriptions into a single cell. Do NOT skip any rows.
 - Begin with a 1-sentence summary of the document in the "summary" field.`;
 
     let response;
     if (payload.type === 'text') {
       const prompt = `${systemPrompt}\n\nDocument Text/CSV Content:\n${payload.content}`;
       response = await withTimeout(
-        ai.models.generateContent({
+        () => ai.models.generateContent({
           model: AI_MODELS.default,
           contents: prompt
         }),
@@ -172,7 +194,7 @@ EXTRACTION RULES:
         }
       ];
       response = await withTimeout(
-        ai.models.generateContent({
+        () => ai.models.generateContent({
           model: AI_MODELS.vision,
           contents: contents as any
         }),
@@ -217,12 +239,16 @@ EXTRACTION RULES:
       let descCol = -1;
       let amountCol = -1;
       let typeCol = -1; // income or expense
+      let debitCol = -1;
+      let creditCol = -1;
 
       t.headers.forEach((header, index) => {
         const lower = header.toLowerCase();
         if (lower.includes('date')) dateCol = index;
         else if (lower.includes('desc') || lower.includes('detail') || lower.includes('particular')) descCol = index;
         else if (lower.includes('amount') || lower.includes('price') || lower.includes('total') || lower.includes('value')) amountCol = index;
+        else if (lower.includes('debit') || lower.includes('withdrawal') || lower.match(/\bout\b/)) debitCol = index;
+        else if (lower.includes('credit') || lower.includes('deposit') || lower.match(/\bin\b/)) creditCol = index;
         else if (lower.includes('type') || lower.includes('flow')) typeCol = index;
       });
 
@@ -235,19 +261,42 @@ EXTRACTION RULES:
         // Row check
         if (t.includedRows && !t.includedRows[rowIndex]) return;
 
-        const cellDate = String(row[dateCol] || dateStr);
-        const cellDesc = String(row[descCol] || 'Table Row Item');
-        const rawAmount = parseFloat(String(row[amountCol]).replace(/[^0-9.-]+/g, '')) || 0;
-
-        let finalType: 'income' | 'expense' = 'expense';
-        if (typeCol !== -1) {
-          const typeVal = String(row[typeCol]).toLowerCase();
-          if (typeVal.includes('inc') || typeVal.includes('credit') || typeVal.includes('in') || typeVal.includes('deposit')) {
-            finalType = 'income';
+        let rawCellDate = String(row[dateCol] || dateStr);
+        let cellDate = dateStr;
+        try {
+          const parsedD = new Date(rawCellDate);
+          if (!isNaN(parsedD.getTime())) {
+            cellDate = parsedD.toLocaleDateString('en-CA'); // Safely converts "03-May-2025" to "2025-05-03"
+          } else {
+            cellDate = rawCellDate;
           }
-        } else if (rawAmount > 0) {
-          // If transaction has direct platform representation or sign
-          finalType = 'expense'; // default is expense
+        } catch(e) {
+          cellDate = rawCellDate;
+        }
+
+        const cellDesc = String(row[descCol] || 'Table Row Item');
+        
+        let rawAmount = 0;
+        let finalType: 'income' | 'expense' = 'expense';
+
+        if (debitCol !== -1 || creditCol !== -1) {
+          const debitVal = debitCol !== -1 ? parseFloat(String(row[debitCol]).replace(/[^0-9.-]+/g, '')) || 0 : 0;
+          const creditVal = creditCol !== -1 ? parseFloat(String(row[creditCol]).replace(/[^0-9.-]+/g, '')) || 0 : 0;
+          if (creditVal > 0 && debitVal === 0) {
+            rawAmount = creditVal;
+            finalType = 'income';
+          } else {
+            rawAmount = debitVal;
+            finalType = 'expense';
+          }
+        } else {
+          rawAmount = parseFloat(String(row[amountCol]).replace(/[^0-9.-]+/g, '')) || 0;
+          if (typeCol !== -1) {
+            const typeVal = String(row[typeCol]).toLowerCase();
+            if (typeVal.includes('inc') || typeVal.includes('credit') || typeVal.includes('in') || typeVal.includes('deposit')) {
+              finalType = 'income';
+            }
+          }
         }
 
         const absAmount = Math.abs(rawAmount);

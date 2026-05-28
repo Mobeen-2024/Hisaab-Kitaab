@@ -5,12 +5,12 @@ let aiInstance: GoogleGenAI | null = null;
 let currentKey: string | null = null;
 
 export const AI_MODELS = {
-  default: 'gemini-2.0-flash',
-  fast: 'gemini-2.0-flash',
-  vision: 'gemini-2.0-flash',
+  default: 'gemini-3.1-flash-lite',
+  fast: 'gemini-3.1-flash-lite',
+  vision: 'gemini-3.1-flash-lite',
 } as const;
 
-export const AI_TIMEOUT_MS = 15000;
+export const AI_TIMEOUT_MS = 90000;
 
 export async function getGeminiInstance() {
   const settings = await SettingsService.get();
