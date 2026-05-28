@@ -1,10 +1,11 @@
 import { GoogleGenAI } from '@google/genai';
-import { getLiveApiKey } from '../lib/ai';
+import { getLiveApiKey, AI_MODELS } from '../lib/ai';
 
 export interface LiveVoiceCallbacks {
   onConnect?: () => void;
   onDisconnect?: () => void;
   onTextReceived?: (text: string) => void;
+  onTurnComplete?: (fullText: string) => void;
   onAudioReceived?: (base64Audio: string) => void;
   onToolCall?: (name: string, args: any, callId: string) => Promise<any>;
   onError?: (err: Error) => void;
@@ -18,6 +19,7 @@ export class LiveVoiceService {
   
   // Keep conversation history for context during text chat
   private history: any[] = [];
+  private currentAbortController: AbortController | null = null;
 
   async connect(
     systemInstruction: string,
@@ -28,7 +30,10 @@ export class LiveVoiceService {
     this.callbacks = callbacks;
     this.systemInstruction = systemInstruction;
     this.tools = tools;
-    this.history = [];
+    this.history = [
+      { role: 'user', parts: [{ text: `System Context: ${systemInstruction}` }] },
+      { role: 'model', parts: [{ text: "Understood. I am ready to help." }] }
+    ];
 
     try {
       // We don't actually open a websocket, just mark as connected.
@@ -51,40 +56,59 @@ export class LiveVoiceService {
     // to transcribe the user's voice to text, and call sendTextMessage instead.
   }
 
-  async sendTextMessage(text: string): Promise<void> {
+  async sendTextMessage(text: string | null): Promise<void> {
     if (!this.connected) {
       console.warn('[LiveVoice] sendTextMessage called but not connected');
       return;
     }
+
+    // Interruption logic: Abort any active streaming response immediately
+    if (this.currentAbortController) {
+      console.log('[LiveVoice] Interruption detected! Aborting previous stream.');
+      this.currentAbortController.abort();
+    }
+    this.currentAbortController = new AbortController();
+    const abortSignal = this.currentAbortController.signal;
     
-    // Add user message to history
-    this.history.push({ role: 'user', parts: [{ text }] });
+    // Add user message to history only if text is provided
+    if (text !== null) {
+      this.history.push({ role: 'user', parts: [{ text }] });
+    }
 
     try {
       const apiKey = await getLiveApiKey();
       const ai = new GoogleGenAI({ apiKey });
       const sdkTools = this.tools.length > 0 ? [{ functionDeclarations: this.tools }] : undefined;
 
-      console.log('[LiveVoice] Sending HTTP request to gemini-3.1-flash-lite...');
+      console.log(`[LiveVoice] Sending HTTP request to ${AI_MODELS.live}...`);
       const responseStream = await ai.models.generateContentStream({
-        model: 'gemini-3.1-flash-lite', // Using standard model which supports free tier
+        model: AI_MODELS.live,
         contents: this.history,
         config: {
-          systemInstruction: this.systemInstruction,
           tools: sdkTools,
         }
       });
 
       let fullResponse = '';
       let functionCallMade = false;
+      const aggregatedModelParts: any[] = [];
+      const functionResponsesToSend: any[] = [];
 
       for await (const chunk of responseStream) {
-        if (chunk.text && this.callbacks.onTextReceived) {
-          fullResponse += chunk.text;
-          this.callbacks.onTextReceived(chunk.text);
+        // Interruption check: Stop processing chunks immediately if aborted
+        if (abortSignal.aborted) {
+          console.log('[LiveVoice] Stream execution terminated via AbortController.');
+          return;
         }
-        
-        // Handle tool calls if any
+
+        // Collect exact model parts to preserve metadata (like thought_signature)
+        if (chunk.candidates && chunk.candidates.length > 0 && chunk.candidates[0].content && chunk.candidates[0].content.parts) {
+          for (const p of chunk.candidates[0].content.parts) {
+            aggregatedModelParts.push(p);
+          }
+        }
+
+        // Handle tool calls first
         if (chunk.functionCalls && chunk.functionCalls.length > 0) {
           functionCallMade = true;
           for (const call of chunk.functionCalls) {
@@ -92,42 +116,77 @@ export class LiveVoiceService {
               const callId = call.id ?? call.name;
               try {
                 const result = await this.callbacks.onToolCall(call.name, call.args, callId);
-                // In standard HTTP we'd need to send another request with the result to continue.
-                // For this basic implementation we'll just push it to history.
-                this.history.push({ 
-                  role: 'model', 
-                  parts: [{ functionCall: call }] 
+                // Queue the function response to send AFTER the loop
+                functionResponsesToSend.push({
+                  functionResponse: { name: call.name, id: callId, response: result }
                 });
-                this.history.push({
-                  role: 'user',
-                  parts: [{ functionResponse: { name: call.name, id: callId, response: result } }]
-                });
-                // Trigger a follow up request
-                this.sendTextMessage("Please continue based on the function result.");
               } catch (e: any) {
                 console.error("Tool execution failed:", e);
               }
             }
           }
+        } else {
+          // Safely extract text to avoid SDK getter throwing
+          let chunkText = '';
+          try {
+            if (chunk.text) chunkText = chunk.text;
+          } catch (e) { }
+
+          if (chunkText && this.callbacks.onTextReceived) {
+            fullResponse += chunkText;
+            this.callbacks.onTextReceived(chunkText);
+          }
         }
       }
 
-      if (fullResponse && !functionCallMade) {
+      // Check abort before updating history
+      if (abortSignal.aborted) return;
+
+      // After stream finishes, push the fully aggregated model parts to history
+      if (aggregatedModelParts.length > 0) {
+        this.history.push({ role: 'model', parts: aggregatedModelParts });
+      } else if (fullResponse && !functionCallMade) {
         this.history.push({ role: 'model', parts: [{ text: fullResponse }] });
       }
 
+      if (fullResponse && this.callbacks.onTurnComplete) {
+        this.callbacks.onTurnComplete(fullResponse);
+      }
+
+      // If we made function calls, push the responses and trigger the follow-up
+      if (functionCallMade && functionResponsesToSend.length > 0) {
+        this.history.push({
+          role: 'user',
+          parts: functionResponsesToSend
+        });
+        this.sendTextMessage(null);
+      }
+
     } catch (err: any) {
+      if (err.name === 'AbortError' || abortSignal.aborted) {
+        console.log('[LiveVoice] Request was aborted safely.');
+        return;
+      }
       console.error('[LiveVoice] Error sending text:', err);
       if (this.callbacks.onError) {
         this.callbacks.onError(err);
+      }
+    } finally {
+      if (this.currentAbortController?.signal === abortSignal) {
+        this.currentAbortController = null;
       }
     }
   }
 
   disconnect(): void {
+    if (this.currentAbortController) {
+      this.currentAbortController.abort();
+      this.currentAbortController = null;
+    }
     this.connected = false;
     this.callbacks = {};
     this.history = [];
     console.log('[LiveVoice] Disconnected');
   }
 }
+

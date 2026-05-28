@@ -19,6 +19,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   const [isRecording, setIsRecording] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
 
+  const isRecordingRef = useRef(false);
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -26,6 +27,10 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
   const rafRef = useRef<number | null>(null);
 
   const stopRecording = useCallback(() => {
+    isRecordingRef.current = false;
+    setIsRecording(false);
+    setAudioLevel(0);
+    
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch (e) {}
       recognitionRef.current = null;
@@ -42,8 +47,6 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
-    setIsRecording(false);
-    setAudioLevel(0);
   }, []);
 
   const startRecording = useCallback(
@@ -113,13 +116,14 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
         
         recognition.onend = () => {
           // If still marked as recording, auto-restart
-          if (isRecording) {
+          if (isRecordingRef.current) {
              try { recognition.start(); } catch (e) {}
           }
         };
 
         recognition.start();
         recognitionRef.current = recognition;
+        isRecordingRef.current = true;
         setIsRecording(true);
         
       } catch (err) {
@@ -128,7 +132,7 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
         throw err;
       }
     },
-    [stopRecording, isRecording]
+    [stopRecording]
   );
 
   return {
@@ -138,3 +142,4 @@ export function useAudioRecorder(): UseAudioRecorderReturn {
     audioLevel,
   };
 }
+

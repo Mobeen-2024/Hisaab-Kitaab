@@ -5,6 +5,13 @@ import { LiveVoiceService } from '../services/LiveVoiceService';
 
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'processing' | 'speaking' | 'error';
 
+export interface VoiceMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  isStreaming?: boolean;
+}
+
 export interface FormCallbacks {
   onFillReceiptForm?: (data: { vendor?: string; date?: string; items?: any[]; tax?: number }) => void;
   onAddTransaction?: (transaction: { amount: number; type: 'income' | 'expense'; description: string; date?: string }) => void;
@@ -15,7 +22,7 @@ interface VoiceAssistantContextType {
   state: VoiceState;
   isRecording: boolean;
   audioLevel: number;
-  activeSessionText: string;
+  messages: VoiceMessage[];
   error: string | null;
   startSession: () => Promise<void>;
   stopSession: () => void;
@@ -28,7 +35,7 @@ const VoiceAssistantContext = createContext<VoiceAssistantContextType | undefine
 
 export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<VoiceState>('idle');
-  const [activeSessionText, setActiveSessionText] = useState('');
+  const [messages, setMessages] = useState<VoiceMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const { currency, activeContext } = useSettings();
@@ -36,9 +43,19 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
   
   const voiceServiceRef = useRef<LiveVoiceService | null>(null);
   const activeCallbacksRef = useRef<FormCallbacks>({});
-  
-  // Track accumulated AI speech response text for the message log
-  const currentAiMessageRef = useRef<string>('');
+
+  const speakText = useCallback((text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      // Clean text from markdown formatting or asterisks for clean narration
+      const cleanText = text.replace(/[*#`_\-]/g, '').trim();
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) || voices.find(v => v.lang.startsWith('en'));
+      if (voice) utterance.voice = voice;
+      window.speechSynthesis.speak(utterance);
+    }
+  }, []);
 
   const registerFormCallbacks = useCallback((callbacks: FormCallbacks) => {
     activeCallbacksRef.current = callbacks;
@@ -50,17 +67,27 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
 
   const stopSession = useCallback(() => {
     stopRecording();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
     if (voiceServiceRef.current) {
       voiceServiceRef.current.disconnect();
       voiceServiceRef.current = null;
     }
     setState('idle');
-    setActiveSessionText('');
-    currentAiMessageRef.current = '';
+    setMessages([]);
   }, [stopRecording]);
 
   const sendTextMessage = useCallback((text: string) => {
     if (voiceServiceRef.current) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setMessages((prev) => [
+        ...prev,
+        { id: Math.random().toString(), role: 'user', text },
+        { id: 'streaming-ai', role: 'assistant', text: '', isStreaming: true }
+      ]);
       voiceServiceRef.current.sendTextMessage(text);
     }
   }, []);
@@ -69,8 +96,7 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
     stopSession();
     setState('connecting');
     setError(null);
-    setActiveSessionText('');
-    currentAiMessageRef.current = '';
+    setMessages([]);
 
     const systemInstruction = `You are "Hisaab-Kitaab Assistant", a real-time voice and typing automation helper for the Hisaab-Kitaab (Bookkeeping) financial app.
 Active Currency: ${currency || 'PKR'}.
@@ -142,11 +168,7 @@ Always execute the corresponding tool as soon as you have the required parameter
       },
       {
         name: 'confirm_and_save',
-        description: 'Save/Submit the current transaction or form.',
-        parameters: {
-          type: 'OBJECT',
-          properties: {},
-        },
+        description: 'Save/Submit the current transaction or form.'
       },
     ];
 
@@ -158,8 +180,19 @@ Always execute the corresponding tool as soon as you have the required parameter
         onConnect: () => {
           setState('listening');
           // Start actual mic recording
-          startRecording((base64Chunk) => {
-            service.sendAudioChunk(base64Chunk);
+          startRecording((text) => {
+            if (text && text.trim().length > 0) {
+              if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+              }
+              // Add user message & empty placeholder for AI
+              setMessages((prev) => [
+                ...prev,
+                { id: Math.random().toString(), role: 'user', text },
+                { id: 'streaming-ai', role: 'assistant', text: '', isStreaming: true }
+              ]);
+              service.sendTextMessage(text);
+            }
           }).catch((err) => {
             setError('Failed to start microphone.');
             stopSession();
@@ -170,11 +203,21 @@ Always execute the corresponding tool as soon as you have the required parameter
         },
         onTextReceived: (text) => {
           setState('speaking');
-          setActiveSessionText((prev) => prev + text);
-          currentAiMessageRef.current += text;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === 'streaming-ai' ? { ...m, text: m.text + text } : m))
+          );
+        },
+        onTurnComplete: (fullText) => {
+          setState('listening');
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === 'streaming-ai' ? { ...m, id: Math.random().toString(), isStreaming: false } : m
+            )
+          );
+          speakText(fullText);
         },
         onAudioReceived: (base64Audio) => {
-          // If in future TTS is enabled, play it here. For now we are pure text response.
+          // Play pre-recorded base64 chunks if applicable
         },
         onToolCall: async (name, args, callId) => {
           setState('processing');
@@ -202,11 +245,6 @@ Always execute the corresponding tool as soon as you have the required parameter
             }
           }
 
-          // Once processing is done, return to listening state
-          setTimeout(() => {
-            setState('listening');
-          }, 1000);
-
           return output;
         },
         onError: (err) => {
@@ -219,16 +257,7 @@ Always execute the corresponding tool as soon as you have the required parameter
       setError(err.message || 'Could not connect to Gemini Live.');
       setState('error');
     }
-  }, [currency, activeContext, startRecording, stopSession]);
-
-  // Sync AI messages into activeSessionText (already done in onTextReceived)
-  // We clear activeSessionText when speaker stops or turn finishes
-  useEffect(() => {
-    if (state === 'listening' && currentAiMessageRef.current) {
-      currentAiMessageRef.current = '';
-      setActiveSessionText('');
-    }
-  }, [state]);
+  }, [currency, activeContext, startRecording, stopSession, speakText]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -243,7 +272,7 @@ Always execute the corresponding tool as soon as you have the required parameter
         state,
         isRecording,
         audioLevel,
-        activeSessionText,
+        messages,
         error,
         startSession,
         stopSession,
@@ -264,3 +293,4 @@ export const useVoiceAssistant = () => {
   }
   return context;
 };
+
