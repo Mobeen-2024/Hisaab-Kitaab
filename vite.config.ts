@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
         manifest: false, // Use our existing public/manifest.json file instead of generating one, to maintain full compliance!
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,glb,json}'],
+          // vendor chunk can be ~2.6 MB minified (~773 kB gzipped); raise limit to 4 MiB
+          maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -69,20 +71,28 @@ export default defineConfig(({ mode }) => {
       target: 'es2020',
       minify: 'esbuild',
       emptyOutDir: true,
-      chunkSizeWarningLimit: 2000,
+      chunkSizeWarningLimit: 3000,
       rollupOptions: {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('three') || id.includes('@react-three')) {
+              // three.js: match exact package path to avoid circular with its own peer deps
+              if (id.includes('/node_modules/three/') || id.includes('/node_modules/@react-three/')) {
                 return 'three-bundle';
               }
-              if (id.includes('firebase')) {
+              if (id.includes('/node_modules/firebase/') || id.includes('/node_modules/@firebase/')) {
                 return 'firebase-bundle';
               }
-              if (id.includes('dexie')) {
+              if (id.includes('/node_modules/dexie/')) {
                 return 'dexie-bundle';
               }
+              if (id.includes('/node_modules/zod/')) {
+                return 'zod-bundle';
+              }
+              if (id.includes('/node_modules/@google/generative-ai')) {
+                return 'google-ai-bundle';
+              }
+              // Everything else (react, react-dom, router, etc.) goes to vendor
               return 'vendor';
             }
           },
