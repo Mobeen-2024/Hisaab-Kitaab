@@ -44,10 +44,13 @@ export default function EditTransactionModal({
     async (prevState: any, formData: FormData) => {
       const numericAmount = parseFloat(amount);
       if (!amount || isNaN(numericAmount) || numericAmount <= 0) {
-        return { error: lang === 'ur' ? 'براہ کرم درست رقم درج کریں' : 'Please enter a valid amount' };
+        const errMsg = lang === 'ur' ? 'براہ کرم درست رقم درج کریں' : 'Please enter a valid amount';
+        showToast(errMsg, 'error');
+        return { error: errMsg };
       }
 
       if (!transaction) {
+        showToast('Transaction record is missing', 'error');
         return { error: 'Transaction record is missing' };
       }
 
@@ -64,23 +67,17 @@ export default function EditTransactionModal({
 
       try {
         await TransactionService.update(transaction.id!, payload);
-        return { success: true };
+        showToast('Transaction updated successfully', 'success');
+        onClose();
+        return null;
       } catch (err: any) {
-        return { error: err.message || 'Failed to update transaction' };
+        const errMsg = err.message || 'Failed to update transaction';
+        showToast(errMsg, 'error');
+        return { error: errMsg };
       }
     },
     null
   );
-
-  useEffect(() => {
-    if (!state) return;
-    if (state.success) {
-      showToast('Transaction updated successfully', 'success');
-      onClose();
-    } else if (state.error) {
-      showToast(state.error, 'error');
-    }
-  }, [state, onClose, showToast]);
 
   if (!transaction) return null;
 
