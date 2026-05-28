@@ -12,7 +12,7 @@ export function parseAIJson<T>(text: string | null | undefined, fallback: T): T 
     
   try {
     // Try to find the first JSON-like structure (object or array)
-    const match = cleaned.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
+    const match = cleaned.match(/(\[[\s\S]*?\]|\{[\s\S]*?\})/);
     if (match) {
       return JSON.parse(match[0]);
     }

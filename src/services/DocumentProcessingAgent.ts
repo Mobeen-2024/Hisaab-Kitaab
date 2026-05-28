@@ -1,4 +1,5 @@
 import { getGeminiInstance, AI_MODELS, AI_TIMEOUT_MS } from '../lib/ai';
+import { withRetry } from '../lib/withRetry';
 import { parseAIJson } from '../lib/parseAIJson';
 import { extractTextFromPDF, ParsedTransaction, generateDeterministicId } from '../utils/statementParsers';
 import { parseCSVFile } from '../utils/csvParser';
@@ -58,36 +59,6 @@ export interface ConfirmedExtractionResult {
     rows: (string | number)[][];
     includedRows?: boolean[]; // visual toggle per row if wanted, or all included by default
   };
-}
-
-async function withTimeout<T>(promiseFn: () => Promise<T>, timeoutMs: number, retries = 2, defaultDelayMs = 15000): Promise<T> {
-  let attempt = 0;
-  while (true) {
-    let timeoutId: any;
-    try {
-      return await Promise.race([
-        promiseFn(),
-        new Promise<T>((_, reject) => {
-          timeoutId = setTimeout(() => reject(new Error('Document processing request timed out')), timeoutMs);
-        })
-      ]);
-    } catch (error: any) {
-      if (attempt < retries && (error?.status === 429 || error?.message?.includes('429') || error?.status === 503 || error?.message?.includes('503') || error?.message?.includes('UNAVAILABLE') || error?.message?.includes('timed out'))) {
-        let waitTimeMs = defaultDelayMs;
-        const retryMatch = error?.message?.match(/retry in ([\d\.]+)s/);
-        if (retryMatch && retryMatch[1]) {
-          waitTimeMs = (parseFloat(retryMatch[1]) + 1) * 1000;
-        }
-        console.warn(`API Error (${error?.status || 503}). Retrying in ${Math.round(waitTimeMs / 1000)}s...`);
-        await new Promise(resolve => setTimeout(resolve, waitTimeMs));
-        attempt++;
-        continue;
-      }
-      throw error;
-    } finally {
-      if (timeoutId) clearTimeout(timeoutId);
-    }
-  }
 }
 
 // Utility to convert file to base64
@@ -176,7 +147,7 @@ EXTRACTION RULES:
     let response;
     if (payload.type === 'text') {
       const prompt = `${systemPrompt}\n\nDocument Text/CSV Content:\n${payload.content}`;
-      response = await withTimeout(
+      response = await withRetry(
         () => ai.models.generateContent({
           model: AI_MODELS.default,
           contents: prompt
@@ -193,7 +164,7 @@ EXTRACTION RULES:
           ]
         }
       ];
-      response = await withTimeout(
+      response = await withRetry(
         () => ai.models.generateContent({
           model: AI_MODELS.vision,
           contents: contents as any

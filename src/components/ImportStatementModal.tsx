@@ -124,17 +124,26 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
         detectedPlatform === 'jazzcash' ? 'jazzcash' :
         detectedPlatform === 'bank' ? 'bank_import' : 'ai';
 
-      const transactionsToSave: Transaction[] = selectedData.map(pt => ({
-        amount: Math.abs(pt.amount),
-        type: pt.type,
-        categoryId: pt.categoryId || 0,
-        context: currentContext as any,
-        date: pt.date,
-        description: pt.description,
-        source: mappedSource as any,
-        importReferenceId: pt.referenceId,
-        paymentMethod: 'mobile_wallet'
-      }));
+      const transactionsToSave: Transaction[] = selectedData.map(pt => {
+        let paymentMethod: 'cash' | 'bank' | 'mobile_wallet' = 'mobile_wallet';
+        if (detectedPlatform === 'bank') {
+          paymentMethod = 'bank';
+        } else if (detectedPlatform === 'manual') {
+          paymentMethod = 'cash';
+        }
+
+        return {
+          amount: Math.abs(pt.amount),
+          type: pt.type,
+          categoryId: pt.categoryId || 0,
+          context: currentContext as any,
+          date: pt.date,
+          description: pt.description,
+          source: mappedSource as any,
+          importReferenceId: pt.referenceId,
+          paymentMethod
+        };
+      });
 
       const existingRefs = new Set(
         (await TransactionService.getByImportReferences(selectedData.map(d => d.referenceId).filter(Boolean)))
@@ -145,8 +154,10 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
         !t.importReferenceId || !existingRefs.has(t.importReferenceId)
       );
 
-      setDuplicatesSkipped(transactionsToSave.length - newTransactions.length);
+      const actualImported = newTransactions.length;
+      setDuplicatesSkipped(transactionsToSave.length - actualImported);
       if (newTransactions.length > 0) await TransactionService.bulkAdd(newTransactions);
+      setParsedData(prev => prev.map(d => d.isSelected ? { ...d, isSelected: false } : d)); // Reset selections on success
       setStep('success');
     } catch (err: any) {
       setError("Failed to save transactions: " + (err.message || "Unknown error"));
@@ -280,7 +291,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                   </div>
                 </div>
               ) : (
-                <SuccessView importedCount={parsedData.length - duplicatesSkipped} />
+                <SuccessView importedCount={parsedData.filter(d => d.isSelected).length - duplicatesSkipped} />
               )}
             </div>
           </motion.div>

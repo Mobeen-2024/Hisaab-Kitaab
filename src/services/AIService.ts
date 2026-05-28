@@ -1,4 +1,5 @@
 import { getGeminiInstance, AI_MODELS, AI_TIMEOUT_MS } from '../lib/ai';
+import { withRetry } from '../lib/withRetry';
 import { parseAIJson } from '../lib/parseAIJson';
 import { ParsedTransaction } from '../utils/statementParsers';
 
@@ -19,21 +20,12 @@ export interface AIImageResult {
   suggestedCategory?: string;
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('AI request timed out')), timeoutMs)
-    ),
-  ]);
-}
-
 export const AIService = {
   async generateInsights(activeContext: string, stats: AIInsightStats): Promise<string[]> {
     const ai = await getGeminiInstance();
     const prompt = `User context: ${activeContext}. Recent data: ${JSON.stringify(stats)}. Provide 3 concise, actionable financial insights. Return ONLY a JSON array of strings.`;
-    const response = await withTimeout(
-      ai.models.generateContent({
+    const response = await withRetry(
+      () => ai.models.generateContent({
         model: AI_MODELS.fast,
         contents: prompt
       }),
@@ -56,13 +48,13 @@ export const AIService = {
       { role: 'user', parts: [{ text: `System Context: ${systemContext}` }] },
       { role: 'model', parts: [{ text: "Understood." }] },
       ...messages.slice().map(m => ({ 
-        role: m.sender === 'ai' ? 'model' : 'user', 
-        parts: [{ text: m.content }] 
+      role: m.sender === 'ai' ? 'model' : 'user', 
+      parts: [{ text: m.content }] 
       })),
       { role: 'user', parts: [{ text: userMsg }] }
     ];
-    const response = await withTimeout(
-      ai.models.generateContent({ 
+    const response = await withRetry(
+      () => ai.models.generateContent({ 
         model: AI_MODELS.default, 
         contents: contents as any 
       }),
@@ -88,8 +80,8 @@ export const AIService = {
       Return ONLY a JSON array. Return ONLY the JSON, no other text.
     `;
 
-    const response = await withTimeout(
-      ai.models.generateContent({
+    const response = await withRetry(
+      () => ai.models.generateContent({
         model: AI_MODELS.fast,
         contents: prompt
       }),
@@ -119,8 +111,8 @@ If no data found, return: {"amount": 0, "type": "expense", "description": "Unkno
       ]
     }];
 
-    const response = await withTimeout(
-      ai.models.generateContent({
+    const response = await withRetry(
+      () => ai.models.generateContent({
         model: AI_MODELS.vision,
         contents: contents as any
       }),
@@ -134,8 +126,8 @@ If no data found, return: {"amount": 0, "type": "expense", "description": "Unkno
   async parseVoiceInput(text: string, categories: any[]): Promise<any> {
     const ai = await getGeminiInstance();
     const prompt = `Extract transaction details from: "${text}". Return ONLY JSON: { "type": "expense"|"income", "amount": number, "categoryId": number|null, "description": string }. Categories: ${JSON.stringify(categories)}`;
-    const response = await withTimeout(
-      ai.models.generateContent({
+    const response = await withRetry(
+      () => ai.models.generateContent({
         model: AI_MODELS.fast,
         contents: prompt
       }),
@@ -154,6 +146,7 @@ If no data found, return: {"amount": 0, "type": "expense", "description": "Unkno
     confidence: number;
   }> {
     const ai = await getGeminiInstance();
+    const currentYear = new Date().getFullYear();
     
     const systemPrompt = `You are an expert financial transaction analyzer. 
 Analyze the provided document (which could be extracted text or an image of a receipt/statement) and return a structured JSON response.
@@ -161,7 +154,7 @@ You must auto-detect the type of document (receipt, electric_bill, csv_export, b
 Extract ALL transaction entries found in the document.
 
 Each transaction must have:
-- date: YYYY-MM-DD format (infer year if not explicitly stated, using current year 2026 if not clear)
+- date: YYYY-MM-DD format (infer year if not explicitly stated, using current year ${currentYear} if not clear)
 - amount: positive number
 - type: 'income' or 'expense'
 - description: clear, sanitized description of the transaction
@@ -180,8 +173,8 @@ Return ONLY a valid JSON object matching this structure:
     let response;
     if (payload.type === 'text') {
       const prompt = `${systemPrompt}\n\nDocument Text Content:\n${payload.content}`;
-      response = await withTimeout(
-        ai.models.generateContent({
+      response = await withRetry(
+        () => ai.models.generateContent({
           model: AI_MODELS.default,
           contents: prompt
         }),
@@ -194,8 +187,8 @@ Return ONLY a valid JSON object matching this structure:
           { inlineData: { mimeType: payload.mimeType as any, data: payload.base64 } }
         ]}
       ];
-      response = await withTimeout(
-        ai.models.generateContent({
+      response = await withRetry(
+        () => ai.models.generateContent({
           model: AI_MODELS.vision,
           contents: contents as any
         }),

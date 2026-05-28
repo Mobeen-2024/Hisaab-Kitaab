@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { AIService } from '../../services/AIService';
 import { parseCSVFile } from '../../utils/csvParser';
-import { extractTextFromPDF, ParsedTransaction, generateDeterministicId } from '../../utils/statementParsers';
+import { extractTextFromPDF, ParsedTransaction, generateDeterministicId, parseJazzCashCSV, parseEasypaisaCSV, parseGenericCSV } from '../../utils/statementParsers';
 import DatePicker from '../DatePicker';
 
 interface SmartIngestionProps {
@@ -30,6 +30,12 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
   const [manualDesc, setManualDesc] = useState('');
 
   const processFile = async (file: File) => {
+    // Soft validation: limit upload size to 20MB for safety
+    if (file.size > 20 * 1024 * 1024) {
+      setError("File is too large. Please upload files under 20MB.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setSuccessPlatform(null);
@@ -47,11 +53,15 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
           analysisResult = await AIService.analyzeDocument({ type: 'text', content: extractedText });
         } catch (geminiError: any) {
           console.warn("Gemini parsing failed, falling back to local statement parser:", geminiError);
-          // Fallback to offline regex statement parsing
-          const fallbackTxns = await runOfflineTextParser(extractedText);
-          onResult(fallbackTxns, 'pdf_fallback');
-          setSuccessPlatform('Local PDF Extractor (Offline)');
-          return;
+          try {
+            const fallbackTxns = await runOfflineTextParser(extractedText);
+            onResult(fallbackTxns, 'pdf_fallback');
+            setSuccessPlatform('Local PDF Extractor (Offline)');
+            return;
+          } catch (fallbackError: any) {
+            console.error("Local statement parser failed:", fallbackError);
+            throw new Error(`Parsing failed. Gemini Error: ${geminiError.message || geminiError}. Fallback Error: ${fallbackError.message || fallbackError}`);
+          }
         }
       } 
       else if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
@@ -61,12 +71,17 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
         try {
           analysisResult = await AIService.analyzeDocument({ type: 'text', content: serializedText });
         } catch (geminiError) {
-          console.warn("Gemini parsing failed, falling back to local CSV parser");
-          // Fallback to local offline CSV parser
-          const fallbackTxns = runOfflineCSVParser(serializedText, file.name.toLowerCase());
-          onResult(fallbackTxns, file.name.toLowerCase().includes('jazz') ? 'jazzcash' : 'easypaisa');
-          setSuccessPlatform('Local CSV Parser (Offline)');
-          return;
+          console.warn("Gemini parsing failed, falling back to local CSV parser:", geminiError);
+          try {
+            const fallbackTxns = runOfflineCSVParser(serializedText, file.name.toLowerCase());
+            if (fallbackTxns.length === 0) throw new Error("No transactions matched standard CSV formats.");
+            onResult(fallbackTxns, file.name.toLowerCase().includes('jazz') ? 'jazzcash' : 'easypaisa');
+            setSuccessPlatform('Local CSV Parser (Offline)');
+            return;
+          } catch (fallbackError: any) {
+            console.error("Local CSV parser failed:", fallbackError);
+            throw new Error(`Parsing failed. Gemini Error: ${(geminiError as any).message || geminiError}. Fallback Error: ${fallbackError.message || fallbackError}`);
+          }
         }
       } 
       else if (file.type.startsWith('image/')) {
@@ -149,35 +164,16 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
     return results;
   };
 
-  // Fallback: Parse CSV using local row parser offline helper
+  // Fallback: Parse CSV using proper robust offline helpers
   const runOfflineCSVParser = (csvText: string, filename: string): ParsedTransaction[] => {
-    const lines = csvText.split('\n').map(line => line.split(','));
-    const results: ParsedTransaction[] = [];
-    const isJazz = filename.includes('jazz');
-
-    lines.slice(1).forEach((row, idx) => {
-      if (row.length < 3) return;
-      try {
-        const date = row[0]?.trim() || new Date().toISOString().split('T')[0];
-        const rawAmount = row[isJazz ? 3 : 4] || '0';
-        const amount = Math.abs(parseFloat(rawAmount.replace(/[^0-9.-]+/g, ""))) || 0;
-        const description = row[2]?.trim() || 'CSV Transaction';
-        if (amount > 0) {
-          results.push({
-            date,
-            amount,
-            type: parseFloat(rawAmount) >= 0 ? 'income' : 'expense',
-            description: `${isJazz ? 'JazzCash' : 'Easypaisa'}: ${description}`,
-            referenceId: row[1]?.trim() || `csv-${idx}`
-          });
-        }
-      } catch (e) {}
-    });
-
-    if (results.length === 0) {
-      throw new Error("Offline CSV parsing failed.");
+    const fn = filename.toLowerCase();
+    if (fn.includes('jazz')) {
+      return parseJazzCashCSV(csvText);
+    } else if (fn.includes('easy')) {
+      return parseEasypaisaCSV(csvText);
+    } else {
+      return parseGenericCSV(csvText);
     }
-    return results;
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
