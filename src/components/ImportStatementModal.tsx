@@ -13,6 +13,8 @@ import SmartIngestion from './ImportStatement/SmartIngestion';
 import PreviewTable from './ImportStatement/PreviewTable';
 import SuccessView from './ImportStatement/SuccessView';
 import { Button } from './ui/Button';
+import DocumentAgentPanel from './DocumentAgent/DocumentAgentPanel';
+
 
 interface ImportStatementModalProps {
   isOpen: boolean;
@@ -27,6 +29,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicatesSkipped, setDuplicatesSkipped] = useState(0);
+  const [activeTab, setActiveTab] = useState<'import' | 'scan'>('import');
   const { activeContext } = useSettings();
 
   const categories = useCategories();
@@ -41,6 +44,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       setError(null);
       setIsLoading(false);
       setDuplicatesSkipped(0);
+      setActiveTab('import');
     }
   }, [isOpen]);
 
@@ -169,14 +173,40 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             className="relative w-full max-w-2xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
           >
-            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+            <div className="p-6 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-white">Import Statement</h2>
                 <p className="text-sm text-slate-400">Backfill your data from mobile wallets or banks</p>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-slate-400 transition-colors">
-                <X size={20} />
-              </button>
+              {step === 'select' && (
+                <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-white/5 shrink-0 self-start md:self-auto">
+                  <button
+                    onClick={() => setActiveTab('import')}
+                    className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                      activeTab === 'import'
+                        ? 'bg-blue-500/15 border border-blue-500/20 text-blue-400 shadow-lg shadow-blue-500/5'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Import Transactions
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('scan')}
+                    className={`px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                      activeTab === 'scan'
+                        ? 'bg-blue-500/15 border border-blue-500/20 text-blue-400 shadow-lg shadow-blue-500/5'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Scan Document
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center gap-2 self-end md:self-auto">
+                <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-slate-400 transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             <div className="p-6 max-h-[70vh] overflow-y-auto">
@@ -186,12 +216,20 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                   <p className="text-slate-400 text-sm">Initializing import system...</p>
                 </div>
               ) : step === 'select' ? (
-                <SmartIngestion
-                  onResult={handleSmartResult}
-                  onManualEntry={handleManualEntry}
-                  isLoading={isLoading}
-                  setIsLoading={setIsLoading}
-                />
+                activeTab === 'import' ? (
+                  <SmartIngestion
+                    onResult={handleSmartResult}
+                    onManualEntry={handleManualEntry}
+                    isLoading={isLoading}
+                    setIsLoading={setIsLoading}
+                  />
+                ) : (
+                  <DocumentAgentPanel
+                    onImportTransactions={handleSmartResult}
+                    isLoadingGlobal={isLoading}
+                    setIsLoadingGlobal={setIsLoading}
+                  />
+                )
               ) : step === 'preview' ? (
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
