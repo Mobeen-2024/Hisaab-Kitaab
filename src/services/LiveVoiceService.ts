@@ -1,3 +1,4 @@
+import { GoogleGenAI } from '@google/genai';
 import { getLiveApiKey } from '../lib/ai';
 
 export interface LiveVoiceCallbacks {
@@ -7,13 +8,16 @@ export interface LiveVoiceCallbacks {
   onAudioReceived?: (base64Audio: string) => void;
   onToolCall?: (name: string, args: any, callId: string) => Promise<any>;
   onError?: (err: Error) => void;
-  onListeningStateChange?: (isListening: boolean) => void;
 }
 
 export class LiveVoiceService {
-  private ws: WebSocket | null = null;
   private callbacks: LiveVoiceCallbacks = {};
-  private isConnected = false;
+  private connected = false;
+  private systemInstruction = '';
+  private tools: any[] = [];
+  
+  // Keep conversation history for context during text chat
+  private history: any[] = [];
 
   async connect(
     systemInstruction: string,
@@ -22,172 +26,108 @@ export class LiveVoiceService {
   ): Promise<void> {
     this.disconnect();
     this.callbacks = callbacks;
+    this.systemInstruction = systemInstruction;
+    this.tools = tools;
+    this.history = [];
 
     try {
-      const apiKey = await getLiveApiKey();
-      // Gemini Live Bidirectional WebSocket API Endpoint
-      const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
-
-      this.ws = new WebSocket(url);
-
-      this.ws.onopen = () => {
-        this.isConnected = true;
-        this.sendSetupMessage(systemInstruction, tools);
-        if (this.callbacks.onConnect) {
-          this.callbacks.onConnect();
-        }
-      };
-
-      this.ws.onclose = () => {
-        this.handleDisconnect();
-      };
-
-      this.ws.onerror = (ev) => {
-        console.error('Gemini Live WebSocket error:', ev);
-        const err = new Error('WebSocket connection error');
-        if (this.callbacks.onError) {
-          this.callbacks.onError(err);
-        }
-      };
-
-      this.ws.onmessage = async (event) => {
-        try {
-          const rawData = typeof event.data === 'string' ? event.data : await event.data.text();
-          const message = JSON.parse(rawData);
-          this.handleServerMessage(message);
-        } catch (e) {
-          console.error('Error parsing Gemini Live message:', e);
-        }
-      };
+      // We don't actually open a websocket, just mark as connected.
+      this.connected = true;
+      console.log('[LiveVoice] "Connected" to HTTP standard generateContent');
+      if (this.callbacks.onConnect) {
+        this.callbacks.onConnect();
+      }
     } catch (err: any) {
-      console.error('Failed to connect to Gemini Live:', err);
-      if (callbacks.onError) {
-        callbacks.onError(err);
+      console.error('[LiveVoice] connect() failed:', err);
+      if (this.callbacks.onError) {
+        this.callbacks.onError(err);
       }
       throw err;
     }
   }
 
   sendAudioChunk(base64Chunk: string): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-
-    const message = {
-      realtimeInput: {
-        mediaChunks: [
-          {
-            mimeType: 'audio/pcm',
-            data: base64Chunk,
-          },
-        ],
-      },
-    };
-
-    this.ws.send(JSON.stringify(message));
+    // We ignore raw audio chunks. The mic hook will use SpeechRecognition
+    // to transcribe the user's voice to text, and call sendTextMessage instead.
   }
 
-  sendTextMessage(text: string): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-
-    const message = {
-      realtimeInput: {
-        text: text,
-      },
-    };
-
-    this.ws.send(JSON.stringify(message));
-  }
-
-  sendToolResponse(name: string, callId: string, result: any): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-
-    const message = {
-      toolResponse: {
-        functionResponses: [
-          {
-            name: name,
-            response: { output: result },
-            id: callId,
-          },
-        ],
-      },
-    };
-
-    this.ws.send(JSON.stringify(message));
-  }
-
-  disconnect(): void {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
+  async sendTextMessage(text: string): Promise<void> {
+    if (!this.connected) {
+      console.warn('[LiveVoice] sendTextMessage called but not connected');
+      return;
     }
-    this.handleDisconnect();
-  }
+    
+    // Add user message to history
+    this.history.push({ role: 'user', parts: [{ text }] });
 
-  private handleDisconnect(): void {
-    if (this.isConnected) {
-      this.isConnected = false;
-      if (this.callbacks.onDisconnect) {
-        this.callbacks.onDisconnect();
-      }
-    }
-  }
+    try {
+      const apiKey = await getLiveApiKey();
+      const ai = new GoogleGenAI({ apiKey });
+      const sdkTools = this.tools.length > 0 ? [{ functionDeclarations: this.tools }] : undefined;
 
-  private sendSetupMessage(systemInstruction: string, tools: any[]): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-
-    const setupMessage = {
-      setup: {
-        model: 'models/gemini-2.0-flash-exp', // Highly stable live model
-        generationConfig: {
-          responseModalities: ['TEXT'], // Request text responses first. Audio responses can be added if TTS is desired.
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: 'Puck', // Standard natural voice
-              },
-            },
-          },
-        },
-        systemInstruction: {
-          parts: [
-            {
-              text: systemInstruction,
-            },
-          ],
-        },
-        tools: tools.length > 0 ? [{ functionDeclarations: tools }] : undefined,
-      },
-    };
-
-    this.ws.send(JSON.stringify(setupMessage));
-  }
-
-  private async handleServerMessage(message: any): Promise<void> {
-    // 1. Handle Model Turn Content
-    if (message.serverContent?.modelTurn?.parts) {
-      for (const part of message.serverContent.modelTurn.parts) {
-        if (part.text && this.callbacks.onTextReceived) {
-          this.callbacks.onTextReceived(part.text);
+      console.log('[LiveVoice] Sending HTTP request to gemini-3.1-flash-lite...');
+      const responseStream = await ai.models.generateContentStream({
+        model: 'gemini-3.1-flash-lite', // Using standard model which supports free tier
+        contents: this.history,
+        config: {
+          systemInstruction: this.systemInstruction,
+          tools: sdkTools,
         }
-        if (part.inlineData?.data && this.callbacks.onAudioReceived) {
-          this.callbacks.onAudioReceived(part.inlineData.data);
-        }
-      }
-    }
+      });
 
-    // 2. Handle Tool/Function Calls
-    if (message.toolCall?.functionCalls) {
-      for (const call of message.toolCall.functionCalls) {
-        if (this.callbacks.onToolCall) {
-          try {
-            const result = await this.callbacks.onToolCall(call.name, call.args || {}, call.id);
-            this.sendToolResponse(call.name, call.id, result);
-          } catch (err) {
-            console.error(`Error executing tool call ${call.name}:`, err);
-            this.sendToolResponse(call.name, call.id, { error: String(err) });
+      let fullResponse = '';
+      let functionCallMade = false;
+
+      for await (const chunk of responseStream) {
+        if (chunk.text && this.callbacks.onTextReceived) {
+          fullResponse += chunk.text;
+          this.callbacks.onTextReceived(chunk.text);
+        }
+        
+        // Handle tool calls if any
+        if (chunk.functionCalls && chunk.functionCalls.length > 0) {
+          functionCallMade = true;
+          for (const call of chunk.functionCalls) {
+            if (this.callbacks.onToolCall) {
+              const callId = call.id ?? call.name;
+              try {
+                const result = await this.callbacks.onToolCall(call.name, call.args, callId);
+                // In standard HTTP we'd need to send another request with the result to continue.
+                // For this basic implementation we'll just push it to history.
+                this.history.push({ 
+                  role: 'model', 
+                  parts: [{ functionCall: call }] 
+                });
+                this.history.push({
+                  role: 'user',
+                  parts: [{ functionResponse: { name: call.name, id: callId, response: result } }]
+                });
+                // Trigger a follow up request
+                this.sendTextMessage("Please continue based on the function result.");
+              } catch (e: any) {
+                console.error("Tool execution failed:", e);
+              }
+            }
           }
         }
       }
+
+      if (fullResponse && !functionCallMade) {
+        this.history.push({ role: 'model', parts: [{ text: fullResponse }] });
+      }
+
+    } catch (err: any) {
+      console.error('[LiveVoice] Error sending text:', err);
+      if (this.callbacks.onError) {
+        this.callbacks.onError(err);
+      }
     }
+  }
+
+  disconnect(): void {
+    this.connected = false;
+    this.callbacks = {};
+    this.history = [];
+    console.log('[LiveVoice] Disconnected');
   }
 }

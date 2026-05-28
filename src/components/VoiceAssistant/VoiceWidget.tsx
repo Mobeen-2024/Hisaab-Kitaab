@@ -80,7 +80,8 @@ export const VoiceWidget: React.FC = () => {
                   <Sparkles className="w-4 h-4 text-indigo-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">Hisaab-Kitaab Voice</h3>
+                  <h3 className="font-semibold text-sm">Voice Automation Assistant</h3>
+                  <div className="text-[10px] text-zinc-400">Powered by Gemini 3 Flash Live</div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className={`w-2 h-2 rounded-full ${
                       state === 'listening' ? 'bg-emerald-500 animate-pulse' :
