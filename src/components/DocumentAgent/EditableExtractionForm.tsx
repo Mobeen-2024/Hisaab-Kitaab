@@ -213,15 +213,15 @@ export default function EditableExtractionForm({
   };
 
   return (
-    <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+    <div className="space-y-6 max-h-[60vh] overflow-y-auto scrollbar-hide">
       {/* Document Summary Badge */}
       <div className="bg-[#1E293B] border border-white/5 p-4 rounded-2xl flex items-start gap-3">
         <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 shrink-0">
           <AlertCircle size={18} />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">AI Document Summary</h4>
-          <p className="text-sm text-slate-200 font-medium mt-0.5">{summary}</p>
+          <p className="text-sm text-slate-200 font-medium mt-0.5 break-words">{summary}</p>
         </div>
       </div>
 
@@ -274,9 +274,9 @@ export default function EditableExtractionForm({
           {/* Line Items Table */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Line Items</h3>
-            <div className="overflow-x-auto rounded-xl border border-white/5 bg-[#0F172A]">
+            <div className="max-h-[40vh] overflow-auto scrollbar-hide rounded-xl border border-white/5 bg-slate-950/50 backdrop-blur-md">
               <table className="w-full text-left text-sm">
-                <thead className="bg-[#1E293B]/50 text-xs font-semibold text-slate-400 border-b border-white/5 uppercase">
+                <thead className="bg-slate-900/60 text-xs font-semibold text-slate-400 border-b border-white/5 uppercase sticky top-0 z-10 backdrop-blur-xl shadow-sm">
                   <tr>
                     <th className="px-4 py-3 w-[60px] text-center">Inc</th>
                     <th className="px-4 py-3">Item Name</th>
@@ -391,22 +391,22 @@ export default function EditableExtractionForm({
       ) : (
         /* ==================== TABLE MODE ==================== */
         <div className="space-y-4">
-          <div className="overflow-x-auto rounded-xl border border-white/5 bg-[#0F172A]">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#1E293B]/50 text-xs font-semibold text-slate-400 border-b border-white/5 uppercase">
+          <div className="max-h-[40vh] overflow-auto scrollbar-hide rounded-xl border border-white/5 bg-slate-950/50 backdrop-blur-md">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-slate-900/60 text-[10px] sm:text-xs font-semibold text-slate-400 border-b border-white/5 uppercase tracking-tighter sm:tracking-wider sticky top-0 z-10 backdrop-blur-xl shadow-sm">
                 <tr>
-                  <th className="px-4 py-3 w-[60px] text-center">Inc</th>
+                  <th className="px-1 sm:px-2 py-2 w-[30px] sm:w-[40px] text-center">Inc</th>
                   {headers.map((header, colIndex) => (
-                    <th key={colIndex} className="px-4 py-3 min-w-[120px]">
+                    <th key={colIndex} className="px-1 sm:px-2 py-2">
                       <input
                         type="text"
                         value={header}
                         onChange={(e) => handleHeaderChange(colIndex, e.target.value)}
-                        className="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-blue-500 px-1 py-0.5 text-xs text-white font-bold tracking-wider uppercase focus:outline-none"
+                        className="w-full bg-transparent border-b border-transparent hover:border-white/20 focus:border-blue-500 px-0.5 sm:px-1 py-0.5 text-[10px] sm:text-xs text-white font-bold uppercase focus:outline-none min-w-[60px]"
                       />
                     </th>
                   ))}
-                  <th className="px-4 py-3 w-[50px] text-center"></th>
+                  <th className="px-1 sm:px-2 py-2 w-[30px] sm:w-[40px] text-center"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -415,18 +415,18 @@ export default function EditableExtractionForm({
                     key={rowIndex} 
                     className={`hover:bg-white/[0.02] transition-colors ${!includedRows[rowIndex] ? 'opacity-40 bg-slate-900/50' : ''}`}
                   >
-                    <td className="px-4 py-2.5 text-center">
+                    <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center">
                       <input
                         type="checkbox"
                         checked={includedRows[rowIndex]}
                         onChange={() => toggleRow(rowIndex)}
-                        className="rounded border-white/10 bg-[#0F172A] text-blue-500 focus:ring-blue-500/30 w-4 h-4 cursor-pointer"
+                        className="rounded border-white/10 bg-[#0F172A] text-blue-500 focus:ring-blue-500/30 w-3 h-3 sm:w-4 sm:h-4 cursor-pointer"
                       />
                     </td>
                     {row.map((cell, colIndex) => {
                       const isEmptyOrUnreadable = String(cell).trim() === '' || String(cell) === '[Unreadable]';
                       return (
-                        <td key={colIndex} className="px-4 py-2.5">
+                        <td key={colIndex} className="px-1 sm:px-2 py-1.5 sm:py-2">
                           <input
                             type="text"
                             value={cell}
@@ -437,18 +437,18 @@ export default function EditableExtractionForm({
                               includedRows[rowIndex] && isEmptyOrUnreadable
                                 ? 'border-amber-500/50 bg-amber-500/5 focus:bg-transparent'
                                 : 'border-transparent hover:border-white/20 focus:border-blue-500'
-                            } px-1 py-0.5 text-white focus:outline-none focus:ring-0 text-sm`}
+                            } px-0.5 sm:px-1 py-0.5 text-white focus:outline-none focus:ring-0 text-[10px] sm:text-xs min-w-[60px]`}
                           />
                         </td>
                       );
                     })}
-                    <td className="px-4 py-2.5 text-center">
+                    <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-center">
                       <button
                         type="button"
                         onClick={() => deleteRow(rowIndex)}
                         className="text-slate-500 hover:text-red-400 p-1 rounded transition-colors"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} className="sm:w-4 sm:h-4" />
                       </button>
                     </td>
                   </tr>

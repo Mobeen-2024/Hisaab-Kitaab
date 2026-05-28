@@ -169,7 +169,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -179,15 +179,23 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
           />
 
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative w-full max-w-2xl bg-slate-900 border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+            initial={{ y: '100%', opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '100%', opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="relative w-full max-w-2xl bg-slate-900 border-t border-white/10 sm:border sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden max-h-[90vh] sm:max-h-[85vh] flex flex-col"
           >
-            <div className="p-6 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-white">Import Statement</h2>
-                <p className="text-sm text-slate-400">Backfill your data from mobile wallets or banks</p>
+            <div className="p-5 sm:p-6 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center border border-blue-500/10 shrink-0">
+                  <Upload className="text-blue-400" size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white tracking-tight">Import Statement</h2>
+                  <p className="text-sm font-medium bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                    Backfill your data from mobile wallets or banks
+                  </p>
+                </div>
               </div>
               {step === 'select' && (
                 <div className="flex bg-slate-950 p-1.5 rounded-2xl border border-white/5 shrink-0 self-start md:self-auto">
@@ -220,7 +228,7 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
               </div>
             </div>
 
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
+            <div className="p-5 sm:p-6 overflow-y-auto scrollbar-hide flex-1 overscroll-contain">
               {activeContext === undefined ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <Loader2 className="animate-spin text-blue-500" size={32} />

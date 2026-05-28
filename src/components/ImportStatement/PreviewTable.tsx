@@ -12,7 +12,7 @@ interface PreviewTableProps {
 export default function PreviewTable({ parsedData, setParsedData, categories, searchQuery }: PreviewTableProps) {
   return (
     <div className="border border-white/5 rounded-2xl overflow-hidden bg-slate-950/50">
-      <div className="max-h-[40vh] overflow-y-auto">
+      <div className="max-h-[40vh] overflow-y-auto scrollbar-hide">
         <table className="w-full text-left text-sm">
           <thead className="bg-white/5 text-slate-400 font-medium sticky top-0 z-10 backdrop-blur-md">
             <tr>
