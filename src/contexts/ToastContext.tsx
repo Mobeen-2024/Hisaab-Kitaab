@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import Toast, { ToastType } from '../components/Toast';
+import { AnimatePresence } from 'motion/react';
+import ToastItemComponent, { ToastItem, ToastType } from '../components/Toast';
 
 interface ToastContextType {
   showToast: (message: string, type?: ToastType) => void;
@@ -8,29 +9,34 @@ interface ToastContextType {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<{ isVisible: boolean; message: string; type: ToastType }>({
-    isVisible: false,
-    message: '',
-    type: 'info'
-  });
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const showToast = (message: string, type: ToastType = 'info') => {
-    setToast({ isVisible: true, message, type });
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
   };
 
-  const hideToast = () => {
-    setToast(prev => ({ ...prev, isVisible: false }));
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
   };
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <Toast
-        isVisible={toast.isVisible}
-        message={toast.message}
-        type={toast.type}
-        onClose={hideToast}
-      />
+      <div 
+        className="fixed bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-sm flex flex-col gap-3 pointer-events-none"
+        aria-label="Notifications"
+      >
+        <AnimatePresence>
+          {toasts.map(toast => (
+            <ToastItemComponent
+              key={toast.id}
+              toast={toast}
+              onClose={() => removeToast(toast.id)}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
     </ToastContext.Provider>
   );
 }

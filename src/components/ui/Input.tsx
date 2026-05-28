@@ -9,38 +9,51 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type = 'text', error, leftIcon, rightIcon, focusColor = 'indigo', ...props }, ref) => {
+  ({ className, type = 'text', error, leftIcon, rightIcon, focusColor = 'indigo', id, ...props }, ref) => {
     const focusColors = {
       indigo: 'focus:ring-indigo-500/50 focus:border-indigo-500/30',
       emerald: 'focus:ring-emerald-500/50 focus:border-emerald-500/30',
       blue: 'focus:ring-blue-500/50 focus:border-blue-500/30',
     };
 
+    const hasErrorString = typeof error === 'string' && error.length > 0;
+    const errorId = id ? `${id}-error` : undefined;
+
     return (
-      <div className="relative w-full">
-        {leftIcon && (
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none flex items-center justify-center">
-            {leftIcon}
-          </div>
-        )}
-        <input
-          type={type}
-          className={cn(
-            'w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-500',
-            leftIcon && 'pl-10',
-            rightIcon && 'pr-10',
-            error
-              ? 'border-rose-500/50 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/30'
-              : `focus:ring-2 ${focusColors[focusColor]}`,
-            className
+      <div className="relative w-full flex flex-col gap-1.5">
+        <div className="relative w-full">
+          {leftIcon && (
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none flex items-center justify-center">
+              {leftIcon}
+            </div>
           )}
-          ref={ref}
-          {...props}
-        />
-        {rightIcon && (
-          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none flex items-center justify-center">
-            {rightIcon}
-          </div>
+          <input
+            id={id}
+            type={type}
+            className={cn(
+              'w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-slate-500',
+              leftIcon && 'pl-10',
+              rightIcon && 'pr-10',
+              error
+                ? 'border-rose-500/50 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/30'
+                : `focus:ring-2 ${focusColors[focusColor]}`,
+              className
+            )}
+            ref={ref}
+            aria-invalid={!!error}
+            aria-describedby={hasErrorString ? errorId : undefined}
+            {...props}
+          />
+          {rightIcon && (
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none select-none flex items-center justify-center">
+              {rightIcon}
+            </div>
+          )}
+        </div>
+        {hasErrorString && (
+          <p id={errorId} className="text-xs text-rose-400 font-medium px-1" role="alert" aria-live="polite">
+            {error}
+          </p>
         )}
       </div>
     );

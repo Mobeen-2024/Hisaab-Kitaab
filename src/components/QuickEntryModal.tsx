@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useTransition } from "react";
 import { t, Lang, isRTL } from "../lib/i18n";
 import { useRecentTransactions, useCategories, useCustomers } from "../hooks/useData";
 import { useToast } from "../contexts/ToastContext";
@@ -10,6 +10,7 @@ import { UdhaarService } from "../services/UdhaarService";
 import DatePicker from "./DatePicker";
 import ConfirmDialog from "./ConfirmDialog";
 import { TransactionSchema, UdhaarEntrySchema } from "../models";
+import { Button } from "./ui/Button";
 
 // Sub-components
 import VoiceInterface from "./QuickEntry/VoiceInterface";
@@ -19,6 +20,31 @@ import CategoryCustomerSelector from "./QuickEntry/CategoryCustomerSelector";
 import NoteInput from "./QuickEntry/NoteInput";
 
 type TransactionType = "expense" | "income" | "udhaar_give" | "udhaar_take";
+
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+}
+
+interface ISpeechRecognition {
+  lang: string;
+  onstart: () => void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onend: () => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+  start(): void;
+  stop(): void;
+}
 
 export default function QuickEntryModal({
   isOpen,
@@ -43,14 +69,14 @@ export default function QuickEntryModal({
   const [isRecording, setIsRecording] = useState(false);
   const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
   const [isConfirmingSave, setIsConfirmingSave] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, startTransition] = useTransition();
 
   // Smart Voice State
   const [isSmartVoiceMode, setIsSmartVoiceMode] = useState(false);
   const [smartVoiceTranscript, setSmartVoiceTranscript] = useState("");
   const [isParsingVoice, setIsParsingVoice] = useState(false);
   const [smartVoiceError, setSmartVoiceError] = useState<string | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
 
   // Auto-fill last used category
   useEffect(() => {
@@ -103,7 +129,7 @@ export default function QuickEntryModal({
 
   if (!isOpen) return null;
 
-  const handleSave = async (closeAfterSave: boolean) => {
+  const handleSave = (closeAfterSave: boolean) => {
     const numericAmount = parseFloat(amount);
     if (!amount || isNaN(numericAmount) || numericAmount <= 0) {
       showToast(lang === 'ur' ? 'براہ کرم درست رقم درج کریں' : 'Please enter a valid amount', 'error');
@@ -113,76 +139,74 @@ export default function QuickEntryModal({
     const rate = transactionCurrency === "PKR" ? 1 : parseFloat(exchangeRate) || 1;
     const finalAmountInPKR = numericAmount * rate;
 
-    setIsSubmitting(true);
-    try {
-      if (type === "expense" || type === "income") {
-        const payload = {
-          type,
-          context: activeContext,
-          amount: finalAmountInPKR,
-          originalCurrency: transactionCurrency,
-          originalAmount: numericAmount,
-          exchangeRate: rate,
-          categoryId: parseInt(categoryId, 10),
-          date,
-          description: description.trim(),
-          paymentMethod: "cash",
-          customerId: customerId ? parseInt(customerId, 10) : undefined,
-        };
+    startTransition(async () => {
+      try {
+        if (type === "expense" || type === "income") {
+          const payload = {
+            type,
+            context: activeContext,
+            amount: finalAmountInPKR,
+            originalCurrency: transactionCurrency,
+            originalAmount: numericAmount,
+            exchangeRate: rate,
+            categoryId: parseInt(categoryId, 10),
+            date,
+            description: description.trim(),
+            paymentMethod: "cash",
+            customerId: customerId ? parseInt(customerId, 10) : undefined,
+          };
 
-        const result = TransactionSchema.safeParse(payload);
-        if (!result.success) {
-          showToast(result.error.issues[0]?.message || "Invalid data", "error");
-          setIsSubmitting(false);
-          return;
+          const result = TransactionSchema.safeParse(payload);
+          if (!result.success) {
+            showToast(result.error.issues[0]?.message || "Invalid data", "error");
+            return;
+          }
+
+          await TransactionService.add(payload as any);
+        } else {
+          const selectedCustomer = customers.find(c => c.id === parseInt(customerId, 10));
+          const isSupplier = selectedCustomer?.type === 'supplier';
+
+          const payload = {
+            customerId: parseInt(customerId, 10),
+            type: isSupplier
+              ? (type === "udhaar_give" ? "receive" : "give")
+              : (type === "udhaar_give" ? "give" : "receive"),
+            amount: finalAmountInPKR,
+            originalCurrency: transactionCurrency,
+            originalAmount: numericAmount,
+            exchangeRate: rate,
+            date,
+            description: description.trim(),
+            isCompleted: false,
+          };
+
+          const result = UdhaarEntrySchema.safeParse(payload);
+          if (!result.success) {
+            showToast(result.error.issues[0]?.message || "Invalid data", "error");
+            return;
+          }
+
+          await UdhaarService.add(payload as any);
         }
 
-        await TransactionService.add(payload as any);
-      } else {
-        const selectedCustomer = customers.find(c => c.id === parseInt(customerId, 10));
-        const isSupplier = selectedCustomer?.type === 'supplier';
-
-        const payload = {
-          customerId: parseInt(customerId, 10),
-          type: isSupplier
-            ? (type === "udhaar_give" ? "receive" : "give")
-            : (type === "udhaar_give" ? "give" : "receive"),
-          amount: finalAmountInPKR,
-          originalCurrency: transactionCurrency,
-          originalAmount: numericAmount,
-          exchangeRate: rate,
-          date,
-          description: description.trim(),
-          isCompleted: false,
-        };
-
-        const result = UdhaarEntrySchema.safeParse(payload);
-        if (!result.success) {
-          showToast(result.error.issues[0]?.message || "Invalid data", "error");
-          setIsSubmitting(false);
-          return;
+        showToast(lang === 'ur' ? 'ریکارڈ محفوظ کر لیا گیا ہے' : 'Entry saved successfully', 'success');
+        
+        if (closeAfterSave) {
+          onClose();
+          setAmount("");
+          setDescription("");
+        } else {
+          // Clear just amount and description for "Another" entry
+          setAmount("");
+          setDescription("");
         }
-
-        await UdhaarService.add(payload as any);
+      } catch (err: any) {
+        showToast(err.message || 'Failed to save entry', 'error');
+      } finally {
+        setIsConfirmingSave(false);
       }
-
-      showToast(lang === 'ur' ? 'ریکارڈ محفوظ کر لیا گیا ہے' : 'Entry saved successfully', 'success');
-      
-      if (closeAfterSave) {
-        onClose();
-        setAmount("");
-        setDescription("");
-      } else {
-        // Clear just amount and description for "Another" entry
-        setAmount("");
-        setDescription("");
-      }
-    } catch (err: any) {
-      showToast(err.message || 'Failed to save entry', 'error');
-    } finally {
-      setIsSubmitting(false);
-      setIsConfirmingSave(false);
-    }
+    });
   };
 
   const processSmartVoiceText = async (text: string) => {
@@ -210,12 +234,20 @@ export default function QuickEntryModal({
 
   const startSmartVoiceRecording = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return alert("Browser does not support voice recognition.");
-    const recognition = new SpeechRecognition();
+    if (!SpeechRecognition) {
+      showToast(
+        lang === "ur" 
+          ? "آپ کا براؤزر وائس ان پٹ کو سپورٹ نہیں کرتا ہے" 
+          : "Your browser does not support voice recognition.",
+        "error"
+      );
+      return;
+    }
+    const recognition = new SpeechRecognition() as ISpeechRecognition;
     recognitionRef.current = recognition;
     recognition.lang = lang === "ur" ? "ur-PK" : "en-US";
     recognition.onstart = () => { setIsRecording(true); setSmartVoiceTranscript(""); };
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = event.results[0][0].transcript;
       setSmartVoiceTranscript(transcript);
       processSmartVoiceText(transcript);
@@ -304,22 +336,25 @@ export default function QuickEntryModal({
             </div>
 
             <div className={`flex gap-2 pt-2 ${rtl ? 'flex-row-reverse' : ''}`}>
-              <button 
+              <Button 
                 type="submit" 
                 disabled={isSubmitting || !amount}
-                className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-lg transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                variant="blue"
+                loading={isSubmitting}
+                className="flex-1 py-4 text-lg rounded-xl"
               >
-                {isSubmitting && <Loader2 size={20} className="animate-spin" />}
                 {rtl ? 'محفوظ کریں' : 'Save Details'}
-              </button>
-              <button 
+              </Button>
+              <Button 
                 type="button" 
                 onClick={() => handleSave(false)} 
                 disabled={isSubmitting || !amount}
-                className="px-4 py-4 bg-white/5 border border-white/10 text-blue-400 rounded-xl font-bold transition-colors whitespace-nowrap flex items-center justify-center disabled:opacity-50"
+                variant="secondary"
+                className="px-4 py-4 text-blue-400 rounded-xl"
+                leftIcon={<Plus size={20} />}
               >
-                <Plus size={20} className="mr-1" /> Another
-              </button>
+                Another
+              </Button>
             </div>
           </form>
         )}

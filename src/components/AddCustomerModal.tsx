@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useActionState } from 'react';
 import { Lang, t } from '../lib/i18n';
 import { CustomerService } from '../services/CustomerService';
 import { UserRound, Truck } from 'lucide-react';
@@ -24,7 +24,7 @@ export default function AddCustomerModal({
   const [balance, setBalance] = useState('');
   const [balanceType, setBalanceType] = useState<'advance' | 'debt'>('debt');
   const [contactType, setContactType] = useState<'customer' | 'supplier'>('customer');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -35,52 +35,71 @@ export default function AddCustomerModal({
     }
   }, [isOpen]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-
-    let initialBalance = parseFloat(balance) || 0;
-    if (balanceType === 'debt') {
-      initialBalance = Math.abs(initialBalance);
-    } else {
-      initialBalance = -Math.abs(initialBalance);
-    }
-
-    const payload = {
-      name: name.trim(),
-      phone: phone.trim(),
-      type: contactType,
-      balance: initialBalance,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Validation using Zod
-    const result = CustomerSchema.safeParse(payload);
-    if (!result.success) {
-      const firstError = result.error.issues[0]?.message || 'Invalid input';
-      showToast(firstError, 'error');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await CustomerService.add(payload);
-      
-      showToast(lang === 'ur' ? 'گاہک کا ریکارڈ محفوظ کر لیا گیا ہے' : 'Customer added successfully', 'success');
-      
-      // Clear form and close
-      setName('');
-      setPhone('');
-      setBalance('');
-      setBalanceType('debt');
-      setContactType('customer');
-      onClose();
-    } catch (err: any) {
-      showToast(err.message || 'Failed to add customer', 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const resetForm = () => {
+    setName('');
+    setPhone('');
+    setBalance('');
+    setBalanceType('debt');
+    setContactType('customer');
+    setFieldErrors({});
   };
+
+  const [state, formAction, isPending] = useActionState(
+    async (prevState: any, formData: FormData) => {
+      setFieldErrors({});
+
+      let initialBalance = parseFloat(balance) || 0;
+      if (balanceType === 'debt') {
+        initialBalance = Math.abs(initialBalance);
+      } else {
+        initialBalance = -Math.abs(initialBalance);
+      }
+
+      const payload = {
+        name: name.trim(),
+        phone: phone.trim(),
+        type: contactType,
+        balance: initialBalance,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Validation using Zod
+      const result = CustomerSchema.safeParse(payload);
+      if (!result.success) {
+        const errors: Record<string, string> = {};
+        result.error.issues.forEach((issue) => {
+          const path = issue.path[0];
+          if (path) errors[path.toString()] = issue.message;
+        });
+        setFieldErrors(errors);
+        return { success: false, firstError: result.error.issues[0]?.message };
+      }
+
+      try {
+        await CustomerService.add(payload);
+        return { success: true };
+      } catch (err: any) {
+        return { success: false, error: err.message || 'Failed to add customer' };
+      }
+    },
+    null
+  );
+
+  useEffect(() => {
+    if (!state) return;
+    if (state.success) {
+      showToast(
+        lang === 'ur' ? 'گاہک کا ریکارڈ محفوظ کر لیا گیا ہے' : 'Customer added successfully',
+        'success'
+      );
+      resetForm();
+      onClose();
+    } else if (state.firstError) {
+      showToast(state.firstError, 'error');
+    } else if (state.error) {
+      showToast(state.error, 'error');
+    }
+  }, [state, lang, onClose, showToast]);
 
   const themeColor = contactType === 'customer' ? 'emerald' : 'blue';
 
@@ -90,16 +109,16 @@ export default function AddCustomerModal({
       onClose={onClose}
       title={contactType === 'customer' ? t(lang, 'addCustomer') : 'Add Supplier'}
       lang={lang === 'ur' ? 'ur' : 'en'}
-      closeOnOverlayClick={!isSubmitting}
+      closeOnOverlayClick={!isPending}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form action={formAction} className="space-y-6">
         {/* Toggle Contact Type */}
         <div className="flex bg-white/5 p-1 rounded-xl">
           <Button
             variant={contactType === 'customer' ? 'emerald' : 'ghost'}
             className="flex-1"
             size="sm"
-            disabled={isSubmitting}
+            disabled={isPending}
             onClick={() => setContactType('customer')}
             leftIcon={<UserRound size={14} />}
           >
@@ -109,7 +128,7 @@ export default function AddCustomerModal({
             variant={contactType === 'supplier' ? 'blue' : 'ghost'}
             className="flex-1"
             size="sm"
-            disabled={isSubmitting}
+            disabled={isPending}
             onClick={() => setContactType('supplier')}
             leftIcon={<Truck size={14} />}
           >
@@ -127,9 +146,10 @@ export default function AddCustomerModal({
             ref={nameInputRef}
             type="text"
             value={name}
-            disabled={isSubmitting}
+            disabled={isPending}
             onChange={e => setName(e.target.value)}
             focusColor={themeColor}
+            error={fieldErrors.name}
             required
             autoComplete="off"
           />
@@ -143,9 +163,10 @@ export default function AddCustomerModal({
             id="customer-phone"
             type="tel"
             value={phone}
-            disabled={isSubmitting}
+            disabled={isPending}
             onChange={e => setPhone(e.target.value)}
             focusColor={themeColor}
+            error={fieldErrors.phone}
             autoComplete="tel"
           />
         </div>
@@ -159,20 +180,21 @@ export default function AddCustomerModal({
               id="customer-balance"
               type="number"
               value={balance}
-              disabled={isSubmitting}
+              disabled={isPending}
               onChange={e => setBalance(e.target.value)}
               placeholder="0"
               focusColor={themeColor}
+              error={fieldErrors.balance}
               className="flex-1"
             />
             <select
               value={balanceType}
-              disabled={isSubmitting}
+              disabled={isPending}
               onChange={(e) => setBalanceType(e.target.value as 'advance' | 'debt')}
               className={`bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-${themeColor === 'emerald' ? 'emerald' : 'blue'}-500/50 disabled:opacity-50 transition-all outline-none`}
             >
-               <option value="debt" className="bg-[#0F172A]">{contactType === 'customer' ? 'Udhaar (They Owe)' : 'Udhaar (We Owe)'}</option>
-               <option value="advance" className="bg-[#0F172A]">Advance</option>
+              <option value="debt" className="bg-[#0F172A]">{contactType === 'customer' ? 'Udhaar (They Owe)' : 'Udhaar (We Owe)'}</option>
+              <option value="advance" className="bg-[#0F172A]">Advance</option>
             </select>
           </div>
         </div>
@@ -182,7 +204,7 @@ export default function AddCustomerModal({
           <Button
             variant="ghost"
             className="flex-1 text-slate-300"
-            disabled={isSubmitting}
+            disabled={isPending}
             onClick={onClose}
           >
             {t(lang, 'cancel')}
@@ -191,7 +213,7 @@ export default function AddCustomerModal({
             type="submit"
             variant={themeColor}
             className="flex-1"
-            isLoading={isSubmitting}
+            loading={isPending}
           >
             {t(lang, 'save')}
           </Button>

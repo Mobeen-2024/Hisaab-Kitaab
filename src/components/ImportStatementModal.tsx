@@ -13,6 +13,7 @@ import SourceSelector, { ImportSource } from './ImportStatement/SourceSelector';
 import PreviewTable from './ImportStatement/PreviewTable';
 import SuccessView from './ImportStatement/SuccessView';
 import AIInput from './ImportStatement/AIInput';
+import { Button } from './ui/Button';
 
 interface ImportStatementModalProps {
   isOpen: boolean;
@@ -428,11 +429,10 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                   <PreviewTable parsedData={parsedData} setParsedData={setParsedData} categories={categories} searchQuery={searchQuery} />
 
                   <div className="flex gap-3 pt-4">
-                    <button onClick={() => setStep('select')} className="flex-1 py-3 bg-white/5 text-white font-bold rounded-2xl hover:bg-white/10 transition-colors">Back</button>
-                    <button onClick={handleImport} disabled={isLoading} className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-500 transition-colors flex items-center justify-center gap-2">
-                      {isLoading && <Loader2 size={18} className="animate-spin" />}
+                    <Button onClick={() => setStep('select')} variant="secondary" className="flex-1">Back</Button>
+                    <Button onClick={handleImport} loading={isLoading} variant="blue" className="flex-[2]">
                       Confirm Import
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (

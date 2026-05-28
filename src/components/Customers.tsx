@@ -102,7 +102,7 @@ function EditCustomerModal({ customer, onClose }: EditCustomerModalProps) {
             type="submit"
             variant={themeColor}
             className="flex-1"
-            isLoading={saving}
+            loading={saving}
           >
             Save Changes
           </Button>

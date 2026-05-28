@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@400;600;700;800;900&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -227,19 +226,19 @@ body {
   opacity: 0.05;
 }
 
-/* Safe area insets for mobile devices */
-.pb-safe {
+/* Safe area insets for mobile devices using Tailwind v4 @utility directive */
+@utility pb-safe {
   padding-bottom: var(--safe-bottom);
 }
 
-.pt-safe {
+@utility pt-safe {
   padding-top: var(--safe-top);
 }
 
-.mb-safe {
+@utility mb-safe {
   margin-bottom: var(--safe-bottom);
 }
 
-.mt-safe {
+@utility mt-safe {
   margin-top: var(--safe-top);
 }

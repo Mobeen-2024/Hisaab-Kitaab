@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -27,6 +27,7 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnOverlayClick = true,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   // Close on Escape key press
   useEffect(() => {
@@ -39,15 +40,79 @@ export const Modal: React.FC<ModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Lock body scroll when modal is open
+  // Lock body scroll when modal is open without overlapping conflicts
   useEffect(() => {
     if (isOpen) {
+      const currentCount = parseInt(document.body.getAttribute('data-modal-count') || '0', 10);
+      document.body.setAttribute('data-modal-count', (currentCount + 1).toString());
       document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = '';
+      const currentCount = parseInt(document.body.getAttribute('data-modal-count') || '0', 10);
+      const nextCount = Math.max(0, currentCount - 1);
+      document.body.setAttribute('data-modal-count', nextCount.toString());
+      if (nextCount === 0) {
+        document.body.style.overflow = '';
+      }
     }
     return () => {
-      document.body.style.overflow = '';
+      const currentCount = parseInt(document.body.getAttribute('data-modal-count') || '0', 10);
+      const nextCount = Math.max(0, currentCount - 1);
+      document.body.setAttribute('data-modal-count', nextCount.toString());
+      if (nextCount === 0) {
+        document.body.style.overflow = '';
+      }
+    };
+  }, [isOpen]);
+
+  // Focus trapping logic
+  useEffect(() => {
+    if (!isOpen || !modalRef.current) return;
+
+    const modalElement = modalRef.current;
+    
+    // Find all focusable elements inside modal
+    const getFocusableElements = () => {
+      return modalElement.querySelectorAll<HTMLElement>(
+        'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], [contenteditable]'
+      );
+    };
+
+    // Delay focus to ensure layout has mounted
+    const focusTimer = setTimeout(() => {
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      }
+    }, 50);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const elements = getFocusableElements();
+      if (elements.length === 0) return;
+
+      const firstElement = elements[0];
+      const lastElement = elements[elements.length - 1];
+
+      if (e.shiftKey) {
+        // Shift + Tab -> Wrap around to the last element
+        if (document.activeElement === firstElement) {
+          lastElement.focus();
+          e.preventDefault();
+        }
+      } else {
+        // Tab -> Wrap around to the first element
+        if (document.activeElement === lastElement) {
+          firstElement.focus();
+          e.preventDefault();
+        }
+      }
+    };
+
+    modalElement.addEventListener('keydown', handleKeyDown);
+    return () => {
+      clearTimeout(focusTimer);
+      modalElement.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
 
@@ -71,6 +136,7 @@ export const Modal: React.FC<ModalProps> = ({
       dir={isRtl ? 'rtl' : 'ltr'}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={title ? titleId : undefined}
     >
       {/* Backdrop overlay */}
       <div
@@ -93,7 +159,7 @@ export const Modal: React.FC<ModalProps> = ({
         {/* Header */}
         {title && (
           <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0">
-            <h2 className="text-xl font-bold text-white tracking-tight leading-none">
+            <h2 id={titleId} className="text-xl font-bold text-white tracking-tight leading-none">
               {title}
             </h2>
             <button
