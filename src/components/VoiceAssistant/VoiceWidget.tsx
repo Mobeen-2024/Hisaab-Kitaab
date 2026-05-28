@@ -62,7 +62,7 @@ export const VoiceWidget: React.FC = () => {
   const pulseScale = isRecording ? 1 + (audioLevel / 200) : 1;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-24 right-4 md:right-8 z-50 flex flex-col items-end">
       {/* Voice Assistant Panel */}
       <AnimatePresence>
         {isOpen && (
