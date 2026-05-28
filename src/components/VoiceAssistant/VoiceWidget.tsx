@@ -107,7 +107,7 @@ export const VoiceWidget: React.FC = () => {
             </div>
 
             {/* Chat Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-white/10">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
               {messages.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 select-none">
                   <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center mb-4 text-zinc-400 shadow-inner">
