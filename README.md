@@ -31,8 +31,9 @@
 | 📊 **Transactions & Analytics** | Log incomes, expenses, and investments. Visual charts via Recharts, summary cards, and filterable transaction lists. |
 | 📦 **Inventory Management** | Track stock items and inventory valuation alongside your finances. |
 | 🎯 **Goals & Budget Planner** | Set monthly budgets per category and track savings goals. |
-| 🎙️ **Smart AI Assistant** | Ask an AI assistant about your financial data or analyze spending patterns using **Google Generative AI**. |
-| 📁 **Statement Importer** | Batch-import transactions via CSV upload. OCR support via **Tesseract.js** and PDF parsing via **PDF.js**. |
+| 🎙️ **Live Voice Assistant** | Hands-free global voice automation powered by **Gemini 3.1 Flash**. Dictate and add transactions seamlessly from anywhere in the app with real-time streaming feedback. |
+| 🤖 **Smart Document Ingestion** | Extract transactions instantly from PDFs, Receipts (Images), and CSVs using Gemini Vision. Features robust offline fallback parsers for JazzCash and Easypaisa statements. |
+| 🧠 **AI Financial Insights** | Chat with a smart assistant to analyze spending patterns, track business health, and perform complex queries directly on your local IndexedDB data. |
 | 📄 **PDF Export** | Export reports, statements, and ledger summaries to PDF using **jsPDF** + **jspdf-autotable**. |
 | 📷 **QR Code Scanner** | Scan QR codes to populate transaction data instantly using **jsQR**. |
 | 🔔 **Reminders & Notifications** | In-app reminder system for dues and upcoming payments. |
@@ -65,7 +66,7 @@
 
 <br/>
 
-`AI & Intelligence` <br/> **@google/genai v1.29** (Gemini API) • **Tesseract.js** (OCR) • **PDF.js** (PDF parsing)
+`AI & Intelligence` <br/> **@google/genai v1.29** (Gemini 3.1 Flash) • **Live WebRTC Audio** • **Tesseract.js** (OCR) • **PDF.js** (PDF parsing)
 
 <br/>
 
