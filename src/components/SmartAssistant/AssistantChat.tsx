@@ -1,6 +1,6 @@
-import React from 'react';
-import { MessageSquare, Bot, User, Send, RefreshCw } from 'lucide-react';
+import { MessageSquare, Bot, User, Send, RefreshCw, Mic } from 'lucide-react';
 import { format } from 'date-fns';
+import { useVoiceAssistant } from '../../contexts/VoiceAssistantContext';
 
 interface Message {
   id?: number;
@@ -27,6 +27,7 @@ export default function AssistantChat({
   chatEndRef
 }: AssistantChatProps) {
   const sortedMessages = [...messages].reverse();
+  const { startSession, state } = useVoiceAssistant();
 
   return (
     <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] overflow-hidden flex flex-col">
@@ -86,6 +87,18 @@ export default function AssistantChat({
             placeholder="Ask about your finances..."
             className="flex-1 bg-[#0F172A]/80 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none placeholder:text-slate-600"
           />
+          <button
+            onClick={startSession}
+            type="button"
+            className={`w-12 h-12 rounded-xl border flex items-center justify-center transition-all ${
+              state === 'listening' 
+                ? 'bg-emerald-600 border-emerald-500 text-white animate-pulse'
+                : 'bg-white/5 border-white/10 text-indigo-400 hover:text-indigo-300 hover:border-indigo-500'
+            }`}
+            title="Start voice assistant conversation"
+          >
+            <Mic size={18} />
+          </button>
           <button
             onClick={onSendMessage}
             disabled={chatLoading || !chatInput.trim()}

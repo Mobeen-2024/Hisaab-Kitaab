@@ -22,6 +22,9 @@ const Inventory = lazy(() => import('./components/Inventory'));
 const Settings = lazy(() => import('./components/Settings'));
 const MobileMenu = lazy(() => import('./components/MobileMenu'));
 
+import { VoiceAssistantProvider } from './contexts/VoiceAssistantContext';
+import { VoiceWidget } from './components/VoiceAssistant/VoiceWidget';
+
 function AppRoutes() {
   const { lang, isLoading, dbError, resetDatabase } = useSettings();
   const location = useLocation();
@@ -66,6 +69,9 @@ function AppRoutes() {
         {/* PWA Custom Install Promo */}
         <PWAInstallBanner lang={lang} />
       </MainLayout>
+
+      {/* Floating Voice Assistant FAB */}
+      <VoiceWidget />
     </>
   );
 }
@@ -77,13 +83,15 @@ export default function App() {
     <SettingsProvider>
       <CloudAuthProvider>
         <ToastProvider>
-          <BrowserRouter>
-            {showSplash ? (
-              <SplashScreen onComplete={() => setShowSplash(false)} />
-            ) : (
-              <AppRoutes />
-            )}
-          </BrowserRouter>
+          <VoiceAssistantProvider>
+            <BrowserRouter>
+              {showSplash ? (
+                <SplashScreen onComplete={() => setShowSplash(false)} />
+              ) : (
+                <AppRoutes />
+              )}
+            </BrowserRouter>
+          </VoiceAssistantProvider>
         </ToastProvider>
       </CloudAuthProvider>
     </SettingsProvider>

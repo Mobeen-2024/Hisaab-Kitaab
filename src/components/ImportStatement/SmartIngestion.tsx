@@ -1,13 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Upload, Camera, Plus, Minus, Loader2, AlertCircle, Sparkles, 
-  ChevronDown, ChevronUp, FileText, FileSpreadsheet, Image as ImageIcon, CheckCircle 
+  ChevronDown, ChevronUp, FileText, FileSpreadsheet, Image as ImageIcon, CheckCircle, Mic
 } from 'lucide-react';
 import { AIService } from '../../services/AIService';
 import { parseCSVFile } from '../../utils/csvParser';
 import { extractTextFromPDF, ParsedTransaction, generateDeterministicId, parseJazzCashCSV, parseEasypaisaCSV, parseGenericCSV } from '../../utils/statementParsers';
 import DatePicker from '../DatePicker';
+import { useVoiceAssistant } from '../../contexts/VoiceAssistantContext';
 
 interface SmartIngestionProps {
   onResult: (transactions: ParsedTransaction[], platform: string) => void;
@@ -22,6 +23,25 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
   const [isDragging, setIsDragging] = useState(false);
   const [isManualOpen, setIsManualOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { registerFormCallbacks, deregisterFormCallbacks, startSession, state } = useVoiceAssistant();
+
+  useEffect(() => {
+    registerFormCallbacks({
+      onAddTransaction: (txn) => {
+        onManualEntry({
+          date: txn.date || new Date().toISOString().split('T')[0],
+          amount: txn.amount,
+          type: txn.type,
+          description: txn.description,
+          referenceId: generateDeterministicId(txn.date || new Date().toISOString().split('T')[0], txn.amount, txn.description)
+        });
+      }
+    });
+    return () => {
+      deregisterFormCallbacks();
+    };
+  }, [registerFormCallbacks, deregisterFormCallbacks, onManualEntry]);
 
   // Manual Form States
   const [manualDate, setManualDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -317,6 +337,26 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
                 className="overflow-hidden mt-5 space-y-4"
               >
                 <div className="h-px bg-white/5" />
+
+                {/* Voice Dictation Option */}
+                <button
+                  type="button"
+                  onClick={startSession}
+                  className={`w-full py-3 rounded-2xl text-xs font-bold tracking-wide transition-all flex items-center justify-center gap-2 border ${
+                    state === 'listening'
+                      ? 'bg-emerald-600 border-emerald-500 text-white animate-pulse'
+                      : 'bg-indigo-600/10 hover:bg-indigo-600/20 border-indigo-500/20 text-indigo-400'
+                  }`}
+                >
+                  <Mic size={14} className={state === 'listening' ? 'animate-bounce' : ''} />
+                  <span>{state === 'listening' ? 'Listening...' : 'Dictate Entry (Voice)'}</span>
+                </button>
+
+                <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-500">
+                  <span className="h-px bg-white/5 flex-1 mr-2" />
+                  <span>Or fill details</span>
+                  <span className="h-px bg-white/5 flex-1 ml-2" />
+                </div>
 
                 {/* Amount field */}
                 <div className="space-y-1.5">

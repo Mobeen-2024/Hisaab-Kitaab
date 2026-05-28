@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, AlertCircle } from 'lucide-react';
 import DatePicker from '../DatePicker';
 import { DocumentExtractionResult, ConfirmedExtractionResult, ConfirmedReceiptItem } from '../../services/DocumentProcessingAgent';
+import { useVoiceAssistant } from '../../contexts/VoiceAssistantContext';
 
 interface EditableExtractionFormProps {
   result: DocumentExtractionResult;
@@ -20,6 +21,8 @@ export default function EditableExtractionForm({
 }: EditableExtractionFormProps) {
   const [docType] = useState<DocumentExtractionResult['documentType']>(result.documentType);
   const [summary, setSummary] = useState(result.summary);
+
+  const { registerFormCallbacks, deregisterFormCallbacks } = useVoiceAssistant();
 
   // Receipt State
   const [vendor, setVendor] = useState(result.receipt?.vendor || '');
@@ -167,6 +170,32 @@ export default function EditableExtractionForm({
       }
     };
   }, [vendor, date, currency, items, tax, headers, rows, includedRows, docType]);
+
+  // Voice Assistant Integration Callbacks
+  useEffect(() => {
+    registerFormCallbacks({
+      onFillReceiptForm: (data) => {
+        if (data.vendor !== undefined) setVendor(data.vendor);
+        if (data.date !== undefined) setDate(data.date);
+        if (data.tax !== undefined) setTax(data.tax);
+        if (data.items !== undefined) {
+          setItems(data.items.map(item => ({
+            name: item.name || '',
+            quantity: 1,
+            unitPrice: Number(item.price) || 0,
+            total: Number(item.price) || 0,
+            include: true
+          })));
+        }
+      },
+      onConfirm: () => {
+        handleSubmit();
+      }
+    });
+    return () => {
+      deregisterFormCallbacks();
+    };
+  }, [registerFormCallbacks, deregisterFormCallbacks, vendor, date, items, tax, currency]);
 
   // Receipt action handlers
   const handleItemChange = (index: number, field: keyof ConfirmedReceiptItem, value: any) => {

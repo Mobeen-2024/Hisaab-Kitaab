@@ -8,6 +8,7 @@ export const AI_MODELS = {
   default: 'gemini-3.1-flash-lite',
   fast: 'gemini-3.1-flash-lite',
   vision: 'gemini-3.1-flash-lite',
+  live: 'gemini-2.0-flash-exp',
 } as const;
 
 export const AI_TIMEOUT_MS = 90000;
@@ -34,3 +35,19 @@ export async function getGeminiInstance() {
 
   return aiInstance;
 }
+
+export async function getLiveApiKey() {
+  const settings = await SettingsService.get();
+  const apiKey = settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured. Please add it in App Settings.');
+  }
+
+  const cleanKey = apiKey.replace(/[^\x20-\x7E]/g, '').trim();
+  if (!cleanKey) {
+    throw new Error('API key is invalid. Please re-paste it in Settings.');
+  }
+  return cleanKey;
+}
+
