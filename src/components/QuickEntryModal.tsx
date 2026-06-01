@@ -179,6 +179,7 @@ export default function QuickEntryModal({
             date,
             description: description.trim(),
             isCompleted: false,
+            context: activeContext,
           };
 
           const result = UdhaarEntrySchema.safeParse(payload);

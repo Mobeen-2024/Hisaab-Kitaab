@@ -63,6 +63,8 @@ export const UdhaarEntrySchema = z.object({
   originalCurrency: z.string().optional(),
   originalAmount: z.number().optional(),
   exchangeRate: z.number().optional(),
+  context: z.enum(['personal', 'business']).default('business'),
+  transactionId: z.number().optional(),
 });
 
 export const GoalSchema = z.object({

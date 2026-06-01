@@ -76,6 +76,9 @@ export class HisaibKItaibDB extends Dexie {
     this.version(9).stores({
       transactions: '++id, type, categoryId, context, date, customerId, source, importReferenceId'
     });
+    this.version(10).stores({
+      udhaarEntries: '++id, customerId, type, date, dueDate, context, transactionId, isCompleted'
+    });
 
     this.on('ready', () => {
       const tablesToAudit = ['transactions', 'customers', 'udhaarEntries', 'goals', 'budgets', 'inventory'];

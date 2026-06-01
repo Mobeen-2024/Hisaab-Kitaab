@@ -55,6 +55,9 @@ export default function CustomerDetail({
     }
 
     udhaarEntries.forEach(entry => {
+      const entryContext = entry.context || 'business';
+      if (entryContext !== activeContext) return;
+      
       history.push({
         id: entry.id,
         syntheticId: `u-${entry.id}`,
@@ -335,7 +338,8 @@ function AddUdhaarEntryModal({
       originalCurrency: 'PKR', // Default for this modal
       originalAmount: numAmount,
       exchangeRate: 1,
-      isCompleted: false
+      isCompleted: false,
+      context: activeContext
     });
 
     // Handle inventory deduction/addition

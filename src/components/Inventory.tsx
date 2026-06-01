@@ -42,7 +42,7 @@ export default function Inventory() {
     
     setIsSubmitting(true);
     try {
-      await InventoryService.restock(restockId, qty);
+      await InventoryService.restock(restockId, qty, activeContext);
       showToast('Stock updated successfully', 'success');
       setRestockId(null);
       setRestockQty('');
