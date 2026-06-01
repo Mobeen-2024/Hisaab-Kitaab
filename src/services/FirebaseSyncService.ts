@@ -19,6 +19,7 @@ import {
   enableNetwork,
   disableNetwork
 } from 'firebase/firestore';
+import Dexie from 'dexie';
 import { db } from '../db';
 import firebaseConfigJson from '../../firebase-applet-config.json';
 
@@ -44,8 +45,9 @@ const auth = getAuth(app);
 // Keep track of active Firestore listener unsubscribers
 let activeListeners: (() => void)[] = [];
 
-// Flag to prevent sync loops
-let isSyncingDown = false;
+// Flags and interval for background queue processing
+let isProcessingQueue = false;
+let queueIntervalId: any = null;
 
 export const FirebaseSyncService = {
   // Check if Firebase sync is enabled in settings
@@ -127,19 +129,23 @@ export const FirebaseSyncService = {
 
     for (const table of tables) {
       const items = await table.dbTable.toArray();
-      for (const item of items) {
-        if (!item.remoteId) {
-          const remoteId = crypto.randomUUID();
-          await table.dbTable.update(item.id!, { remoteId });
+      await db.transaction('rw', table.dbTable, async () => {
+        (Dexie.currentTransaction as any)._isRemoteSync = true;
+        for (const item of items) {
+          if (!item.remoteId) {
+            const remoteId = typeof crypto !== 'undefined' && crypto.randomUUID 
+              ? crypto.randomUUID() 
+              : Math.random().toString(36).substring(2) + Date.now().toString(36);
+            await table.dbTable.update(item.id!, { remoteId });
+          }
         }
-      }
+      });
     }
   },
 
   // Upload all local data to Firestore (runs on initial login/registration)
   async uploadAllLocalData(userId: string): Promise<void> {
     try {
-      isSyncingDown = true;
       await this.ensureLocalRemoteIds();
 
       const tables = [
@@ -187,21 +193,20 @@ export const FirebaseSyncService = {
       console.log("Initial local database sync upload complete.");
     } catch (e) {
       console.error("Error during initial data upload:", e);
-    } finally {
-      isSyncingDown = false;
     }
   },
 
   // Helper to save a single record to Firestore (offline-first, queued automatically by SDK)
   async saveToFirestore(collectionName: string, remoteId: string, data: any): Promise<void> {
     if (!this.isEnabled()) return;
-    if (isSyncingDown) return;
 
     try {
       const user = auth.currentUser;
       if (!user) return;
 
-      const docRef = doc(firestore, `users/${user.uid}/${collectionName}/${remoteId}`);
+      const docRef = collectionName === 'settings'
+        ? doc(firestore, `users/${user.uid}/settings/profile`)
+        : doc(firestore, `users/${user.uid}/${collectionName}/${remoteId}`);
       // Remove auto-increment local id if present
       const { id, ...cleanData } = data;
       await setDoc(docRef, cleanData, { merge: true });
@@ -213,16 +218,34 @@ export const FirebaseSyncService = {
   // Helper to delete a single record from Firestore (offline-first, queued automatically)
   async deleteFromFirestore(collectionName: string, remoteId: string): Promise<void> {
     if (!this.isEnabled()) return;
-    if (isSyncingDown) return;
 
     try {
       const user = auth.currentUser;
       if (!user) return;
 
-      const docRef = doc(firestore, `users/${user.uid}/${collectionName}/${remoteId}`);
+      const docRef = collectionName === 'settings'
+        ? doc(firestore, `users/${user.uid}/settings/profile`)
+        : doc(firestore, `users/${user.uid}/${collectionName}/${remoteId}`);
       await deleteDoc(docRef);
     } catch (e) {
       console.error(`Error deleting from Firestore [${collectionName}]:`, e);
+    }
+  },
+
+  // Start queue processing interval
+  startQueueTimer() {
+    if (queueIntervalId) return;
+    queueIntervalId = setInterval(() => {
+      this.triggerQueueProcessing();
+    }, 5000);
+    this.triggerQueueProcessing();
+  },
+
+  // Stop queue processing interval
+  stopQueueTimer() {
+    if (queueIntervalId) {
+      clearInterval(queueIntervalId);
+      queueIntervalId = null;
     }
   },
 
@@ -230,6 +253,8 @@ export const FirebaseSyncService = {
   startSync(userId: string): void {
     // Prevent starting duplicate listeners
     this.stopSync();
+
+    this.startQueueTimer();
 
     console.log("Starting Firebase real-time listeners for user:", userId);
 
@@ -248,44 +273,44 @@ export const FirebaseSyncService = {
     for (const col of collectionsToSync) {
       const colRef = collection(firestore, `users/${userId}/${col.name}`);
       const unsub = onSnapshot(colRef, async (snapshot) => {
-        isSyncingDown = true;
         try {
-          for (const change of snapshot.docChanges()) {
-            const docData = change.doc.data();
-            const remoteId = change.doc.id;
-            
-            // Map Firestore doc ID to remoteId field
-            const localRecord = await col.dbTable.where('remoteId').equals(remoteId).first();
+          await db.transaction('rw', col.dbTable, async () => {
+            (Dexie.currentTransaction as any)._isRemoteSync = true;
+            for (const change of snapshot.docChanges()) {
+              const docData = change.doc.data();
+              const remoteId = change.doc.id;
+              
+              // Map Firestore doc ID to remoteId field
+              const localRecord = await col.dbTable.where('remoteId').equals(remoteId).first();
 
-            if (change.type === 'added' || change.type === 'modified') {
-              const fullRecord = { ...docData, remoteId } as any;
+              if (change.type === 'added' || change.type === 'modified') {
+                const fullRecord = { ...docData, remoteId } as any;
 
-              if (localRecord) {
-                // Keep local autoincrement id
-                fullRecord.id = localRecord.id;
-                
-                // Only update if there's an actual difference to avoid endless update loops
-                const isDifferent = Object.keys(docData).some(
-                  key => JSON.stringify(docData[key]) !== JSON.stringify((localRecord as any)[key])
-                );
-                
-                if (isDifferent) {
-                  await col.dbTable.put(fullRecord);
+                if (localRecord) {
+                  // Keep local autoincrement id
+                  fullRecord.id = localRecord.id;
+                  
+                  // Only update if there's an actual difference to avoid endless update loops
+                  const isDifferent = Object.keys(docData).some(
+                    key => JSON.stringify(docData[key]) !== JSON.stringify((localRecord as any)[key])
+                  );
+                  
+                  if (isDifferent) {
+                    await col.dbTable.put(fullRecord);
+                  }
+                } else {
+                  // New record from another device - add to Dexie, letting Dexie generate local ID
+                  await col.dbTable.add(fullRecord);
                 }
-              } else {
-                // New record from another device - add to Dexie, letting Dexie generate local ID
-                await col.dbTable.add(fullRecord);
-              }
-            } else if (change.type === 'removed') {
-              if (localRecord) {
-                await col.dbTable.delete(localRecord.id!);
+              } else if (change.type === 'removed') {
+                if (localRecord) {
+                  await col.dbTable.delete(localRecord.id!);
+                }
               }
             }
-          }
+          });
         } catch (e) {
           console.error(`Error processing real-time snapshot for [${col.name}]:`, e);
-        } finally {
-          isSyncingDown = false;
         }
       }, (error) => {
         console.error(`Firestore listener error [${col.name}]:`, error);
@@ -298,24 +323,24 @@ export const FirebaseSyncService = {
     const settingsRef = doc(firestore, `users/${userId}/settings/profile`);
     const settingsUnsub = onSnapshot(settingsRef, async (snapshot) => {
       if (snapshot.exists()) {
-        isSyncingDown = true;
         try {
           const docData = snapshot.data();
-          const localSettings = await db.settings.toCollection().first();
-          if (localSettings) {
-            const isDifferent = Object.keys(docData).some(
-              key => JSON.stringify(docData[key]) !== JSON.stringify((localSettings as any)[key])
-            );
-            if (isDifferent) {
-              await db.settings.update(localSettings.id!, docData);
+          await db.transaction('rw', db.settings, async () => {
+            (Dexie.currentTransaction as any)._isRemoteSync = true;
+            const localSettings = await db.settings.toCollection().first();
+            if (localSettings) {
+              const isDifferent = Object.keys(docData).some(
+                key => JSON.stringify(docData[key]) !== JSON.stringify((localSettings as any)[key])
+              );
+              if (isDifferent) {
+                await db.settings.update(localSettings.id!, docData);
+              }
+            } else {
+              await db.settings.add(docData as any);
             }
-          } else {
-            await db.settings.add(docData as any);
-          }
+          });
         } catch (e) {
           console.error("Error syncing settings doc:", e);
-        } finally {
-          isSyncingDown = false;
         }
       }
     });
@@ -325,6 +350,7 @@ export const FirebaseSyncService = {
 
   // Stop all listeners
   stopSync(): void {
+    this.stopQueueTimer();
     if (activeListeners.length > 0) {
       console.log("Stopping active Firebase sync listeners.");
       activeListeners.forEach(unsub => unsub());
@@ -341,5 +367,60 @@ export const FirebaseSyncService = {
         this.stopSync();
       }
     });
+  },
+
+  triggerQueueProcessing(): void {
+    if (isProcessingQueue) return;
+    isProcessingQueue = true;
+    this.processQueue()
+      .catch(console.error)
+      .finally(() => {
+        isProcessingQueue = false;
+      });
+  },
+
+  async processQueue(): Promise<void> {
+    if (!this.isEnabled()) return;
+    if (!navigator.onLine) return;
+    
+    const user = auth.currentUser;
+    if (!user) return;
+
+    // Load up to 500 items from the syncQueue table
+    const items = await db.syncQueue.limit(500).toArray();
+    if (items.length === 0) return;
+
+    try {
+      const batch = writeBatch(firestore);
+
+      for (const item of items) {
+        const docRef = item.entityType === 'settings'
+          ? doc(firestore, `users/${user.uid}/settings/profile`)
+          : doc(firestore, `users/${user.uid}/${item.entityType}/${item.remoteId}`);
+
+        if (item.action === 'UPSERT') {
+          const { id, _isRemoteSync, ...cleanPayload } = item.payload || {};
+          batch.set(docRef, cleanPayload, { merge: true });
+        } else if (item.action === 'DELETE') {
+          batch.delete(docRef);
+        }
+      }
+
+      await batch.commit();
+
+      // Successfully processed this batch, delete them from the sync queue table
+      const idsToDelete = items.map(item => item.id).filter((id): id is number => id !== undefined);
+      if (idsToDelete.length > 0) {
+        await db.syncQueue.bulkDelete(idsToDelete);
+      }
+
+      // If we processed 500 items, there might be more, trigger next batch immediately
+      if (items.length === 500) {
+        setTimeout(() => this.triggerQueueProcessing(), 0);
+      }
+    } catch (error) {
+      console.error("Failed to process sync queue batch:", error);
+      // Wait for next interval or manual trigger to retry
+    }
   }
 };

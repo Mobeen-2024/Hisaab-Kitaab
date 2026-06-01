@@ -27,7 +27,17 @@ export type {
   AuditLog
 };
 
+export interface SyncQueueItem {
+  id?: number;
+  entityType: string;
+  remoteId: string;
+  action: 'UPSERT' | 'DELETE';
+  payload?: any;
+  timestamp: string;
+}
+
 export class HisaibKItaibDB extends Dexie {
+  isImporting = false;
   transactions!: Table<Transaction, number>;
   categories!: Table<Category, number>;
   settings!: Table<AppSettings, number>;
@@ -39,6 +49,7 @@ export class HisaibKItaibDB extends Dexie {
   auditLogs!: Table<AuditLog, number>;
   appUsers!: Table<AppUser, number>;
   messages!: Table<Message, number>;
+  syncQueue!: Table<SyncQueueItem, number>;
 
   constructor() {
     super('HisaibKItaibDB');
@@ -79,14 +90,30 @@ export class HisaibKItaibDB extends Dexie {
     this.version(10).stores({
       udhaarEntries: '++id, customerId, type, date, dueDate, context, transactionId, isCompleted'
     });
+    this.version(11).stores({
+      syncQueue: '++id, entityType, remoteId, action, timestamp'
+    });
 
     this.on('ready', () => {
-      const tablesToAudit = ['transactions', 'customers', 'udhaarEntries', 'goals', 'budgets', 'inventory'];
+      const tablesToAudit = [
+        'transactions',
+        'customers',
+        'udhaarEntries',
+        'goals',
+        'budgets',
+        'inventory',
+        'categories',
+        'appUsers',
+        'messages',
+        'settings'
+      ];
 
       for (const tableName of tablesToAudit) {
         const table = this.table(tableName);
 
         table.hook('creating', function (primKey, obj) {
+          if (db.isImporting) return;
+          if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
           if (!obj.remoteId) {
             obj.remoteId = typeof crypto !== 'undefined' && crypto.randomUUID 
               ? crypto.randomUUID() 
@@ -94,9 +121,17 @@ export class HisaibKItaibDB extends Dexie {
           }
 
           this.onsuccess = (resultKey) => {
-            // Save to Firestore
-            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-              FirebaseSyncService.saveToFirestore(tableName, obj.remoteId, obj);
+            // Add to sync queue
+            db.syncQueue.add({
+              entityType: tableName,
+              remoteId: obj.remoteId,
+              action: 'UPSERT',
+              payload: obj,
+              timestamp: new Date().toISOString()
+            }).then(() => {
+              import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+                FirebaseSyncService.triggerQueueProcessing();
+              }).catch(console.error);
             }).catch(console.error);
 
             Dexie.ignoreTransaction(() => {
@@ -112,11 +147,21 @@ export class HisaibKItaibDB extends Dexie {
         });
 
         table.hook('updating', (modifications, primKey, obj, transaction) => {
+          if (db.isImporting) return;
+          if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
           // Merge modifications into copy of obj to sync complete data
           const updatedObj = { ...obj, ...modifications };
           if (updatedObj.remoteId) {
-            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-              FirebaseSyncService.saveToFirestore(tableName, updatedObj.remoteId, updatedObj);
+            db.syncQueue.add({
+              entityType: tableName,
+              remoteId: updatedObj.remoteId,
+              action: 'UPSERT',
+              payload: updatedObj,
+              timestamp: new Date().toISOString()
+            }).then(() => {
+              import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+                FirebaseSyncService.triggerQueueProcessing();
+              }).catch(console.error);
             }).catch(console.error);
           }
 
@@ -133,9 +178,18 @@ export class HisaibKItaibDB extends Dexie {
         });
 
         table.hook('deleting', (primKey, obj, transaction) => {
+          if (db.isImporting) return;
+          if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
           if (obj.remoteId) {
-            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-              FirebaseSyncService.deleteFromFirestore(tableName, obj.remoteId);
+            db.syncQueue.add({
+              entityType: tableName,
+              remoteId: obj.remoteId,
+              action: 'DELETE',
+              timestamp: new Date().toISOString()
+            }).then(() => {
+              import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+                FirebaseSyncService.triggerQueueProcessing();
+              }).catch(console.error);
             }).catch(console.error);
           }
 
@@ -238,6 +292,7 @@ export class HisaibKItaibDB extends Dexie {
 
   async importData(base64Payload: string) {
     try {
+      this.isImporting = true;
       const binary = atob(base64Payload);
       const uint8Array = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) {
@@ -263,10 +318,21 @@ export class HisaibKItaibDB extends Dexie {
           }
         }
       });
+
+      // Post-import sync upload to Firestore in a batched, safe manner
+      import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+        const user = FirebaseSyncService.getCurrentUser();
+        if (user && FirebaseSyncService.isEnabled()) {
+          FirebaseSyncService.uploadAllLocalData(user.uid).catch(console.error);
+        }
+      }).catch(console.error);
+
       return true;
     } catch (e) {
       console.error("Backup recovery failed:", e);
       return false;
+    } finally {
+      this.isImporting = false;
     }
   }
 

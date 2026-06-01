@@ -36,6 +36,15 @@ service cloud.firestore {
       match /udhaarEntries/{udhaarId} {
         allow read, write: if isOwner(userId);
       }
+      match /goals/{goalId} {
+        allow read, write: if isOwner(userId);
+      }
+      match /budgets/{budgetId} {
+        allow read, write: if isOwner(userId);
+      }
+      match /messages/{messageId} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }
