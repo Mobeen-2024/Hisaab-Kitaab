@@ -21,10 +21,10 @@ Hisaib Kitaib (حساب کتاب) is a localized, offline-first financial and bu
 - `android`: Capacitor native Android project configuration.
 
 ## Core Architecture
-The app follows a client-heavy, offline-first architecture. All data operations primarily read and write to a local IndexedDB database using Dexie.js. A background sync mechanism optionally mirrors local changes to Firebase Firestore. Services abstract complex logic (AI interactions, OCR, sync) away from React components, maintaining clean UI logic.
+The app follows a client-heavy, offline-first architecture. All data operations primarily read and write to a local IndexedDB database using Dexie.js. A background sync mechanism optionally mirrors local changes to Firebase Firestore via a persistent `syncQueue` table, resolving offline updates reliably. Services abstract complex logic (AI interactions, OCR, sync) away from React components, maintaining clean UI logic.
 
 ## Data Flow
-UI interactions trigger updates to local state via Zustand or directly invoke `src/services` methods. These services write data to the local Dexie.js database (`db.ts`). Live queries via `dexie-react-hooks` automatically re-render the UI with updated local data. Independently, `FirebaseSyncService` listens to Dexie hooks to push changes to Firebase when online.
+UI interactions trigger updates to local state via Zustand or directly invoke `src/services` methods. These services write data to the local Dexie.js database (`db.ts`). Live queries via `dexie-react-hooks` automatically re-render the UI with updated local data. Independently, Dexie hooks enqueue mutations into a local `syncQueue` table. A background worker in `FirebaseSyncService` processes these queued operations in Firestore write batches when online, preventing sync echo loops using transactional flags (`_isRemoteSync`).
 
 ## Main Features
 - Udhaar (Credit/Debt) Management
@@ -44,7 +44,7 @@ UI interactions trigger updates to local state via Zustand or directly invoke `s
 - `TransactionService` / `UdhaarService`: Domain-specific wrappers over Dexie for managing financial records securely.
 
 ## Database / Schema Notes
-The IndexedDB schema includes `transactions`, `categories`, `settings`, `customers`, `udhaarEntries`, `goals`, `budgets`, `inventory`, `auditLogs`, `appUsers`, and `messages`. 
+The IndexedDB schema includes `transactions`, `categories`, `settings`, `customers`, `udhaarEntries`, `goals`, `budgets`, `inventory`, `auditLogs`, `appUsers`, `messages`, and `syncQueue`. 
 Entities support context isolation (`context: 'business' | 'personal'`). Records generate a `remoteId` (UUID) upon creation to ensure smooth syncing with Firebase. Audit logs track all CRUD operations locally.
 
 ## UI / Routing Notes
