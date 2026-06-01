@@ -49,13 +49,17 @@ export const UdhaarService = {
       originalCurrency: validated.originalCurrency || 'PKR',
       originalAmount: validated.originalAmount || validated.amount,
       exchangeRate: validated.exchangeRate || 1,
-      source: 'manual'
+      source: 'udhaar'
     });
 
     validated.transactionId = txId;
     validated.context = context;
 
     const id = await db.udhaarEntries.add(validated as UdhaarEntry);
+    
+    // Update the transaction's sourceId with the newly created UdhaarEntry ID
+    await TransactionService.update(txId, { sourceId: id });
+    
     await CustomerService.syncBalance(validated.customerId);
     return id;
   },

@@ -150,6 +150,68 @@ export class HisaibKItaibDB extends Dexie {
           });
         });
       }
+
+      // Non-blocking background legacy backfill
+      setTimeout(async () => {
+        try {
+          const entries = await this.udhaarEntries.toArray();
+          for (const entry of entries) {
+            let changed = false;
+            let context = entry.context;
+            if (!context) {
+              context = 'business';
+              changed = true;
+            }
+
+            if (!entry.transactionId) {
+              const txType = entry.type === 'give' ? 'expense' : 'income';
+              const catName = txType === 'income' ? 'Udhaar Received' : 'Udhaar Given';
+              let cat = await this.categories
+                .where('context')
+                .equals(context)
+                .and(c => c.type === txType && c.name === catName)
+                .first();
+
+              if (!cat) {
+                const newCatId = await this.categories.add({ name: catName, type: txType, context });
+                cat = { id: newCatId, name: catName, type: txType, context };
+              }
+
+              const customer = await this.customers.get(entry.customerId);
+              const customerName = customer ? customer.name : 'Unknown';
+              const txDesc = entry.description
+                ? `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName}): ${entry.description}`
+                : `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName})`;
+
+              const txId = await this.transactions.add({
+                amount: entry.amount,
+                type: txType,
+                categoryId: cat.id!,
+                context: context,
+                date: entry.date,
+                description: txDesc,
+                customerId: entry.customerId,
+                paymentMethod: 'cash',
+                originalCurrency: entry.originalCurrency || 'PKR',
+                originalAmount: entry.originalAmount || entry.amount,
+                exchangeRate: entry.exchangeRate || 1,
+                source: 'legacy_backfill',
+                sourceId: entry.id
+              });
+
+              entry.transactionId = txId;
+              entry.context = context;
+              changed = true;
+            }
+
+            if (changed) {
+              await this.udhaarEntries.put(entry);
+            }
+          }
+        } catch (error) {
+          console.warn("Background legacy backfill encountered an issue:", error);
+        }
+      }, 1500);
     });
   }
 

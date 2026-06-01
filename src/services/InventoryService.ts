@@ -37,7 +37,8 @@ export const InventoryService = {
     
     // Add Expense Transaction
     const cat = await HisaibInventoryService.getOrCreateInventoryCategory(context);
-    const cost = additionalQty * item.unitPrice;
+    const purchaseCost = item.costPrice ?? item.unitPrice;
+    const cost = additionalQty * purchaseCost;
     
     await TransactionService.add({
       amount: cost,
@@ -45,12 +46,13 @@ export const InventoryService = {
       categoryId: cat.id!,
       context: context,
       date: new Date().toLocaleDateString('en-CA'),
-      description: `Restocked ${additionalQty} x ${item.name} @ Rs ${item.unitPrice}`,
+      description: `Restocked ${additionalQty} x ${item.name} @ Rs ${purchaseCost}`,
       paymentMethod: 'cash',
       originalCurrency: 'PKR',
       originalAmount: cost,
       exchangeRate: 1,
-      source: 'manual'
+      source: 'inventory',
+      sourceId: item.id
     });
 
     const newQty = item.quantity + additionalQty;

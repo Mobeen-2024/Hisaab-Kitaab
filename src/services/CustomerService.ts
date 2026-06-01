@@ -41,9 +41,14 @@ export const CustomerService = {
       return sum + (entry.type === 'give' ? entry.amount : -entry.amount);
     }, 0);
 
-    // Sum from Transactions (Payments)
+    // Get all transactionIds that are linked to these Udhaar entries
+    const linkedTxIds = new Set(entries.map(e => e.transactionId).filter(Boolean));
+
+    // Sum from Transactions (Payments), excluding those linked to Udhaar entries to prevent double-counting
     const transactions = await db.transactions.where('customerId').equals(customerId).toArray();
-    balance += transactions.reduce((sum, tx) => {
+    const manualTransactions = transactions.filter(tx => !linkedTxIds.has(tx.id));
+
+    balance += manualTransactions.reduce((sum, tx) => {
       if (isSupplier) {
         // Payment to supplier (Expense) decreases debt
         // Return from supplier (Income) increases debt? Usually transactions are payments.

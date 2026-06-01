@@ -29,6 +29,7 @@ export const InventoryItemSchema = z.object({
   quantity: z.number(),
   minQuantity: z.number(),
   unitPrice: z.number(),
+  costPrice: z.number().optional(),
   context: z.enum(['personal', 'business']),
 });
 
@@ -46,7 +47,8 @@ export const TransactionSchema = z.object({
   originalCurrency: z.string().optional(),
   originalAmount: z.number().optional(),
   exchangeRate: z.number().optional(),
-  source: z.enum(['manual', 'voice', 'easypaisa', 'jazzcash', 'bank_import', 'pdf', 'ai']).optional(),
+  source: z.enum(['manual', 'voice', 'easypaisa', 'jazzcash', 'bank_import', 'pdf', 'ai', 'udhaar', 'inventory', 'legacy_backfill']).optional(),
+  sourceId: z.number().optional(),
   importReferenceId: z.string().optional(),
 });
 

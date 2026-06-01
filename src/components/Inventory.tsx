@@ -30,7 +30,7 @@ export default function Inventory() {
   }
 
   const formatCurrency = (val: number) => formatSharedCurrency(val, currency, lang);
-  const totalValue = items.reduce((s: number, i: InventoryItem) => s + (i.quantity * i.unitPrice), 0);
+  const totalValue = items.reduce((s: number, i: InventoryItem) => s + (i.quantity * (i.costPrice ?? i.unitPrice)), 0);
   const totalItems = items.reduce((s: number, i: InventoryItem) => s + i.quantity, 0);
 
   const handleRestock = async () => {
@@ -181,14 +181,18 @@ export default function Inventory() {
               <p className="text-sm text-slate-400 line-clamp-1">{item.category}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-black/20 rounded-2xl p-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Unit Price</p>
-                <p className="text-base font-bold text-slate-300">{formatCurrency(item.unitPrice)}</p>
+            <div className="grid grid-cols-3 gap-2 mb-6 text-center">
+              <div className="bg-black/20 rounded-2xl p-2 flex flex-col justify-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Selling Price</p>
+                <p className="text-xs font-bold text-slate-300">{formatCurrency(item.unitPrice)}</p>
               </div>
-              <div className="bg-black/20 rounded-2xl p-4">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Total Value</p>
-                <p className="text-base font-bold text-orange-400">{formatCurrency(item.quantity * item.unitPrice)}</p>
+              <div className="bg-black/20 rounded-2xl p-2 flex flex-col justify-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Purchase Cost</p>
+                <p className="text-xs font-bold text-slate-300">{formatCurrency(item.costPrice ?? item.unitPrice)}</p>
+              </div>
+              <div className="bg-black/20 rounded-2xl p-2 flex flex-col justify-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Stock Value</p>
+                <p className="text-xs font-bold text-orange-400">{formatCurrency(item.quantity * (item.costPrice ?? item.unitPrice))}</p>
               </div>
             </div>
 
@@ -276,6 +280,7 @@ function InventoryModal({ isOpen, onClose, item, activeContext, currency }: Inve
   const [quantity, setQuantity] = useState(item?.quantity?.toString() || '');
   const [minQuantity, setMinQuantity] = useState(item?.minQuantity?.toString() || '');
   const [unitPrice, setUnitPrice] = useState(item?.unitPrice?.toString() || '');
+  const [costPrice, setCostPrice] = useState(item?.costPrice?.toString() || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
@@ -286,12 +291,14 @@ function InventoryModal({ isOpen, onClose, item, activeContext, currency }: Inve
         setQuantity(item.quantity.toString());
         setMinQuantity(item.minQuantity.toString());
         setUnitPrice(item.unitPrice.toString());
+        setCostPrice(item.costPrice ? item.costPrice.toString() : '');
       } else {
         setName('');
         setCategory('');
         setQuantity('');
         setMinQuantity('');
         setUnitPrice('');
+        setCostPrice('');
       }
     }
   }, [isOpen, item]);
@@ -307,6 +314,7 @@ function InventoryModal({ isOpen, onClose, item, activeContext, currency }: Inve
       quantity: Number(quantity),
       minQuantity: Number(minQuantity),
       unitPrice: Number(unitPrice),
+      costPrice: costPrice ? Number(costPrice) : undefined,
       context: activeContext
     };
 
@@ -357,7 +365,7 @@ function InventoryModal({ isOpen, onClose, item, activeContext, currency }: Inve
                 className="w-full bg-[#1E293B] border border-white/10 text-white rounded-2xl px-5 py-4 focus:ring-2 focus:ring-orange-500/50 outline-none transition-all disabled:opacity-50" 
               />
             </div>
-            <div>
+            <div className="col-span-2">
               <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-widest">Category</label>
               <input 
                 type="text" value={category} onChange={e => setCategory(e.target.value)} required 
@@ -366,11 +374,23 @@ function InventoryModal({ isOpen, onClose, item, activeContext, currency }: Inve
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-widest">Unit Price</label>
+              <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-widest">Selling Price</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">{currency === 'PKR' ? 'Rs' : '$'}</span>
                 <input 
                   type="number" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} required 
+                  disabled={isSubmitting}
+                  className="w-full bg-[#1E293B] border border-white/10 text-white rounded-2xl pl-12 pr-5 py-4 focus:ring-2 focus:ring-orange-500/50 outline-none transition-all disabled:opacity-50" 
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-widest">Purchase Cost</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">{currency === 'PKR' ? 'Rs' : '$'}</span>
+                <input 
+                  type="number" value={costPrice} onChange={e => setCostPrice(e.target.value)}
+                  placeholder={unitPrice || "e.g. 100"}
                   disabled={isSubmitting}
                   className="w-full bg-[#1E293B] border border-white/10 text-white rounded-2xl pl-12 pr-5 py-4 focus:ring-2 focus:ring-orange-500/50 outline-none transition-all disabled:opacity-50" 
                 />
@@ -412,7 +432,7 @@ function InventoryModal({ isOpen, onClose, item, activeContext, currency }: Inve
             </button>
           </div>
           <p className="text-center text-xs text-slate-500">
-            Total value: {formatSharedCurrency(Number(quantity) * Number(unitPrice), currency, 'en')}
+            Total Value (at Cost): {formatSharedCurrency(Number(quantity) * (Number(costPrice) || Number(unitPrice) || 0), currency, 'en')}
           </p>
         </form>
       </div>
