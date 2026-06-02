@@ -21,26 +21,45 @@ import {
 } from 'firebase/firestore';
 import Dexie from 'dexie';
 import { db } from '../db';
-import firebaseConfigJson from '../../firebase-applet-config.json';
-
-// Use the Firebase config from root
+// Use the Firebase config from environment variables
 const firebaseConfig = {
-  apiKey: firebaseConfigJson.apiKey,
-  authDomain: firebaseConfigJson.authDomain,
-  projectId: firebaseConfigJson.projectId,
-  storageBucket: firebaseConfigJson.storageBucket,
-  messagingSenderId: firebaseConfigJson.messagingSenderId,
-  appId: firebaseConfigJson.appId
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase App
-const app = initializeApp(firebaseConfig);
+let app: any;
+let firestore: any;
+let auth: any;
+let isFirebaseInitialized = false;
 
-// Initialize Firestore using custom database ID from config
-const firestore = initializeFirestore(app, {}, firebaseConfigJson.firestoreDatabaseId);
-
-// Initialize Auth
-const auth = getAuth(app);
+try {
+  // Only initialize if the user has provided actual config
+  if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'paste_here' || firebaseConfig.apiKey.includes('your_api_key')) {
+    throw new Error('Firebase config is missing or invalid');
+  }
+  
+  // Initialize Firebase App
+  app = initializeApp(firebaseConfig);
+  
+  // Initialize Firestore
+  firestore = initializeFirestore(app, {});
+  
+  // Initialize Auth
+  auth = getAuth(app);
+  
+  isFirebaseInitialized = true;
+} catch (error) {
+  console.warn("Firebase initialization skipped or failed. Cloud Sync will not be available:", error);
+  // Provide mock objects so top-level app code doesn't crash on undefined properties
+  app = {};
+  firestore = {};
+  auth = { currentUser: null };
+  isFirebaseInitialized = false;
+}
 
 // Keep track of active Firestore listener unsubscribers
 let activeListeners: (() => void)[] = [];
@@ -63,6 +82,9 @@ export const FirebaseSyncService = {
 
   // Perform Firebase registration and auto-sign in
   async register(email: string, password: string): Promise<User> {
+    if (!isFirebaseInitialized) {
+      throw new Error("Cloud Sync is not configured. Please add your Firebase API keys to .env.local to enable Cloud Sync.");
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       localStorage.setItem('firebase_sync_enabled', 'true');
@@ -83,6 +105,9 @@ export const FirebaseSyncService = {
 
   // Perform Firebase sign in
   async login(email: string, password: string): Promise<User> {
+    if (!isFirebaseInitialized) {
+      throw new Error("Cloud Sync is not configured. Please add your Firebase API keys to .env.local to enable Cloud Sync.");
+    }
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       localStorage.setItem('firebase_sync_enabled', 'true');

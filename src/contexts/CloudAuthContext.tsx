@@ -20,21 +20,27 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
   const [isSyncEnabled, setIsSyncEnabled] = useState(FirebaseSyncService.isEnabled());
 
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsSyncEnabled(FirebaseSyncService.isEnabled());
+    try {
+      const auth = getAuth();
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        setUser(currentUser);
+        setIsSyncEnabled(FirebaseSyncService.isEnabled());
+        setLoading(false);
+
+        // Handle auto-starting real-time sync listeners upon user authentication
+        if (currentUser && FirebaseSyncService.isEnabled()) {
+          FirebaseSyncService.startSync(currentUser.uid);
+        } else {
+          FirebaseSyncService.stopSync();
+        }
+      });
+
+      return () => unsubscribe();
+    } catch (error) {
+      console.warn('Firebase Auth is not initialized. Skipping Cloud Sync listeners.');
       setLoading(false);
-
-      // Handle auto-starting real-time sync listeners upon user authentication
-      if (currentUser && FirebaseSyncService.isEnabled()) {
-        FirebaseSyncService.startSync(currentUser.uid);
-      } else {
-        FirebaseSyncService.stopSync();
-      }
-    });
-
-    return () => unsubscribe();
+      return () => {};
+    }
   }, []);
 
   const login = async (email: string, password: string) => {

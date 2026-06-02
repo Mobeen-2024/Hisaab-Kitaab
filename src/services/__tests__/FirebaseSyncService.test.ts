@@ -40,14 +40,7 @@ vi.mock('firebase/auth', () => ({
   onAuthStateChanged: vi.fn(),
 }));
 
-vi.mock('../../firebase-applet-config.json', () => ({
-  default: {
-    apiKey: 'mock-key',
-    authDomain: 'mock-domain',
-    projectId: 'mock-project',
-    firestoreDatabaseId: 'mock-db'
-  }
-}));
+
 
 // Mock localStorage
 const mockLocalStorage: Record<string, string> = {};
