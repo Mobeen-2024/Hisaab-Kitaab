@@ -49,15 +49,10 @@ export const CustomerService = {
     const manualTransactions = transactions.filter(tx => !linkedTxIds.has(tx.id));
 
     balance += manualTransactions.reduce((sum, tx) => {
-      if (isSupplier) {
-        // Payment to supplier (Expense) decreases debt
-        // Return from supplier (Income) increases debt? Usually transactions are payments.
-        return sum + (tx.type === 'income' ? tx.amount : -tx.amount);
-      } else {
-        // Payment from customer (Income) decreases debt
-        // Refund to customer (Expense) increases debt? 
-        return sum + (tx.type === 'expense' ? tx.amount : -tx.amount);
-      }
+      // For both customer and supplier:
+      // - Expense (cash going out to them) increases our net balance with them (e.g. paying supplier or giving customer a refund/loan).
+      // - Income (cash coming in from them) decreases our net balance with them (e.g. customer paying us back or supplier refunding us).
+      return sum + (tx.type === 'expense' ? tx.amount : -tx.amount);
     }, 0);
 
     await db.customers.update(customerId, { balance });
