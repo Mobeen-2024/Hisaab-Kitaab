@@ -1,17 +1,29 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, afterAll } from 'vitest';
 import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 import { db } from '../../db';
 import { CustomerService } from '../CustomerService';
 import { UdhaarService } from '../UdhaarService';
 import { TransactionService } from '../TransactionService';
 
 describe('Customer and Supplier Balance Calculations', () => {
+  const originalConsoleError = console.error;
+
   beforeEach(async () => {
-    // Clear databases before each test
-    await db.customers.clear();
-    await db.udhaarEntries.clear();
-    await db.transactions.clear();
-    await db.categories.clear();
+    // Suppress expected Dexie errors from detached background hooks (auditLogs/syncQueue) 
+    // that complete after the test has torn down the database.
+    console.error = (...args: any[]) => {
+      const msg = args.join(' ');
+      if (msg.includes('NotFoundError') || msg.includes('DatabaseClosedError')) return;
+      originalConsoleError(...args);
+    };
+
+    // Close, delete, and reopen the database safely to ensure a completely clean state without lingering hooks
+    db.close();
+    await Dexie.delete('HisaibKItaibDB');
+    await db.open();
+
+
     
     // Seed some basic categories needed by Udhaar
     await db.categories.bulkAdd([
@@ -23,6 +35,18 @@ describe('Customer and Supplier Balance Calculations', () => {
       { name: 'Transport', type: 'expense', context: 'personal' },
       { name: 'Cattle Feed (Chara)', type: 'expense', context: 'business' },
     ]);
+  });
+
+  afterEach(async () => {
+    // Wait for any detached Dexie promises (like auditLogs.add from hooks) to complete
+    await new Promise(resolve => setTimeout(resolve, 200));
+  });
+
+  afterAll(async () => {
+    // Ensure detached promises have fully settled before the test environment tears down
+    await new Promise(resolve => setTimeout(resolve, 500));
+    db.close();
+    console.error = originalConsoleError;
   });
 
   it('calculates correct balance for a customer starting with 0 balance', async () => {

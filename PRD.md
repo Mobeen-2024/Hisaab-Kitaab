@@ -1,8 +1,8 @@
-# Hisaab-Kitab حساب کتاب - Product Requirements Document (PRD) & Technical Roadmap
+# Hisaib Kitaib حساب کتاب - Product Requirements Document (PRD) & Technical Roadmap
 
 ## 1. Executive Summary
 
-Hisaab-Kitab (حساب کتاب) is a localized, offline-first digital ledger and dairy management system designed specifically for the Pakistani rural and micro-business economy. It aims to digitize the traditional "Khata" (register) system used by dairy farmers, shopkeepers, and micro-entrepreneurs. By providing granular tracking of complex daily transactions—such as daily milk sales, livestock feed (Wanda/Khal) expenses, and utility bills—the application solves the core problem of financial opacity, giving users clear visibility into their actual net profit ("Money Left") after operational costs.
+Hisaib Kitaib (حساب کتاب) is a localized, offline-first digital ledger and dairy management system designed specifically for the Pakistani rural and micro-business economy. It aims to digitize the traditional "Khata" (register) system used by dairy farmers, shopkeepers, and micro-entrepreneurs. By providing granular tracking of complex daily transactions—such as daily milk sales, livestock feed (Wanda/Khal) expenses, and utility bills—the application solves the core problem of financial opacity, giving users clear visibility into their actual net profit ("Money Left") after operational costs.
 
 ## 2. Feature Breakdown
 

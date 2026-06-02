@@ -52,6 +52,7 @@ let queueIntervalId: any = null;
 export const FirebaseSyncService = {
   // Check if Firebase sync is enabled in settings
   isEnabled(): boolean {
+    if (typeof localStorage === 'undefined') return false;
     return localStorage.getItem('firebase_sync_enabled') === 'true';
   },
 

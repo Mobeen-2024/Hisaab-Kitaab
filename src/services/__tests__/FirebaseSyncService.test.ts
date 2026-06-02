@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 import { db } from '../../db';
 import { FirebaseSyncService } from '../FirebaseSyncService';
 
@@ -68,7 +69,19 @@ global.localStorage = {
 };
 
 describe('FirebaseSyncService Tests', () => {
+  const originalConsoleError = console.error;
+
   beforeEach(async () => {
+    console.error = (...args: any[]) => {
+      const msg = args.join(' ');
+      if (msg.includes('NotFoundError') || msg.includes('DatabaseClosedError')) return;
+      originalConsoleError(...args);
+    };
+
+    db.close();
+    await Dexie.delete('HisaibKItaibDB');
+    await db.open();
+
     await db.syncQueue.clear();
     await db.settings.clear();
     localStorage.clear();
@@ -79,6 +92,12 @@ describe('FirebaseSyncService Tests', () => {
       value: true,
       writable: true,
     });
+  });
+
+  afterAll(async () => {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    db.close();
+    console.error = originalConsoleError;
   });
 
   it('does not process queue when sync is disabled', async () => {

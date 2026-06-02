@@ -146,7 +146,7 @@ export class HisaibKItaibDB extends Dexie {
             timestamp: new Date().toISOString()
           }).then(() => {
             import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-              FirebaseSyncService.triggerQueueProcessing();
+              FirebaseSyncService?.triggerQueueProcessing?.();
             }).catch(console.error);
           }).catch(console.error);
         };
@@ -165,7 +165,7 @@ export class HisaibKItaibDB extends Dexie {
             timestamp: new Date().toISOString()
           }).then(() => {
             import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-              FirebaseSyncService.triggerQueueProcessing();
+              FirebaseSyncService?.triggerQueueProcessing?.();
             }).catch(console.error);
           }).catch(console.error);
         }
@@ -182,7 +182,7 @@ export class HisaibKItaibDB extends Dexie {
             timestamp: new Date().toISOString()
           }).then(() => {
             import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-              FirebaseSyncService.triggerQueueProcessing();
+              FirebaseSyncService?.triggerQueueProcessing?.();
             }).catch(console.error);
           }).catch(console.error);
         }
@@ -210,7 +210,7 @@ export class HisaibKItaibDB extends Dexie {
               timestamp: new Date().toISOString()
             }).then(() => {
               import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-                FirebaseSyncService.triggerQueueProcessing();
+                FirebaseSyncService?.triggerQueueProcessing?.();
               }).catch(console.error);
             }).catch(console.error);
 
@@ -240,7 +240,7 @@ export class HisaibKItaibDB extends Dexie {
               timestamp: new Date().toISOString()
             }).then(() => {
               import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-                FirebaseSyncService.triggerQueueProcessing();
+                FirebaseSyncService?.triggerQueueProcessing?.();
               }).catch(console.error);
             }).catch(console.error);
           }
@@ -268,7 +268,7 @@ export class HisaibKItaibDB extends Dexie {
               timestamp: new Date().toISOString()
             }).then(() => {
               import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-                FirebaseSyncService.triggerQueueProcessing();
+                FirebaseSyncService?.triggerQueueProcessing?.();
               }).catch(console.error);
             }).catch(console.error);
           }

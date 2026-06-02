@@ -1,11 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 import { db } from '../../db';
 import { TransactionService } from '../TransactionService';
 import { CustomerService } from '../CustomerService';
 
 describe('TransactionService Tests', () => {
+  const originalConsoleError = console.error;
+
   beforeEach(async () => {
+    console.error = (...args: any[]) => {
+      const msg = args.join(' ');
+      if (msg.includes('NotFoundError') || msg.includes('DatabaseClosedError')) return;
+      originalConsoleError(...args);
+    };
+
+    db.close();
+    await Dexie.delete('HisaibKItaibDB');
+    await db.open();
+
     await db.transactions.clear();
     await db.customers.clear();
     await db.categories.clear();
@@ -14,6 +27,12 @@ describe('TransactionService Tests', () => {
       { id: 1, name: 'Sales', type: 'income', context: 'business' },
       { id: 2, name: 'Groceries', type: 'expense', context: 'personal' },
     ]);
+  });
+
+  afterAll(async () => {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    db.close();
+    console.error = originalConsoleError;
   });
 
   it('adds and validates transactions using Zod schemas', async () => {

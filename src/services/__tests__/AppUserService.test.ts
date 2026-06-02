@@ -1,11 +1,27 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 import { db } from '../../db';
 import { AppUserService } from '../AppUserService';
 
 describe('AppUserService Tests', () => {
+  const originalConsoleError = console.error;
+
   beforeEach(async () => {
+    console.error = (...args: any[]) => {
+      const msg = args.join(' ');
+      if (msg.includes('NotFoundError') || msg.includes('DatabaseClosedError')) return;
+      originalConsoleError(...args);
+    };
+
+    db.close();
+    await Dexie.delete('HisaibKItaibDB');
+    await db.open();
     await db.appUsers.clear();
+  });
+
+  afterAll(() => {
+    console.error = originalConsoleError;
   });
 
   it('adds a user with a secure hashed passcode and no plain text passcode', async () => {
