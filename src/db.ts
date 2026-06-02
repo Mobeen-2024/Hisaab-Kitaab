@@ -367,8 +367,17 @@ export class HisaibKItaibDB extends Dexie {
       if (table.name === 'syncQueue') continue;
       let rows = await table.toArray();
       if (table.name === 'settings') {
+        // Strip AI API key — must never leave the device
         rows = rows.map(r => {
           const { geminiApiKey, ...rest } = r as any;
+          return rest;
+        });
+      }
+      if (table.name === 'appUsers') {
+        // Strip credential fields — passcodeHash and passcodeSalt are device-only secrets.
+        // On restore, users will need to set new PINs.
+        rows = rows.map(r => {
+          const { passcodeHash, passcodeSalt, passcode, ...rest } = r as any;
           return rest;
         });
       }
@@ -378,6 +387,7 @@ export class HisaibKItaibDB extends Dexie {
     const payload = JSON.stringify({
       version: 1,
       timestamp: new Date().toISOString(),
+      warning: 'This backup contains sensitive financial data. Store it securely. User PINs are not included — users must set new PINs after restore.',
       data
     });
 
