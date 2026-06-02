@@ -45,17 +45,16 @@
 
 ## 5. Core Business Logic & Data Flow
 The app follows a client-heavy, offline-first architecture. All data operations read/write to a local IndexedDB via Dexie.js (`db.ts`). Live queries via `dexie-react-hooks` auto-update the UI.
-- **Sync Mechanism**: A background sync mechanism optionally mirrors local changes to Firebase Firestore. `FirebaseSyncService` listens for local changes and queues Firestore writes. `onSnapshot` listeners merge remote changes down. A transactional flag (`isSyncingDown`) prevents sync echo loops.
+- **Sync Mechanism**: A durable, offline-first sync queue mechanism mirrors local changes to Firebase Firestore. Dexie hooks queue operations in a local `syncQueue` table, which `FirebaseSyncService` periodically drains and commits using Firestore write batches (automatically consolidating duplicate document updates). `onSnapshot` listeners merge remote changes down. A Dexie transactional tag (`_isRemoteSync`) safely prevents sync echo loops.
 - **Balance Calculation**: Customer balances are entirely **derived**. They are recomputed in `CustomerService.syncBalance()` by summing `udhaarEntries` and standalone manual `transactions`. This guarantees accuracy.
 - **Udhaar Flow**: Adding Udhaar atomically creates an `UdhaarEntry` and a paired `Transaction`, cross-linked via `transactionId`.
 - **Context Isolation**: Every major entity is tagged with `context: 'personal' | 'business'`. Queries respect the active context.
 
 ## 6. Known Issues / Priorities
-1. **Firestore Rules Missing**: `goals`, `budgets`, `messages`, and `auditLogs` fall through the `firestore.rules` and silently fail to sync.
-2. **Voice Transaction `categoryId`**: `add_transaction` voice tool sets `categoryId: 0` which needs to be replaced by a valid category lookup.
-3. **Multi-User Enforcement**: `AppUser.contextAccess` is defined but not enforced strictly at the UI layer.
-4. **Pagination**: No pagination exists for large transaction lists, which may impact performance over time.
-5. **Passcode Storage**: Passcodes are currently stored as plain text in IndexedDB.
+1. **Voice Transaction `categoryId`**: `add_transaction` voice tool sets `categoryId: 0` which needs to be replaced by a valid category lookup.
+2. **Multi-User Enforcement**: `AppUser.contextAccess` is defined but not enforced strictly at the UI layer.
+3. **Pagination**: No pagination exists for large transaction lists, which may impact performance over time.
+4. **Passcode Storage**: Passcodes are currently stored as plain text in IndexedDB.
 
 ---
 
