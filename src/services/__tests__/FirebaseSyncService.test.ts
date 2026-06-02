@@ -88,6 +88,7 @@ describe('FirebaseSyncService Tests', () => {
       action: 'UPSERT',
       entityType: 'transactions',
       remoteId: 'remote-1',
+      timestamp: new Date().toISOString(),
       payload: { amount: 100, description: 'Lunch' }
     });
 
@@ -107,6 +108,7 @@ describe('FirebaseSyncService Tests', () => {
       action: 'UPSERT',
       entityType: 'transactions',
       remoteId: 'remote-2',
+      timestamp: new Date().toISOString(),
       payload: { amount: 200, description: 'Dinner' }
     });
 
@@ -128,12 +130,14 @@ describe('FirebaseSyncService Tests', () => {
         action: 'UPSERT',
         entityType: 'transactions',
         remoteId: 'tx-1',
+        timestamp: new Date().toISOString(),
         payload: { amount: 300, description: 'Breakfast' }
       },
       {
         action: 'DELETE',
         entityType: 'customers',
         remoteId: 'cust-1',
+        timestamp: new Date().toISOString(),
         payload: {}
       }
     ]);
@@ -159,6 +163,7 @@ describe('FirebaseSyncService Tests', () => {
       action: 'UPSERT',
       entityType: 'settings',
       remoteId: 'settings-profile',
+      timestamp: new Date().toISOString(),
       payload: {
         currency: 'PKR',
         activeContext: 'business',

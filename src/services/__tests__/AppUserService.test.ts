@@ -11,7 +11,8 @@ describe('AppUserService Tests', () => {
   it('adds a user with a secure hashed passcode and no plain text passcode', async () => {
     const userId = await AppUserService.add({
       name: 'Admin User',
-      role: 'admin',
+      role: 'owner',
+      contextAccess: 'both',
       passcode: '1234'
     });
 
@@ -48,7 +49,8 @@ describe('AppUserService Tests', () => {
   it('rejects incorrect passcodes', async () => {
     const userId = await AppUserService.add({
       name: 'Test User',
-      role: 'admin',
+      role: 'owner',
+      contextAccess: 'both',
       passcode: '9999'
     });
 
