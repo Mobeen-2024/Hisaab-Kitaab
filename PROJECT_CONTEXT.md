@@ -3,7 +3,7 @@
 ## 1. Application Overview
 | Field | Value |
 |---|---|
-| **App Name** | Hisaab-Kitaab (also spelled "HisaibKItaib" internally) |
+| **App Name** | Hisaib Kitaib (formerly Hisaab-Kitaab) |
 | **Main Purpose** | Offline-first, AI-powered personal and business bookkeeping app designed for the Pakistani / South Asian market |
 | **Target Users** | Small-business owners, shopkeepers, farmers, and individuals who need a "khata book" (ledger) equivalent on mobile or desktop |
 | **Business Problem** | Replaces paper ledgers for tracking income, expenses, Udhaar (credit), inventory, and savings goals — with AI insights, voice entry, and optional Firebase cloud sync |

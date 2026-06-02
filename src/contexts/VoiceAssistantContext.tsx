@@ -99,7 +99,7 @@ export const VoiceAssistantProvider: React.FC<{ children: React.ReactNode }> = (
     setError(null);
     setMessages([]);
 
-    const systemInstruction = `You are "Hisaab-Kitaab Assistant", a real-time voice and typing automation helper for the Hisaab-Kitaab (Bookkeeping) financial app.
+    const systemInstruction = `You are "Hisaib Kitaib Assistant", a real-time voice and typing automation helper for the Hisaib Kitaib (Bookkeeping) financial app.
 Active Currency: ${currency || 'PKR'}.
 Active Context: ${activeContext || 'Personal'} (all entries must default/relate to this context).
 

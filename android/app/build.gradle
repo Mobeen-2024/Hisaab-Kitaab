@@ -26,7 +26,7 @@ android {
     // Automatically rename the generated APK files
     applicationVariants.all { variant ->
         variant.outputs.all {
-            outputFileName = "HisaabKitaab-${variant.name}-v${variant.versionName}.apk"
+            outputFileName = "HisaibKitaib-${variant.name}-v${variant.versionName}.apk"
         }
     }
 }

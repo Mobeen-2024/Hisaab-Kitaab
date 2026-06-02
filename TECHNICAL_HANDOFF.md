@@ -1,9 +1,9 @@
 # Deep Technical Handoff Summary
-**Project:** Hisaab-Kitaab
+**Project:** Hisaib Kitaib
 **Target Audience:** Future AI Assistants / Developers
 
 ## 1. Executive Overview
-Hisaab-Kitaab is a modern, offline-first digital ledger (Khata) and inventory management application built with React, TypeScript, Vite, and TailwindCSS. It utilizes an offline-first architecture via Dexie.js (IndexedDB) with a custom background synchronization engine to Firebase Firestore. 
+Hisaib Kitaib is a modern, offline-first digital ledger (Khata) and inventory management application built with React, TypeScript, Vite, and TailwindCSS. It utilizes an offline-first architecture via Dexie.js (IndexedDB) with a custom background synchronization engine to Firebase Firestore. 
 
 ## 2. Architecture & Tech Stack
 - **Frontend Framework**: React 18, Vite.
