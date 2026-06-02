@@ -331,13 +331,7 @@ export class HisaibKItaibDB extends Dexie {
         }
       });
 
-      // Post-import sync upload to Firestore in a batched, safe manner
-      import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-        const user = FirebaseSyncService.getCurrentUser();
-        if (user && FirebaseSyncService.isEnabled()) {
-          FirebaseSyncService.uploadAllLocalData(user.uid).catch(console.error);
-        }
-      }).catch(console.error);
+
 
       return true;
     } catch (e) {

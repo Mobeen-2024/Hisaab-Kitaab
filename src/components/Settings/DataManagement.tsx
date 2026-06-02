@@ -41,6 +41,11 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
   // Sync now action state
   const [isSyncingNow, setIsSyncingNow] = useState(false);
 
+  // Restore Sync interaction states
+  const [pendingImportData, setPendingImportData] = useState<string | null>(null);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+
   // Refresh status periodically or on state change
   useEffect(() => {
     setIsSyncEnabled(FirebaseSyncService.isEnabled());
@@ -70,19 +75,74 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
       const reader = new FileReader();
       reader.onloadend = async () => {
         const str = reader.result as string;
-        try {
-          const success = await SettingsService.importData(str);
-          if (success) {
-            alert("Data restored successfully!");
-            window.location.reload();
-          } else {
+        if (FirebaseSyncService.isEnabled()) {
+          setPendingImportData(str);
+          setShowRestoreModal(true);
+        } else {
+          try {
+            const success = await SettingsService.importData(str);
+            if (success) {
+              alert("Data restored successfully!");
+              window.location.reload();
+            } else {
+              alert("Backup file is corrupt or invalid.");
+            }
+          } catch (err) {
             alert("Backup file is corrupt or invalid.");
           }
-        } catch (err) {
-          alert("Backup file is corrupt or invalid.");
         }
       };
       reader.readAsText(file);
+    }
+  };
+
+  const executeRestore = async (choice: 'local' | 'cloud') => {
+    if (!pendingImportData) return;
+    setIsRestoring(true);
+    try {
+      if (choice === 'local') {
+        // Disable Sync and logout
+        await FirebaseSyncService.logout();
+        const success = await SettingsService.importData(pendingImportData);
+        if (success) {
+          alert("Data restored successfully! Cloud sync has been disabled.");
+          window.location.reload();
+        } else {
+          alert("Backup file is corrupt or invalid.");
+        }
+      } else {
+        // Clean Cloud Re-upload
+        const user = FirebaseSyncService.getCurrentUser();
+        if (!user) {
+          alert("No active user session to upload to cloud.");
+          setIsRestoring(false);
+          return;
+        }
+
+        // Pause sync listener
+        FirebaseSyncService.stopSync();
+
+        const success = await SettingsService.importData(pendingImportData);
+        if (success) {
+          // Clear cloud collections completely
+          await FirebaseSyncService.clearCloudData(user.uid);
+          // Upload local data to clean cloud state
+          await FirebaseSyncService.uploadAllLocalData(user.uid);
+          // Restart sync listener
+          FirebaseSyncService.startSync(user.uid);
+
+          alert("Data restored successfully and uploaded to Cloud!");
+          window.location.reload();
+        } else {
+          alert("Backup file is corrupt or invalid.");
+        }
+      }
+    } catch (e: any) {
+      alert("Restore failed: " + e.message);
+    } finally {
+      setIsRestoring(false);
+      setShowRestoreModal(false);
+      setPendingImportData(null);
     }
   };
 
@@ -428,6 +488,58 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
                   <button
                     onClick={() => setConfirmModal({ ...confirmModal, isOpen: false })}
                     className="px-4 py-2 bg-white/10 text-white text-xs font-bold rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showRestoreModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md rounded-xl text-center"
+            >
+              <div className="space-y-4 max-w-sm mx-auto p-2">
+                <div className="p-3 bg-amber-500/20 text-amber-500 rounded-full w-fit mx-auto animate-pulse">
+                  <Cloud size={28} />
+                </div>
+                <div>
+                  <h4 className="text-white font-bold text-sm">Cloud Sync Conflict Warning</h4>
+                  <p className="text-[11px] text-slate-300 mt-2 leading-relaxed">
+                    Firebase Cloud Sync is active. Restoring this backup will replace your current local data.
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                    To prevent cloud data from merging back or overwriting your restored data, choose a safe path:
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 pt-2">
+                  <button
+                    disabled={isRestoring}
+                    onClick={() => executeRestore('cloud')}
+                    className="w-full px-3 py-2.5 bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    {isRestoring ? 'Syncing...' : 'Overwrite Cloud & Sync (Re-upload)'}
+                  </button>
+                  <button
+                    disabled={isRestoring}
+                    onClick={() => executeRestore('local')}
+                    className="w-full px-3 py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors"
+                  >
+                    Keep Local Only (Disable Sync)
+                  </button>
+                  <button
+                    disabled={isRestoring}
+                    onClick={() => {
+                      setShowRestoreModal(false);
+                      setPendingImportData(null);
+                    }}
+                    className="w-full px-3 py-2 bg-white/10 text-white text-xs font-bold rounded-lg transition-colors"
                   >
                     Cancel
                   </button>

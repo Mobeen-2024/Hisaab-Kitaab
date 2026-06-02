@@ -232,6 +232,39 @@ export const FirebaseSyncService = {
     }
   },
 
+  // Clear all user data from Firestore
+  async clearCloudData(userId: string): Promise<void> {
+    const collectionsToClear = [
+      'transactions', 'customers', 'categories', 'inventory', 
+      'udhaarEntries', 'goals', 'budgets', 'appUsers', 'messages'
+    ];
+    for (const colName of collectionsToClear) {
+      try {
+        const colRef = collection(firestore, `users/${userId}/${colName}`);
+        const snapshot = await getDocs(colRef);
+        if (snapshot.empty) continue;
+        
+        const chunkSize = 400;
+        for (let i = 0; i < snapshot.docs.length; i += chunkSize) {
+          const chunk = snapshot.docs.slice(i, i + chunkSize);
+          const batch = writeBatch(firestore);
+          chunk.forEach(docSnap => batch.delete(docSnap.ref));
+          await batch.commit();
+        }
+      } catch (e) {
+        console.error(`Error clearing cloud collection [${colName}]:`, e);
+      }
+    }
+
+    // Clear settings doc if it exists
+    try {
+      const settingsRef = doc(firestore, `users/${userId}/settings/profile`);
+      await deleteDoc(settingsRef);
+    } catch (e) {
+      console.error("Error clearing cloud settings:", e);
+    }
+  },
+
   // Start queue processing interval
   startQueueTimer() {
     if (queueIntervalId) return;
