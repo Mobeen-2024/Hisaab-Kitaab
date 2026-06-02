@@ -393,7 +393,16 @@ export const FirebaseSyncService = {
     try {
       const batch = writeBatch(firestore);
 
+      // Group/consolidate items by document path, keeping only the latest one
+      const consolidatedMap = new Map<string, typeof items[0]>();
       for (const item of items) {
+        const pathKey = item.entityType === 'settings'
+          ? 'settings/profile'
+          : `${item.entityType}/${item.remoteId}`;
+        consolidatedMap.set(pathKey, item);
+      }
+
+      for (const item of consolidatedMap.values()) {
         const docRef = item.entityType === 'settings'
           ? doc(firestore, `users/${user.uid}/settings/profile`)
           : doc(firestore, `users/${user.uid}/${item.entityType}/${item.remoteId}`);
