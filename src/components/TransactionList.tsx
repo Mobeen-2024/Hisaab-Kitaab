@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { t, Lang, isRTL } from '../lib/i18n';
-import { useCategories, useAppSettings, useAppUsers } from '../hooks/useData';
+import { useCategories, useAppSettings, useAppUsers, useRecentTransactionsByContext } from '../hooks/useData';
 import { TransactionService } from '../services/TransactionService';
 import { format } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, Trash2, Search, Edit2 } from 'lucide-react';
@@ -28,11 +28,12 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
   const [editingTransactionId, setEditingTransactionId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  // Pagination states
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
+  // Pagination and search states
+  const [visibleLimit, setVisibleLimit] = useState(25);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<Transaction[]>([]);
+
+  const recentTransactions = useRecentTransactionsByContext(activeContext, visibleLimit);
 
   // Debounce search input
   useEffect(() => {
@@ -42,55 +43,32 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Load transactions based on activeContext, page, and debouncedSearchQuery
   useEffect(() => {
     let isMounted = true;
-    const load = async () => {
-      setLoading(true);
-      try {
-        if (debouncedSearchQuery.trim().length >= 2) {
-          // When search is active, fetch from searchLimited
-          const results = await TransactionService.searchLimited(activeContext, debouncedSearchQuery, 20);
-          if (isMounted) {
-            setTransactions(results);
-            setHasMore(false); // Disable load more in search view
-          }
-        } else {
-          // Normal paginated load
-          const results = await TransactionService.getPaginatedByContext(activeContext, page, 25);
-          const totalCount = await TransactionService.countByContext(activeContext);
-          if (isMounted) {
-            if (page === 0) {
-              setTransactions(results);
-            } else {
-              setTransactions(prev => {
-                const existingIds = new Set(prev.map(t => t.id));
-                const filteredResults = results.filter(t => !existingIds.has(t.id));
-                return [...prev, ...filteredResults];
-              });
-            }
-            setHasMore((page + 1) * 25 < totalCount);
-          }
+    const search = async () => {
+      if (debouncedSearchQuery.trim().length >= 2) {
+        setIsSearching(true);
+        try {
+          const results = await TransactionService.searchLimited(activeContext, debouncedSearchQuery, 100);
+          if (isMounted) setSearchResults(results);
+        } catch (err) {
+          console.error(err);
         }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        if (isMounted) setLoading(false);
+      } else {
+        if (isMounted) setIsSearching(false);
       }
     };
-
-    load();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeContext, page, debouncedSearchQuery]);
+    search();
+    return () => { isMounted = false; };
+  }, [debouncedSearchQuery, activeContext]);
 
   // Reset pagination when activeContext or search query changes
   useEffect(() => {
-    setPage(0);
-    setHasMore(true);
+    setVisibleLimit(25);
   }, [activeContext, debouncedSearchQuery]);
+
+  const transactions = isSearching ? searchResults : recentTransactions;
+  const hasMore = !isSearching && transactions.length >= visibleLimit;
 
   // Update 'now' every minute
   useEffect(() => {
@@ -124,15 +102,13 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
   const handleDelete = async () => {
     if (confirmDeleteId) {
       await TransactionService.delete(confirmDeleteId);
-      // Remove from state dynamically
-      setTransactions(prev => prev.filter(t => t.id !== confirmDeleteId));
       setConfirmDeleteId(null);
     }
   };
 
   const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      setPage(prev => prev + 1);
+    if (hasMore) {
+      setVisibleLimit(prev => prev + 25);
     }
   };
 
@@ -159,7 +135,7 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
             <Search size={16} className={`absolute ${rtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-slate-500`} />
             <input
               type="text"
-              placeholder={t(lang, 'searchTransactions')}
+              placeholder={t(lang, 'searchTransactions') || "Search (last 100 entries)..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`w-full bg-[#0F172A]/50 border border-white/10 text-white rounded-xl ${rtl ? 'pr-9 pl-4' : 'pl-9 pr-4'} py-2 text-sm focus:ring-2 focus:ring-blue-500/50 outline-none placeholder:text-slate-600`}
@@ -174,7 +150,7 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
             <Search size={14} className={`absolute ${rtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-slate-500`} />
             <input
               type="text"
-              placeholder={t(lang, 'searchTransactions')}
+              placeholder={t(lang, 'searchTransactions') || "Search (last 100 entries)..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`w-full bg-white/5 border border-white/5 text-white rounded-lg ${rtl ? 'pr-8 pl-4' : 'pl-8 pr-4'} py-1.5 text-[11px] focus:ring-1 focus:ring-blue-500/50 outline-none placeholder:text-slate-600`}
@@ -186,7 +162,7 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
       <div className="divide-y divide-white/5">
         {transactions.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
-            {loading ? t(lang, 'loading') || 'Loading...' : 'No transactions found'}
+            {'No transactions found'}
           </div>
         ) : (
           transactions.map(tx => (
@@ -248,10 +224,9 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
         <div className="p-4 border-t border-white/10 text-center">
           <button
             onClick={handleLoadMore}
-            disabled={loading}
             className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-semibold transition-all border border-white/10 cursor-pointer disabled:opacity-50"
           >
-            {loading ? t(lang, 'loading') || 'Loading...' : t(lang, 'loadMore') || 'Load More'}
+            {t(lang, 'loadMore') || 'Load More'}
           </button>
         </div>
       )}

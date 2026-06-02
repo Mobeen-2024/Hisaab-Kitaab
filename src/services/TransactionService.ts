@@ -1,4 +1,5 @@
 import { db } from '../db';
+import Dexie from 'dexie';
 import { Transaction, TransactionSchema } from '../models';
 import { CustomerService } from './CustomerService';
 
@@ -82,8 +83,8 @@ export const TransactionService = {
 
   async getPaginatedByContext(context: 'personal' | 'business', page: number, pageSize: number) {
     return await db.transactions
-      .where('context')
-      .equals(context)
+      .where('[context+date]')
+      .between([context, Dexie.minKey], [context, Dexie.maxKey])
       .reverse()
       .offset(page * pageSize)
       .limit(pageSize)
@@ -97,18 +98,18 @@ export const TransactionService = {
       .count();
   },
 
-  async getByDateRange(context: 'personal' | 'business', startDate: string, endDate: string) {
+  async getByDateRange(context: 'personal' | 'business', startDate: string, endDate: string, includeUpperBound = true) {
     return await db.transactions
       .where('[context+date]')
-      .between([context, startDate], [context, endDate], true, true)
+      .between([context, startDate], [context, endDate], true, includeUpperBound)
       .reverse()
       .toArray();
   },
 
   async getRecentByContext(context: 'personal' | 'business', limit: number) {
     return await db.transactions
-      .where('context')
-      .equals(context)
+      .where('[context+date]')
+      .between([context, Dexie.minKey], [context, Dexie.maxKey])
       .reverse()
       .limit(limit)
       .toArray();

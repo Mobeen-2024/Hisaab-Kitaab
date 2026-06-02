@@ -9,7 +9,7 @@ import TransactionCalendar from './TransactionCalendar';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useSettings } from '../contexts/SettingsContext';
 import { useUIStore } from '../lib/store';
-import { useTransactions, useCategories, useMonthTransactions } from '../hooks/useData';
+import { useCategories, useMonthTransactions, useDateRangeTransactions } from '../hooks/useData';
 
 const CHART_COLORS = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#3b82f6', '#8b5cf6', '#14b8a6', '#ef4444'];
 
@@ -26,16 +26,12 @@ export default function Reports() {
   const filteredTransactions = useMonthTransactions(activeContext, selectedMonth);
 
   // YTD transactions using startOfYear & endOfYear dates
-  const ytdTransactions = useTransactions(activeContext); // Fallback or we can query YTD range
-  const currentYearStr = new Date().getFullYear().toString();
-  const yearStart = `${currentYearStr}-01-01`;
-  const yearEnd = `${currentYearStr}-12-31`;
+  const currentYear = new Date().getFullYear();
+  const yearStart = `${currentYear}-01-01`;
+  const nextYearStart = `${currentYear + 1}-01-01`;
 
-  // We fetch only YTD via a live query or custom logic:
-  const yearTransactions = useTransactions(activeContext); // Since we have activeContext, it's safer. Let's do a useLiveQuery directly inside Reports for YTD scope to be extremely fast.
-  const ytdTransactionsFiltered = useMemo(() => {
-    return yearTransactions.filter(t => t.date >= yearStart && t.date <= yearEnd);
-  }, [yearTransactions, yearStart, yearEnd]);
+  // We fetch only YTD via a live query
+  const ytdTransactionsFiltered = useDateRangeTransactions(activeContext, yearStart, nextYearStart, false);
 
   const searchedTransactions = useMemo(() => {
     if (!tableSearch.trim()) return filteredTransactions;
