@@ -124,7 +124,8 @@ export const FirebaseSyncService = {
       { name: 'goals', dbTable: db.goals },
       { name: 'budgets', dbTable: db.budgets },
       { name: 'appUsers', dbTable: db.appUsers },
-      { name: 'messages', dbTable: db.messages }
+      { name: 'messages', dbTable: db.messages },
+      { name: 'auditLogs', dbTable: db.auditLogs }
     ];
 
     for (const table of tables) {
@@ -157,7 +158,8 @@ export const FirebaseSyncService = {
         { path: 'goals', dbTable: db.goals },
         { path: 'budgets', dbTable: db.budgets },
         { path: 'appUsers', dbTable: db.appUsers },
-        { path: 'messages', dbTable: db.messages }
+        { path: 'messages', dbTable: db.messages },
+        { path: 'auditLogs', dbTable: db.auditLogs }
       ];
 
       for (const table of tables) {
@@ -302,7 +304,8 @@ export const FirebaseSyncService = {
       { name: 'goals', dbTable: db.goals },
       { name: 'budgets', dbTable: db.budgets },
       { name: 'appUsers', dbTable: db.appUsers },
-      { name: 'messages', dbTable: db.messages }
+      { name: 'messages', dbTable: db.messages },
+      { name: 'auditLogs', dbTable: db.auditLogs }
     ];
 
     for (const col of collectionsToSync) {

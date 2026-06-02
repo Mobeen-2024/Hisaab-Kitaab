@@ -98,6 +98,20 @@ export class HisaibKItaibDB extends Dexie {
     this.version(12).stores({
       transactions: '++id, type, categoryId, context, date, customerId, source, importReferenceId, [context+date]'
     });
+    // Version 13: index remoteId for all synchronized tables to prevent full scans / query errors
+    this.version(13).stores({
+      transactions: '++id, type, categoryId, context, date, customerId, source, importReferenceId, [context+date], remoteId',
+      categories: '++id, type, context, remoteId',
+      settings: '++id, remoteId',
+      customers: '++id, name, phone, balance, type, remoteId',
+      udhaarEntries: '++id, customerId, type, date, dueDate, context, transactionId, isCompleted, remoteId',
+      goals: '++id, context, remoteId',
+      budgets: '++id, month, context, remoteId',
+      inventory: '++id, context, remoteId',
+      auditLogs: '++id, entityType, entityId, action, timestamp, context, remoteId',
+      appUsers: '++id, role, contextAccess, remoteId',
+      messages: '++id, chatId, sender, timestamp, remoteId'
+    });
 
     this.on('ready', () => {
       const tablesToAudit = [
@@ -112,6 +126,67 @@ export class HisaibKItaibDB extends Dexie {
         'messages',
         'settings'
       ];
+
+      // Audit logs hook that pushes to sync queue but avoids recursive logging
+      this.auditLogs.hook('creating', function (primKey, obj) {
+        if (db.isImporting) return;
+        if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
+        if (!obj.remoteId) {
+          obj.remoteId = typeof crypto !== 'undefined' && crypto.randomUUID 
+            ? crypto.randomUUID() 
+            : Math.random().toString(36).substring(2) + Date.now().toString(36);
+        }
+
+        this.onsuccess = (resultKey) => {
+          db.syncQueue.add({
+            entityType: 'auditLogs',
+            remoteId: obj.remoteId,
+            action: 'UPSERT',
+            payload: obj,
+            timestamp: new Date().toISOString()
+          }).then(() => {
+            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+              FirebaseSyncService.triggerQueueProcessing();
+            }).catch(console.error);
+          }).catch(console.error);
+        };
+      });
+
+      this.auditLogs.hook('updating', (modifications, primKey, obj, transaction) => {
+        if (db.isImporting) return;
+        if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
+        const updatedObj = { ...obj, ...modifications };
+        if (updatedObj.remoteId) {
+          db.syncQueue.add({
+            entityType: 'auditLogs',
+            remoteId: updatedObj.remoteId,
+            action: 'UPSERT',
+            payload: updatedObj,
+            timestamp: new Date().toISOString()
+          }).then(() => {
+            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+              FirebaseSyncService.triggerQueueProcessing();
+            }).catch(console.error);
+          }).catch(console.error);
+        }
+      });
+
+      this.auditLogs.hook('deleting', (primKey, obj, transaction) => {
+        if (db.isImporting) return;
+        if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
+        if (obj.remoteId) {
+          db.syncQueue.add({
+            entityType: 'auditLogs',
+            remoteId: obj.remoteId,
+            action: 'DELETE',
+            timestamp: new Date().toISOString()
+          }).then(() => {
+            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
+              FirebaseSyncService.triggerQueueProcessing();
+            }).catch(console.error);
+          }).catch(console.error);
+        }
+      });
 
       for (const tableName of tablesToAudit) {
         const table = this.table(tableName);
@@ -289,6 +364,7 @@ export class HisaibKItaibDB extends Dexie {
   async exportData() {
     const data: any = {};
     for (const table of this.tables) {
+      if (table.name === 'syncQueue') continue;
       data[table.name] = await table.toArray();
     }
 
@@ -329,6 +405,7 @@ export class HisaibKItaibDB extends Dexie {
 
       await this.transaction('rw', this.tables, async () => {
         for (const table of this.tables) {
+          if (table.name === 'syncQueue') continue;
           if (parsed.data[table.name]) {
             await table.clear();
             await table.bulkAdd(parsed.data[table.name]);
