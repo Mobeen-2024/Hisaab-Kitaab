@@ -24,9 +24,32 @@ const MobileMenu = lazy(() => import('./components/MobileMenu'));
 
 import { VoiceAssistantProvider } from './contexts/VoiceAssistantContext';
 import { VoiceWidget } from './components/VoiceAssistant/VoiceWidget';
+import AccessDenied from './components/common/AccessDenied';
+
+function RequireAccess({ 
+  allowed, 
+  children 
+}: { 
+  allowed: boolean; 
+  children: React.ReactNode;
+}) {
+  if (!allowed) {
+    return <AccessDenied />;
+  }
+  return <>{children}</>;
+}
 
 function AppRoutes() {
-  const { lang, isLoading, dbError, resetDatabase } = useSettings();
+  const { 
+    lang, 
+    isLoading, 
+    dbError, 
+    resetDatabase,
+    canViewReports,
+    canViewPlanner,
+    canViewSmart,
+    canAccessBusiness
+  } = useSettings();
   const location = useLocation();
   const isOnline = useOnlineStatus();
 
@@ -54,11 +77,11 @@ function AppRoutes() {
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/customers" element={<Customers />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/planner" element={<Planner />} />
-              <Route path="/smart" element={<SmartAssistant />} />
-              <Route path="/intelligence" element={<BusinessHealth />} />
-              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/reports" element={<RequireAccess allowed={canViewReports}><Reports /></RequireAccess>} />
+              <Route path="/planner" element={<RequireAccess allowed={canViewPlanner}><Planner /></RequireAccess>} />
+              <Route path="/smart" element={<RequireAccess allowed={canViewSmart}><SmartAssistant /></RequireAccess>} />
+              <Route path="/intelligence" element={<RequireAccess allowed={canAccessBusiness}><BusinessHealth /></RequireAccess>} />
+              <Route path="/inventory" element={<RequireAccess allowed={canAccessBusiness}><Inventory /></RequireAccess>} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/menu" element={<MobileMenu />} />
               <Route path="*" element={<Navigate to="/" replace />} />

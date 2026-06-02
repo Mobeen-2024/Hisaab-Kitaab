@@ -8,12 +8,18 @@ import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
 
 export default function Sidebar() {
-  const { lang, currency, activeContext, updateSetting, activeRole } = useSettings();
+  const { 
+    lang, 
+    currency, 
+    activeContext, 
+    updateSetting, 
+    canViewReports, 
+    canViewPlanner, 
+    canViewSmart, 
+    canAccessPersonal, 
+    canAccessBusiness 
+  } = useSettings();
   const { user, isAuthenticated, isSyncEnabled } = useCloudAuth();
-
-  const canViewReports = activeRole === 'owner' || activeRole === 'spouse';
-  const canViewPlanner = activeRole === 'owner' || activeRole === 'spouse';
-  const canViewSmart = activeRole === 'owner' || activeRole === 'spouse';
 
   const navItems = [
     { to: '/', icon: <LayoutGrid size={20} className="shrink-0" />, label: t(lang, 'dashboard') || 'Dashboard' },
@@ -21,11 +27,19 @@ export default function Sidebar() {
     ...(canViewReports ? [{ to: '/reports', icon: <FileText size={20} className="shrink-0" />, label: t(lang, 'reports') || 'Reports' }] : []),
     ...(canViewPlanner ? [{ to: '/planner', icon: <PieChart size={20} className="shrink-0" />, label: 'Planner & Goals' }] : []),
     ...(canViewSmart ? [{ to: '/smart', icon: <Sparkles size={20} className="shrink-0" />, label: 'AI Assistant' }] : []),
-    ...(activeContext === 'business' ? [
+    ...(activeContext === 'business' && canAccessBusiness ? [
       { to: '/intelligence', icon: <Activity size={20} className="shrink-0" />, label: 'Intelligence' },
       { to: '/inventory', icon: <Package size={20} className="shrink-0" />, label: 'Inventory' }
     ] : [])
   ];
+
+  const handleContextChange = async (context: 'personal' | 'business') => {
+    try {
+      await updateSetting('activeContext', context);
+    } catch (err: any) {
+      alert(err.message || 'Failed to switch context');
+    }
+  };
 
   return (
     <nav className="hidden md:flex flex-col z-50 w-20 lg:w-64 border-r border-white/10 bg-white/10 backdrop-blur-3xl shrink-0 transition-all duration-300 overflow-visible shadow-[4px_0_24px_rgba(0,0,0,0.3)]">
@@ -43,22 +57,26 @@ export default function Sidebar() {
         {/* Context Switcher */}
         <div className="mb-6 px-4 lg:px-4 shrink-0">
           <div className="flex flex-row md:flex-col lg:flex-row bg-white/5 rounded-xl p-1 border border-white/10 gap-1 md:gap-2 lg:gap-0">
-            <button 
-              onClick={() => updateSetting('activeContext', 'business')} 
-              className={`flex-1 overflow-hidden py-1.5 md:py-3 lg:py-1.5 rounded-lg text-xs font-bold transition-all ${activeContext === 'business' ? 'bg-amber-500/20 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'text-slate-400 hover:text-white'}`}
-              title="Business"
-            >
-              <span className="block md:hidden lg:inline">Business</span>
-              <span className="hidden md:inline lg:hidden">B</span>
-            </button>
-            <button 
-              onClick={() => updateSetting('activeContext', 'personal')} 
-              className={`flex-1 overflow-hidden py-1.5 md:py-3 lg:py-1.5 rounded-lg text-xs font-bold transition-all ${activeContext === 'personal' ? 'bg-blue-500/20 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'text-slate-400 hover:text-white'}`}
-              title="Personal"
-            >
-              <span className="block md:hidden lg:inline">Personal</span>
-              <span className="hidden md:inline lg:hidden">P</span>
-            </button>
+            {canAccessBusiness && (
+              <button 
+                onClick={() => handleContextChange('business')} 
+                className={`flex-1 overflow-hidden py-1.5 md:py-3 lg:py-1.5 rounded-lg text-xs font-bold transition-all ${activeContext === 'business' ? 'bg-amber-500/20 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'text-slate-400 hover:text-white'}`}
+                title="Business"
+              >
+                <span className="block md:hidden lg:inline">Business</span>
+                <span className="hidden md:inline lg:hidden">B</span>
+              </button>
+            )}
+            {canAccessPersonal && (
+              <button 
+                onClick={() => handleContextChange('personal')} 
+                className={`flex-1 overflow-hidden py-1.5 md:py-3 lg:py-1.5 rounded-lg text-xs font-bold transition-all ${activeContext === 'personal' ? 'bg-blue-500/20 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'text-slate-400 hover:text-white'}`}
+                title="Personal"
+              >
+                <span className="block md:hidden lg:inline">Personal</span>
+                <span className="hidden md:inline lg:hidden">P</span>
+              </button>
+            )}
           </div>
         </div>
 

@@ -16,10 +16,24 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
   const [role, setRole] = useState<'owner' | 'spouse' | 'cashier' | 'employee'>('employee');
+  const [contextAccess, setContextAccess] = useState<'personal' | 'business' | 'both'>('business');
   const [passcode, setPasscode] = useState('');
+  const [switchingUserId, setSwitchingUserId] = useState<number | null>(null);
+  const [switchPin, setSwitchPin] = useState('');
 
   const activeUser = users.find(u => u.id === settingsObj?.activeUserId);
   const isOwner = activeUser?.role === 'owner' || users.length === 0;
+
+  const handleRoleChange = (newRole: 'owner' | 'spouse' | 'cashier' | 'employee') => {
+    setRole(newRole);
+    if (newRole === 'cashier') {
+      setContextAccess('business');
+    } else if (newRole === 'employee') {
+      setContextAccess('business');
+    } else {
+      setContextAccess('both');
+    }
+  };
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,25 +43,41 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
       name,
       role,
       passcode,
-      contextAccess: role === 'cashier' || role === 'employee' ? 'business' : 'both'
+      contextAccess: role === 'cashier' || role === 'employee' ? 'business' : contextAccess
     });
     setShowAdd(false);
     setName('');
     setPasscode('');
   };
 
-  const handleSwitchUser = async (userId: number) => {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
-    const input = prompt(`Enter passcode for ${user.name}:`);
-    if (input === user.passcode) {
+  const handleSwitchUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (switchingUserId === null || !switchPin) return;
+
+    const success = await AppUserService.verifyAndMigrate(switchingUserId, switchPin);
+    if (success) {
       if (settingsObj?.id) {
-        await SettingsService.update(settingsObj.id, { activeUserId: userId });
+        // Find user to check context access
+        const targetUser = users.find(u => u.id === switchingUserId);
+        let newContext = settingsObj.activeContext;
+        if (targetUser) {
+          if (targetUser.contextAccess === 'personal' && settingsObj.activeContext !== 'personal') {
+            newContext = 'personal';
+          } else if (targetUser.contextAccess === 'business' && settingsObj.activeContext !== 'business') {
+            newContext = 'business';
+          }
+        }
+        await SettingsService.update(settingsObj.id, { 
+          activeUserId: switchingUserId,
+          activeContext: newContext
+        });
         window.location.reload();
       }
     } else {
       alert("Incorrect passcode!");
     }
+    setSwitchingUserId(null);
+    setSwitchPin('');
   };
 
   const handleDeleteUser = async (id: number) => {
@@ -83,6 +113,27 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
         </div>
       ) : (
         <>
+          {switchingUserId !== null && (
+            <form onSubmit={handleSwitchUserSubmit} className="bg-slate-900 border border-indigo-500/30 p-4 rounded-xl space-y-3">
+              <h4 className="text-sm font-bold text-white">Enter Passcode for {users.find(u => u.id === switchingUserId)?.name}</h4>
+              <input 
+                autoFocus 
+                type="password" 
+                pattern="[0-9]*" 
+                inputMode="numeric"
+                maxLength={8}
+                value={switchPin} 
+                onChange={e => setSwitchPin(e.target.value)} 
+                placeholder="Enter PIN" 
+                className="w-full bg-[#1E293B] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50" 
+              />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setSwitchingUserId(null)} className="flex-1 py-1.5 bg-white/5 text-white rounded-lg text-xs font-bold transition-colors">Cancel</button>
+                <button type="submit" className="flex-1 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-500 transition-colors">Verify</button>
+              </div>
+            </form>
+          )}
+
           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
             {users.map(u => (
               <div key={u.id} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
@@ -92,13 +143,13 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
                   </div>
                   <div>
                     <h4 className="text-white text-sm font-bold">{u.name} {u.id === settingsObj?.activeUserId ? '(Active)' : ''}</h4>
-                    <p className="text-xs text-slate-400 capitalize">{u.role} access</p>
+                    <p className="text-xs text-slate-400 capitalize">{u.role} ({u.contextAccess} access)</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {u.id !== settingsObj?.activeUserId && (
                     <button 
-                      onClick={() => handleSwitchUser(u.id!)}
+                      onClick={() => setSwitchingUserId(u.id!)}
                       className="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
                     >
                       Switch
@@ -126,7 +177,7 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
                 </div>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Role</label>
-                  <select value={role} onChange={e => setRole(e.target.value as any)} className="w-full bg-[#1E293B] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50">
+                  <select value={role} onChange={e => handleRoleChange(e.target.value as any)} className="w-full bg-[#1E293B] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50">
                     {activeContext === 'personal' ? (
                       <option value="spouse">Spouse (Shared Budget)</option>
                     ) : (
@@ -138,9 +189,19 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
                     )}
                   </select>
                 </div>
+                {role !== 'cashier' && role !== 'employee' && (
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Context Access</label>
+                    <select value={contextAccess} onChange={e => setContextAccess(e.target.value as any)} className="w-full bg-[#1E293B] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50">
+                      <option value="both">Both (Personal & Business)</option>
+                      <option value="business">Business Only</option>
+                      <option value="personal">Personal Only</option>
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs text-slate-400 mb-1">Passcode (PIN)</label>
-                  <input required type="text" value={passcode} onChange={e => setPasscode(e.target.value)} className="w-full bg-[#1E293B] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                  <input required type="password" pattern="[0-9]*" inputMode="numeric" value={passcode} onChange={e => setPasscode(e.target.value)} className="w-full bg-[#1E293B] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50" />
                 </div>
                 <div className="flex gap-2 pt-2">
                   <button type="button" onClick={() => setShowAdd(false)} className="flex-1 py-2 bg-white/5 text-white rounded-lg text-xs font-bold hover:bg-white/10 transition-colors">Cancel</button>

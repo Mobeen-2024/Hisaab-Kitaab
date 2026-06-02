@@ -112,7 +112,9 @@ export const AppUserSchema = z.object({
   name: z.string().min(1),
   role: z.enum(['owner', 'spouse', 'cashier', 'employee']),
   contextAccess: z.enum(['personal', 'business', 'both']),
-  passcode: z.string(),
+  passcode: z.string().optional(),
+  passcodeHash: z.string().optional(),
+  passcodeSalt: z.string().optional(),
   avatar: z.string().optional(),
 });
 

@@ -9,15 +9,20 @@ import LanguageSelector from './LanguageSelector';
 import { useUIStore } from '../lib/store';
 
 export default function MobileMenu() {
-  const { lang, currency, activeContext, updateSetting } = useSettings();
+  const { 
+    lang, 
+    currency, 
+    activeContext, 
+    updateSetting,
+    canViewReports,
+    canViewPlanner,
+    canViewSmart,
+    canAccessPersonal,
+    canAccessBusiness
+  } = useSettings();
   const { user, isAuthenticated, isSyncEnabled } = useCloudAuth();
   const { setMessagesOpen, setNotificationsOpen } = useUIStore();
   
-  const activeUserRole = 'owner';
-  const canViewReports = activeUserRole === 'owner' || activeUserRole === 'spouse';
-  const canViewPlanner = activeUserRole === 'owner' || activeUserRole === 'spouse';
-  const canViewSmart = activeUserRole === 'owner' || activeUserRole === 'spouse';
-
   const menuGroups = [
     {
       title: 'Core Navigation',
@@ -46,7 +51,7 @@ export default function MobileMenu() {
     {
       title: 'Business Tools',
       items: [
-        ...(activeContext === 'business' ? [
+        ...(activeContext === 'business' && canAccessBusiness ? [
           { to: '/intelligence', icon: <Activity size={20} />, label: 'Business Intelligence', color: 'text-rose-400', bg: 'bg-rose-400/10' },
           { to: '/inventory', icon: <Package size={20} />, label: 'Inventory Management', color: 'text-amber-400', bg: 'bg-amber-400/10' }
         ] : []),
@@ -83,20 +88,36 @@ export default function MobileMenu() {
         {/* Context Switcher */}
         <div className="mb-8 relative">
           <div className="flex bg-[#0F172A]/50 rounded-2xl p-1.5 border border-white/10 gap-2">
-            <button 
-              onClick={() => updateSetting('activeContext', 'business')} 
-              className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeContext === 'business' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10' : 'text-slate-400 hover:text-white'}`}
-            >
-              <Activity size={16} />
-              Business
-            </button>
-            <button 
-              onClick={() => updateSetting('activeContext', 'personal')} 
-              className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeContext === 'personal' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/10' : 'text-slate-400 hover:text-white'}`}
-            >
-              <Users size={16} />
-              Personal
-            </button>
+            {canAccessBusiness && (
+              <button 
+                onClick={async () => {
+                  try {
+                    await updateSetting('activeContext', 'business');
+                  } catch (err: any) {
+                    alert(err.message || 'Failed to switch context');
+                  }
+                }} 
+                className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeContext === 'business' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10' : 'text-slate-400 hover:text-white'}`}
+              >
+                <Activity size={16} />
+                Business
+              </button>
+            )}
+            {canAccessPersonal && (
+              <button 
+                onClick={async () => {
+                  try {
+                    await updateSetting('activeContext', 'personal');
+                  } catch (err: any) {
+                    alert(err.message || 'Failed to switch context');
+                  }
+                }} 
+                className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeContext === 'personal' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/10' : 'text-slate-400 hover:text-white'}`}
+              >
+                <Users size={16} />
+                Personal
+              </button>
+            )}
           </div>
         </div>
 

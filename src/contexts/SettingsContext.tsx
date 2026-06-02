@@ -4,6 +4,7 @@ import { AppSettings, db } from '../db';
 import { Lang, isRTL } from '../lib/i18n';
 import { SettingsService } from '../services/SettingsService';
 import { AppUserService } from '../services/AppUserService';
+import { AppUser } from '../models';
 
 interface SettingsContextType {
   lang: Lang;
@@ -13,6 +14,14 @@ interface SettingsContextType {
   ownerName: string;
   ownerAvatar: string | null;
   activeRole: string;
+  activeUser: AppUser | null;
+  canAccessPersonal: boolean;
+  canAccessBusiness: boolean;
+  canViewReports: boolean;
+  canViewPlanner: boolean;
+  canViewSmart: boolean;
+  canManageUsers: boolean;
+  canAddEntries: boolean;
   updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => Promise<void>;
   isLoading: boolean;
   dbError: Error | null;
@@ -45,10 +54,39 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const ownerName = settingsObj?.ownerName || 'Mobeen';
   const ownerAvatar = settingsObj?.ownerAvatar || null;
   
-  const activeUser = users.find(u => u.id === settingsObj?.activeUserId);
-  const activeRole = activeUser?.role || 'owner';
+  const activeUser = users.find(u => u.id === settingsObj?.activeUserId) || null;
+  // If no user exists yet, default to owner role
+  const activeRole = activeUser ? activeUser.role : 'owner';
+
+  // Permission Flags Enforcements
+  // 1. Owner has absolute access to everything
+  // 2. Spouse can access personal & business if contextAccess allows
+  // 3. Cashier can access business only
+  // 4. Employee can access only assigned contextAccess
+  const isOwner = activeRole === 'owner' || users.length === 0;
+  
+  const canAccessPersonal = isOwner || (activeUser?.contextAccess === 'personal' || activeUser?.contextAccess === 'both');
+  const canAccessBusiness = isOwner || (activeUser?.contextAccess === 'business' || activeUser?.contextAccess === 'both');
+
+  // Page level permissions
+  const canViewReports = activeRole === 'owner' || activeRole === 'spouse';
+  const canViewPlanner = activeRole === 'owner' || activeRole === 'spouse';
+  const canViewSmart = activeRole === 'owner' || activeRole === 'spouse';
+  const canManageUsers = activeRole === 'owner';
+  
+  // Cashier and employee might have different write access, cashier can add entries.
+  const canAddEntries = activeRole !== 'employee';
 
   const updateSetting = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
+    if (key === 'activeContext') {
+      const targetContext = value as 'personal' | 'business';
+      if (targetContext === 'personal' && !canAccessPersonal) {
+        throw new Error('Access Denied: You do not have access to Personal context.');
+      }
+      if (targetContext === 'business' && !canAccessBusiness) {
+        throw new Error('Access Denied: You do not have access to Business context.');
+      }
+    }
     await SettingsService.update({ [key]: value });
   };
 
@@ -74,6 +112,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     ownerName,
     ownerAvatar,
     activeRole,
+    activeUser,
+    canAccessPersonal,
+    canAccessBusiness,
+    canViewReports,
+    canViewPlanner,
+    canViewSmart,
+    canManageUsers,
+    canAddEntries,
     updateSetting,
     isLoading,
     dbError,
