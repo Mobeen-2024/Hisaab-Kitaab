@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
 import { TiltCard } from '../ui/TiltCard';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useTransactions, useAppSettings, useCategories, useTodayTransactions } from '../../hooks/useData';
+import { useAppSettings, useCategories, useTodayTransactions, useCurrentMonthTransactions } from '../../hooks/useData';
 import { SettingsService } from '../../services/SettingsService';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 import { t } from '../../lib/i18n';
@@ -12,19 +12,19 @@ export function QuickStats() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const isUrdu = lang === 'ur';
 
-  const transactions = useTransactions(activeContext);
+  const currentMonthTransactions = useCurrentMonthTransactions(activeContext);
   const todayTransactions = useTodayTransactions(activeContext);
   const settingsObj = useAppSettings();
   const categories = useCategories();
 
   const { totalIncomePKR, totalExpensePKR } = React.useMemo(() => {
     let inc = 0; let exp = 0;
-    for (let i = 0; i < transactions.length; i++) {
-      if (transactions[i].type === 'income') inc += transactions[i].amount;
-      else if (transactions[i].type === 'expense') exp += transactions[i].amount;
+    for (let i = 0; i < currentMonthTransactions.length; i++) {
+      if (currentMonthTransactions[i].type === 'income') inc += currentMonthTransactions[i].amount;
+      else if (currentMonthTransactions[i].type === 'expense') exp += currentMonthTransactions[i].amount;
     }
     return { totalIncomePKR: inc, totalExpensePKR: exp };
-  }, [transactions]);
+  }, [currentMonthTransactions]);
 
   const totalBalancePKR = totalIncomePKR - totalExpensePKR;
 
@@ -74,7 +74,7 @@ export function QuickStats() {
           <div className={`flex flex-col sm:flex-row justify-between items-center sm:items-center relative z-10 ${rtl ? 'flex-row-reverse' : ''} gap-1 sm:gap-0`}>
             <p className={`text-[8px] sm:text-[10px] font-black uppercase text-blue-300/90 flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-center sm:text-left ${isUrdu ? '' : 'tracking-widest'} w-full sm:w-auto`}>
               <Wallet size={14} strokeWidth={3} className="hidden sm:block" />
-              <span className="truncate">{activeContext === 'business' ? (isUrdu ? 'مجموعی آمدنی' : 'Cumulative') : (isUrdu ? 'کل بیلنس' : 'Liquidity')}</span>
+              <span className="truncate">{isUrdu ? 'اس ماہ کا نیٹ' : 'This Month Net'}</span>
             </p>
             <div className="hidden sm:flex w-9 h-9 rounded-2xl border border-blue-400/20 bg-blue-500/10 items-center justify-center text-blue-400 transition-all duration-500 shrink-0">
               <ArrowDownRight size={18} className={rtl ? 'scale-x-[-1]' : ''} />

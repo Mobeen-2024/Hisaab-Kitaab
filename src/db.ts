@@ -93,6 +93,11 @@ export class HisaibKItaibDB extends Dexie {
     this.version(11).stores({
       syncQueue: '++id, entityType, remoteId, action, timestamp'
     });
+    // Version 12: compound index for efficient date-range queries scoped by context
+    // Used by: getByDateRange, getMonthTransactions, getLast7Days
+    this.version(12).stores({
+      transactions: '++id, type, categoryId, context, date, customerId, source, importReferenceId, [context+date]'
+    });
 
     this.on('ready', () => {
       const tablesToAudit = [

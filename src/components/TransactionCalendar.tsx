@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { t, Lang } from '../lib/i18n';
-import { useTransactions, useCategories } from '../hooks/useData';
+import { useTransactions, useCategories, useMonthTransactions } from '../hooks/useData';
 import { 
   format, 
   addMonths, 
@@ -52,7 +52,8 @@ export default function TransactionCalendar({ lang, currency, activeContext }: T
   const dx = useSpring(rotateX, springConfig);
   const dy = useSpring(rotateY, springConfig);
 
-  const transactions = useTransactions(activeContext);
+  const monthStr = format(currentDisplayMonth, 'yyyy-MM');
+  const transactions = useMonthTransactions(activeContext, monthStr);
   const categories = useCategories();
 
   const formatCurrency = (val: number) => {

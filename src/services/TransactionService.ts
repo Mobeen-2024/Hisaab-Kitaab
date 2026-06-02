@@ -80,6 +80,61 @@ export const TransactionService = {
     );
   },
 
+  async getPaginatedByContext(context: 'personal' | 'business', page: number, pageSize: number) {
+    return await db.transactions
+      .where('context')
+      .equals(context)
+      .reverse()
+      .offset(page * pageSize)
+      .limit(pageSize)
+      .toArray();
+  },
+
+  async countByContext(context: 'personal' | 'business') {
+    return await db.transactions
+      .where('context')
+      .equals(context)
+      .count();
+  },
+
+  async getByDateRange(context: 'personal' | 'business', startDate: string, endDate: string) {
+    return await db.transactions
+      .where('[context+date]')
+      .between([context, startDate], [context, endDate], true, true)
+      .reverse()
+      .toArray();
+  },
+
+  async getRecentByContext(context: 'personal' | 'business', limit: number) {
+    return await db.transactions
+      .where('context')
+      .equals(context)
+      .reverse()
+      .limit(limit)
+      .toArray();
+  },
+
+  async getLast7DaysTransactions(context: 'personal' | 'business') {
+    const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 6); // Includes today
+    const startDate = sevenDaysAgo.toISOString().split('T')[0];
+    const endDate = today.toISOString().split('T')[0];
+    return await this.getByDateRange(context, startDate, endDate);
+  },
+
+  async searchLimited(context: 'personal' | 'business', query: string, limit = 20) {
+    const q = query.toLowerCase();
+    // We get a reasonable recent chunk to search on (e.g. 500) so we avoid full table scan
+    const txs = await this.getRecentByContext(context, 500);
+    return txs
+      .filter(t =>
+        (t.description?.toLowerCase().includes(q)) ||
+        (t.amount.toString().includes(q))
+      )
+      .slice(0, limit);
+  },
+
   async getByImportReferences(refs: string[]) {
     return await db.transactions.where('importReferenceId').anyOf(refs).toArray();
   },

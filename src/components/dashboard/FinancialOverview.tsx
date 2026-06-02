@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { format, subMonths, isAfter } from 'date-fns';
 import { TrendingUp, Target, PieChart } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useTransactions, useGoals, useBudgets } from '../../hooks/useData';
+import { useGoals, useBudgets, useLast7DaysTransactions, useCurrentMonthTransactions } from '../../hooks/useData';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'motion/react';
@@ -11,15 +11,12 @@ export function FinancialOverview() {
   const { lang, currency, activeContext, rtl } = useSettings();
   const isUrdu = lang === 'ur';
 
-  const transactions = useTransactions(activeContext);
+  const last7DaysTransactions = useLast7DaysTransactions(activeContext);
+  const currentMonthTransactions = useCurrentMonthTransactions(activeContext);
   const goals = useGoals(activeContext);
   const currentMonth = format(new Date(), 'yyyy-MM');
   const budgets = useBudgets(activeContext, currentMonth);
   const budget = budgets[0] || null;
-
-  const currentMonthTransactions = useMemo(() => {
-    return transactions.filter(t => t.date.startsWith(currentMonth));
-  }, [transactions, currentMonth]);
 
   const totalExpensePKR = useMemo(() => {
     return currentMonthTransactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
@@ -36,13 +33,13 @@ export function FinancialOverview() {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       const dateStr = format(d, 'yyyy-MM-dd');
-      const dayTransactions = transactions.filter(t => t.date.startsWith(dateStr));
+      const dayTransactions = last7DaysTransactions.filter(t => t.date.startsWith(dateStr));
       const income = dayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
       const expense = dayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
       data.push({ name: format(d, 'EEE'), income, expense });
     }
     return data;
-  }, [transactions]);
+  }, [last7DaysTransactions]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10 mb-8">

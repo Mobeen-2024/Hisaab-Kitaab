@@ -37,6 +37,31 @@ export function useTransactions(context?: 'personal' | 'business') {
   );
 }
 
+export function useMonthTransactions(context: 'personal' | 'business', month: string) {
+  return useLiveQuery(
+    () => {
+      const startDate = `${month}-01`;
+      const endDate = `${month}-31`; // between index handles date string boundaries well
+      return TransactionService.getByDateRange(context, startDate, endDate);
+    },
+    [context, month],
+    [] as Transaction[]
+  );
+}
+
+export function useLast7DaysTransactions(context: 'personal' | 'business') {
+  return useLiveQuery(
+    () => TransactionService.getLast7DaysTransactions(context),
+    [context],
+    [] as Transaction[]
+  );
+}
+
+export function useCurrentMonthTransactions(context: 'personal' | 'business') {
+  const currentMonth = new Date().toISOString().substring(0, 7); // 'yyyy-MM'
+  return useMonthTransactions(context, currentMonth);
+}
+
 export function useCustomerTransactions(customerId?: number) {
   return useLiveQuery(
     () => {

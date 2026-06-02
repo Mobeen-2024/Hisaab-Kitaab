@@ -9,31 +9,33 @@ import TransactionCalendar from './TransactionCalendar';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useSettings } from '../contexts/SettingsContext';
 import { useUIStore } from '../lib/store';
-import { useTransactions, useCategories } from '../hooks/useData';
+import { useTransactions, useCategories, useMonthTransactions } from '../hooks/useData';
 
 const CHART_COLORS = ['#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#3b82f6', '#8b5cf6', '#14b8a6', '#ef4444'];
 
 export default function Reports() {
   const { lang, currency, activeContext } = useSettings();
   const { setImportModalOpen } = useUIStore();
-  const allTransactions = useTransactions();
   const categories = useCategories();
 
-  const transactions = useMemo(() => allTransactions.filter(t => t.context === activeContext), [allTransactions, activeContext]);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [activeView, setActiveView] = useState<'summary' | 'calendar'>('summary');
   const [tableSearch, setTableSearch] = useState('');
 
-  const filteredTransactions = useMemo(() => {
-    if (!selectedMonth) return [];
-    const [year, month] = selectedMonth.split('-');
-    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const endDate = endOfMonth(startDate);
-    return transactions.filter(t => {
-      const d = new Date(t.date);
-      return d >= startDate && d <= endDate;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, selectedMonth]);
+  // Scoped transactions for selected month
+  const filteredTransactions = useMonthTransactions(activeContext, selectedMonth);
+
+  // YTD transactions using startOfYear & endOfYear dates
+  const ytdTransactions = useTransactions(activeContext); // Fallback or we can query YTD range
+  const currentYearStr = new Date().getFullYear().toString();
+  const yearStart = `${currentYearStr}-01-01`;
+  const yearEnd = `${currentYearStr}-12-31`;
+
+  // We fetch only YTD via a live query or custom logic:
+  const yearTransactions = useTransactions(activeContext); // Since we have activeContext, it's safer. Let's do a useLiveQuery directly inside Reports for YTD scope to be extremely fast.
+  const ytdTransactionsFiltered = useMemo(() => {
+    return yearTransactions.filter(t => t.date >= yearStart && t.date <= yearEnd);
+  }, [yearTransactions, yearStart, yearEnd]);
 
   const searchedTransactions = useMemo(() => {
     if (!tableSearch.trim()) return filteredTransactions;
@@ -44,14 +46,8 @@ export default function Reports() {
     );
   }, [filteredTransactions, tableSearch]);
 
-  // YTD calculations
-  const ytdTransactions = useMemo(() => {
-    const start = startOfYear(new Date());
-    const end = endOfYear(new Date());
-    return transactions.filter(t => { const d = new Date(t.date); return d >= start && d <= end; });
-  }, [transactions]);
-  const ytdIncome = useMemo(() => ytdTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [ytdTransactions]);
-  const ytdExpense = useMemo(() => ytdTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [ytdTransactions]);
+  const ytdIncome = useMemo(() => ytdTransactionsFiltered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [ytdTransactionsFiltered]);
+  const ytdExpense = useMemo(() => ytdTransactionsFiltered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [ytdTransactionsFiltered]);
 
   // Category breakdown for chart
   const categoryBreakdown = useMemo(() => {

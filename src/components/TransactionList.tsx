@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { t, Lang, isRTL } from '../lib/i18n';
-import { useTransactions, useCategories, useAppSettings, useAppUsers } from '../hooks/useData';
+import { useCategories, useAppSettings, useAppUsers } from '../hooks/useData';
 import { TransactionService } from '../services/TransactionService';
 import { format } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, Trash2, Search, Edit2 } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import EditTransactionModal from './EditTransactionModal';
+import { Transaction } from '../models';
 
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function TransactionList({ hideTitle = false, compact = false }: { hideTitle?: boolean, compact?: boolean }) {
   const { lang, currency, activeContext } = useSettings();
-  const transactionsData = useTransactions(activeContext);
   const categories = useCategories();
   const settingsObj = useAppSettings();
   const users = useAppUsers();
@@ -22,17 +22,81 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
   const canDelete = activeRole === 'owner' || activeRole === 'spouse';
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [now, setNow] = useState(new Date());
 
   const [editingTransactionId, setEditingTransactionId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  // Update 'now' every minute to keep relative dates (if any) or day boundaries fresh
+  // Pagination states
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Load transactions based on activeContext, page, and debouncedSearchQuery
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        if (debouncedSearchQuery.trim().length >= 2) {
+          // When search is active, fetch from searchLimited
+          const results = await TransactionService.searchLimited(activeContext, debouncedSearchQuery, 20);
+          if (isMounted) {
+            setTransactions(results);
+            setHasMore(false); // Disable load more in search view
+          }
+        } else {
+          // Normal paginated load
+          const results = await TransactionService.getPaginatedByContext(activeContext, page, 25);
+          const totalCount = await TransactionService.countByContext(activeContext);
+          if (isMounted) {
+            if (page === 0) {
+              setTransactions(results);
+            } else {
+              setTransactions(prev => {
+                const existingIds = new Set(prev.map(t => t.id));
+                const filteredResults = results.filter(t => !existingIds.has(t.id));
+                return [...prev, ...filteredResults];
+              });
+            }
+            setHasMore((page + 1) * 25 < totalCount);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeContext, page, debouncedSearchQuery]);
+
+  // Reset pagination when activeContext or search query changes
+  useEffect(() => {
+    setPage(0);
+    setHasMore(true);
+  }, [activeContext, debouncedSearchQuery]);
+
+  // Update 'now' every minute
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
-
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const formatCurrency = (valInPKR: number) => {
     return formatSharedCurrency(valInPKR, currency, lang);
@@ -60,26 +124,21 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
   const handleDelete = async () => {
     if (confirmDeleteId) {
       await TransactionService.delete(confirmDeleteId);
+      // Remove from state dynamically
+      setTransactions(prev => prev.filter(t => t.id !== confirmDeleteId));
       setConfirmDeleteId(null);
     }
   };
 
-  const filteredTransactions = useMemo(() => {
-    const filtered = transactionsData.filter(tx => {
-      if (!searchQuery.trim()) return true;
-      const catName = getCategoryName(tx.categoryId).toLowerCase();
-      const desc = (tx.description || '').toLowerCase();
-      const query = searchQuery.toLowerCase();
-      return catName.includes(query) || desc.includes(query);
-    });
+  const handleLoadMore = () => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+    }
+  };
 
-    // Sort by date DESC, then ID DESC (newest first)
-    return filtered.sort((a, b) => {
-      const dateCompare = (b.date || '').localeCompare(a.date || '');
-      if (dateCompare !== 0) return dateCompare;
-      return (b.id || 0) - (a.id || 0);
-    }).slice(0, 20);
-  }, [transactionsData, searchQuery, categories, lang]);
+  const editingTransaction = useMemo(() => {
+    return transactions.find(t => t.id === editingTransactionId) || null;
+  }, [transactions, editingTransactionId]);
 
   const rtl = isRTL(lang);
 
@@ -125,10 +184,12 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
       )}
 
       <div className="divide-y divide-white/5">
-        {filteredTransactions.length === 0 ? (
-          <div className="p-8 text-center text-slate-500">No transactions found</div>
+        {transactions.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">
+            {loading ? t(lang, 'loading') || 'Loading...' : 'No transactions found'}
+          </div>
         ) : (
-          filteredTransactions.map(tx => (
+          transactions.map(tx => (
             <div key={tx.id} className={`${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-6'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-white/5 transition-colors group`}>
               <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto overflow-hidden">
                 <div className={`${compact ? 'h-8 w-8 sm:h-10 sm:w-10' : 'h-10 w-10 sm:h-12 sm:w-12'} shrink-0 rounded-xl flex items-center justify-center border ${tx.type === 'income'
@@ -183,10 +244,22 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
         )}
       </div>
 
+      {hasMore && debouncedSearchQuery.trim().length < 2 && (
+        <div className="p-4 border-t border-white/10 text-center">
+          <button
+            onClick={handleLoadMore}
+            disabled={loading}
+            className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-semibold transition-all border border-white/10 cursor-pointer disabled:opacity-50"
+          >
+            {loading ? t(lang, 'loading') || 'Loading...' : t(lang, 'loadMore') || 'Load More'}
+          </button>
+        </div>
+      )}
+
       <EditTransactionModal
         isOpen={editingTransactionId !== null}
         onClose={() => setEditingTransactionId(null)}
-        transaction={transactionsData.find(t => t.id === editingTransactionId) || null}
+        transaction={editingTransaction}
         lang={lang}
         activeContext={activeContext}
       />
