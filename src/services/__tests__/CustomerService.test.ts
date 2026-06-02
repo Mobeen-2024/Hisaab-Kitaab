@@ -153,4 +153,29 @@ describe('Customer and Supplier Balance Calculations', () => {
     customer = await db.customers.get(customerId);
     expect(customer?.balance).toBe(0);
   });
+
+  it('does not double count linked Udhaar transactions', async () => {
+    const customerId = await CustomerService.add({
+      name: 'Kamran',
+      phone: '888',
+      balance: 0,
+      createdAt: new Date().toISOString(),
+      type: 'customer'
+    });
+
+    // Giving Udhaar creates a linked expense transaction in the DB automatically
+    await UdhaarService.add({
+      customerId,
+      type: 'give',
+      amount: 1000,
+      date: new Date().toISOString().split('T')[0],
+      description: 'Business Udhaar',
+      context: 'business'
+    });
+
+    // Balance should only be 1000 (from the Udhaar entry itself),
+    // and the linked expense transaction should be ignored.
+    const customer = await db.customers.get(customerId);
+    expect(customer?.balance).toBe(1000);
+  });
 });
