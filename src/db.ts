@@ -218,44 +218,54 @@ export class HisaibKItaibDB extends Dexie {
             }
 
             if (!entry.transactionId) {
-              const txType = entry.type === 'give' ? 'expense' : 'income';
-              const catName = txType === 'income' ? 'Udhaar Received' : 'Udhaar Given';
-              let cat = await this.categories
-                .where('context')
-                .equals(context)
-                .and(c => c.type === txType && c.name === catName)
+              const existingTx = await this.transactions
+                .filter(tx => tx.source === 'legacy_backfill' && tx.sourceId === entry.id)
                 .first();
 
-              if (!cat) {
-                const newCatId = await this.categories.add({ name: catName, type: txType, context });
-                cat = { id: newCatId, name: catName, type: txType, context };
+              if (existingTx) {
+                entry.transactionId = existingTx.id;
+                entry.context = existingTx.context;
+                changed = true;
+              } else {
+                const txType = entry.type === 'give' ? 'expense' : 'income';
+                const catName = txType === 'income' ? 'Udhaar Received' : 'Udhaar Given';
+                let cat = await this.categories
+                  .where('context')
+                  .equals(context)
+                  .and(c => c.type === txType && c.name === catName)
+                  .first();
+
+                if (!cat) {
+                  const newCatId = await this.categories.add({ name: catName, type: txType, context });
+                  cat = { id: newCatId, name: catName, type: txType, context };
+                }
+
+                const customer = await this.customers.get(entry.customerId);
+                const customerName = customer ? customer.name : 'Unknown';
+                const txDesc = entry.description
+                  ? `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName}): ${entry.description}`
+                  : `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName})`;
+
+                const txId = await this.transactions.add({
+                  amount: entry.amount,
+                  type: txType,
+                  categoryId: cat.id!,
+                  context: context,
+                  date: entry.date,
+                  description: txDesc,
+                  customerId: entry.customerId,
+                  paymentMethod: 'cash',
+                  originalCurrency: entry.originalCurrency || 'PKR',
+                  originalAmount: entry.originalAmount || entry.amount,
+                  exchangeRate: entry.exchangeRate || 1,
+                  source: 'legacy_backfill',
+                  sourceId: entry.id
+                });
+
+                entry.transactionId = txId;
+                entry.context = context;
+                changed = true;
               }
-
-              const customer = await this.customers.get(entry.customerId);
-              const customerName = customer ? customer.name : 'Unknown';
-              const txDesc = entry.description
-                ? `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName}): ${entry.description}`
-                : `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName})`;
-
-              const txId = await this.transactions.add({
-                amount: entry.amount,
-                type: txType,
-                categoryId: cat.id!,
-                context: context,
-                date: entry.date,
-                description: txDesc,
-                customerId: entry.customerId,
-                paymentMethod: 'cash',
-                originalCurrency: entry.originalCurrency || 'PKR',
-                originalAmount: entry.originalAmount || entry.amount,
-                exchangeRate: entry.exchangeRate || 1,
-                source: 'legacy_backfill',
-                sourceId: entry.id
-              });
-
-              entry.transactionId = txId;
-              entry.context = context;
-              changed = true;
             }
 
             if (changed) {

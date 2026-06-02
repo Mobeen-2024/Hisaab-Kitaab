@@ -45,6 +45,9 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read, write: if isOwner(userId);
       }
+      match /auditLogs/{logId} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }
