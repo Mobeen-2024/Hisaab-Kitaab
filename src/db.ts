@@ -365,7 +365,14 @@ export class HisaibKItaibDB extends Dexie {
     const data: any = {};
     for (const table of this.tables) {
       if (table.name === 'syncQueue') continue;
-      data[table.name] = await table.toArray();
+      let rows = await table.toArray();
+      if (table.name === 'settings') {
+        rows = rows.map(r => {
+          const { geminiApiKey, ...rest } = r as any;
+          return rest;
+        });
+      }
+      data[table.name] = rows;
     }
 
     const payload = JSON.stringify({

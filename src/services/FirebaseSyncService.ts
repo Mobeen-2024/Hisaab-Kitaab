@@ -189,7 +189,8 @@ export const FirebaseSyncService = {
       if (settings.length > 0) {
         const docRef = doc(firestore, `users/${userId}/settings/profile`);
         const { id, ...firebaseSettings } = settings[0];
-        await setDoc(docRef, firebaseSettings, { merge: true });
+        const { geminiApiKey, ...cleanSettings } = firebaseSettings as any;
+        await setDoc(docRef, cleanSettings, { merge: true });
       }
 
       console.log("Initial local database sync upload complete.");
@@ -211,7 +212,12 @@ export const FirebaseSyncService = {
         : doc(firestore, `users/${user.uid}/${collectionName}/${remoteId}`);
       // Remove auto-increment local id if present
       const { id, ...cleanData } = data;
-      await setDoc(docRef, cleanData, { merge: true });
+      let dataToSet = cleanData;
+      if (collectionName === 'settings') {
+        const { geminiApiKey, ...rest } = cleanData;
+        dataToSet = rest;
+      }
+      await setDoc(docRef, dataToSet, { merge: true });
     } catch (e) {
       console.error(`Error saving to Firestore [${collectionName}]:`, e);
     }
@@ -447,7 +453,12 @@ export const FirebaseSyncService = {
 
         if (item.action === 'UPSERT') {
           const { id, _isRemoteSync, ...cleanPayload } = item.payload || {};
-          batch.set(docRef, cleanPayload, { merge: true });
+          let dataToSet = cleanPayload;
+          if (item.entityType === 'settings') {
+            const { geminiApiKey, ...rest } = cleanPayload;
+            dataToSet = rest;
+          }
+          batch.set(docRef, dataToSet, { merge: true });
         } else if (item.action === 'DELETE') {
           batch.delete(docRef);
         }
