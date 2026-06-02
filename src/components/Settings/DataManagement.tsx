@@ -16,6 +16,7 @@ import {
 import { SettingsService } from '../../services/SettingsService';
 import { TransactionService } from '../../services/TransactionService';
 import { FirebaseSyncService } from '../../services/FirebaseSyncService';
+import { db } from '../../db';
 
 interface DataManagementProps {
   setImportModalOpen: (open: boolean) => void;
@@ -82,6 +83,7 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
           try {
             const success = await SettingsService.importData(str);
             if (success) {
+              await db.syncQueue.clear();
               alert("Data restored successfully!");
               window.location.reload();
             } else {
@@ -105,12 +107,19 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
         await FirebaseSyncService.logout();
         const success = await SettingsService.importData(pendingImportData);
         if (success) {
+          await db.syncQueue.clear();
           alert("Data restored successfully! Cloud sync has been disabled.");
           window.location.reload();
         } else {
           alert("Backup file is corrupt or invalid.");
         }
       } else {
+        if (!navigator.onLine) {
+          alert("You are offline. Re-upload to Cloud requires an active internet connection.");
+          setIsRestoring(false);
+          return;
+        }
+
         // Clean Cloud Re-upload
         const user = FirebaseSyncService.getCurrentUser();
         if (!user) {
@@ -124,6 +133,7 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
 
         const success = await SettingsService.importData(pendingImportData);
         if (success) {
+          await db.syncQueue.clear();
           // Clear cloud collections completely
           await FirebaseSyncService.clearCloudData(user.uid);
           // Upload local data to clean cloud state

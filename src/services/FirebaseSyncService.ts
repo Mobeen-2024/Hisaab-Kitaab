@@ -236,7 +236,7 @@ export const FirebaseSyncService = {
   async clearCloudData(userId: string): Promise<void> {
     const collectionsToClear = [
       'transactions', 'customers', 'categories', 'inventory', 
-      'udhaarEntries', 'goals', 'budgets', 'appUsers', 'messages'
+      'udhaarEntries', 'goals', 'budgets', 'appUsers', 'messages', 'auditLogs'
     ];
     for (const colName of collectionsToClear) {
       try {
@@ -253,6 +253,7 @@ export const FirebaseSyncService = {
         }
       } catch (e) {
         console.error(`Error clearing cloud collection [${colName}]:`, e);
+        throw e;
       }
     }
 
@@ -262,6 +263,7 @@ export const FirebaseSyncService = {
       await deleteDoc(settingsRef);
     } catch (e) {
       console.error("Error clearing cloud settings:", e);
+      throw e;
     }
   },
 
