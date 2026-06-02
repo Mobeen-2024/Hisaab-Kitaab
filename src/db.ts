@@ -219,7 +219,9 @@ export class HisaibKItaibDB extends Dexie {
 
             if (!entry.transactionId) {
               const existingTx = await this.transactions
-                .filter(tx => tx.source === 'legacy_backfill' && tx.sourceId === entry.id)
+                .where('source')
+                .equals('legacy_backfill')
+                .and(tx => tx.sourceId === entry.id)
                 .first();
 
               if (existingTx) {

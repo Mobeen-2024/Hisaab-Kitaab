@@ -239,15 +239,15 @@ Always execute the corresponding tool as soon as you have the required parameter
               output = { success: true, message: 'Transaction added to manual entries.' };
             } else {
               try {
-                const txType = args.type || 'expense';
-                const ctx = activeContext || 'business';
+                const txType: 'income' | 'expense' = (args.type === 'income' || args.type === 'expense') ? args.type : 'expense';
+                const ctx: 'personal' | 'business' = (activeContext === 'personal' || activeContext === 'business') ? activeContext : 'business';
                 let catId = 0;
                 
                 const { db } = await import('../db');
                 const catName = 'Voice Entry';
                 let cat = await db.categories.where('context').equals(ctx).and(c => c.type === txType && c.name === catName).first();
                 if (!cat) {
-                  catId = await db.categories.add({ name: catName, type: txType as any, context: ctx as any });
+                  catId = await db.categories.add({ name: catName, type: txType, context: ctx });
                 } else {
                   catId = cat.id!;
                 }
