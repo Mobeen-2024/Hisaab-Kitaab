@@ -57,7 +57,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div
-      className={`h-screen w-full flex overflow-hidden bg-[#020617] text-slate-100 font-sans ${rtl ? 'ur' : ''} relative`}
+      className={`h-[100dvh] min-h-[100dvh] w-full flex overflow-hidden bg-[#020617] text-slate-100 font-sans ${rtl ? 'ur' : ''} relative`}
       dir={rtl ? 'rtl' : 'ltr'}
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
@@ -80,7 +80,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       <Sidebar />
 
-      <div className={`flex-1 flex flex-col h-screen overflow-hidden relative bg-transparent min-w-0 ${rtl ? 'order-1' : 'order-2'}`}>
+      <div className={`flex-1 flex flex-col h-[100dvh] min-h-[100dvh] overflow-hidden relative bg-transparent min-w-0 ${rtl ? 'order-1' : 'order-2'}`}>
         <TopHeader 
           onSearchOpen={() => setSearchOpen(true)}
           onNotificationsOpen={() => setNotificationsOpen(true)}

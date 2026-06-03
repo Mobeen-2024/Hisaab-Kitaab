@@ -20,7 +20,7 @@ export default function DatabaseErrorScreen({ error, onReset }: DatabaseErrorScr
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 p-6 text-white overflow-hidden relative">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-slate-950 p-6 text-white overflow-hidden relative">
       {/* Background gradients */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
