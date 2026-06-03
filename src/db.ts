@@ -233,10 +233,6 @@ export class HisaibKItaibDB extends Dexie {
           setTimeout(async () => {
             try {
               await db.syncQueue.add(queueItem);
-              if (tableName === 'transactions' && import.meta.env.DEV) {
-                console.log(`[Sync Debug] Added to syncQueue after transaction complete:`, queueItem.entityType, queueItem.remoteId);
-                console.log(`[Sync Debug] syncQueue count after add:`, await db.syncQueue.count());
-              }
               const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
               FirebaseSyncService?.triggerQueueProcessing?.();
             } catch (error) {

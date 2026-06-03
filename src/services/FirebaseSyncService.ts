@@ -504,7 +504,6 @@ export const FirebaseSyncService = {
 
   async processQueue(): Promise<void> {
     if (this.isProcessingQueue) {
-      if (import.meta.env.DEV) console.log('[Sync Debug] processQueue skipped: already running');
       return;
     }
     this.isProcessingQueue = true;
@@ -516,15 +515,8 @@ export const FirebaseSyncService = {
       const user = auth.currentUser;
       if (!user) return;
 
-      if (import.meta.env.DEV) {
-        console.log("[Sync Debug] processQueue started");
-      }
-
       const queueItems = await db.syncQueue.orderBy('timestamp').toArray();
       if (queueItems.length === 0) {
-        if (import.meta.env.DEV) {
-          console.log(`[Sync Debug] processQueue: queue is empty.`);
-        }
         return;
       }
 
@@ -542,18 +534,8 @@ export const FirebaseSyncService = {
               dataToSet = rest;
             }
 
-            if (import.meta.env.DEV) {
-              const undefinedPaths = findUndefinedPaths(dataToSet);
-              if (undefinedPaths.length > 0) {
-                console.log(`[Sync Debug] Found undefined paths in ${item.entityType} ${item.remoteId}:`, undefinedPaths);
-              }
-            }
-
             const sanitizedDataToSet = sanitizeForFirestore(dataToSet);
 
-            if (import.meta.env.DEV) {
-              console.log(`[Sync Debug] Uploading ${item.entityType} to Firestore: ${item.remoteId}`);
-            }
             await setDoc(docRef, sanitizedDataToSet, { merge: true });
           } else if (item.action === 'DELETE') {
             await deleteDoc(docRef);
@@ -562,14 +544,13 @@ export const FirebaseSyncService = {
           if (item.id !== undefined) {
             await db.syncQueue.delete(item.id);
           }
-
-          if (import.meta.env.DEV) {
-            console.log(`[Sync Debug] Uploaded and removed from syncQueue: ${item.entityType} ${item.remoteId}`);
-          }
         } catch (err: any) {
-          if (import.meta.env.DEV) {
-            console.log(`[Sync Debug] Upload failed: ${item.entityType} ${item.remoteId} error ${err.code || err.message}`);
-          }
+          console.warn('[Sync] Upload failed', {
+            entityType: item.entityType,
+            remoteId: item.remoteId,
+            errorCode: err?.code,
+            errorMessage: err?.message,
+          });
         }
       }
     } finally {
