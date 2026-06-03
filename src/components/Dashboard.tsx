@@ -5,7 +5,6 @@ import { QuickStats } from './dashboard/QuickStats';
 import { UdhaarSummary } from './dashboard/UdhaarSummary';
 import { DashboardCalendar } from './dashboard/DashboardCalendar';
 import { FinancialOverview } from './dashboard/FinancialOverview';
-import { ContextComparison } from './dashboard/ContextComparison';
 import TransactionList from './TransactionList';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -52,9 +51,6 @@ export default function Dashboard() {
       
       {/* Financial Overview Row - Cash Flow, Goals, Budget */}
       <FinancialOverview />
-      
-      {/* Quick Summary of Business vs Personal */}
-      <ContextComparison />
     </div>
   );
 }

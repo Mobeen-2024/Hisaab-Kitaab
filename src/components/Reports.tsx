@@ -6,6 +6,7 @@ import jsPDF from 'jspdf';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import autoTable from 'jspdf-autotable';
 import TransactionCalendar from './TransactionCalendar';
+import { ContextComparison } from './dashboard/ContextComparison';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useSettings } from '../contexts/SettingsContext';
 import { useUIStore } from '../lib/store';
@@ -188,6 +189,9 @@ export default function Reports() {
               </div>
             </div>
           </div>
+
+          {/* Quick Summary of Business vs Personal */}
+          <ContextComparison />
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
