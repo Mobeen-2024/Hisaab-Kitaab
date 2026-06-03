@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { useGLTF, useAnimations, Environment } from '@react-three/drei';
+import { useGLTF, useAnimations, PerformanceMonitor } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface SplashScreenProps {
@@ -14,7 +14,8 @@ interface RealisticBirdProps {
   onLoaded: () => void;
 }
 
-const storkUrl = 'https://raw.githubusercontent.com/Mobeen-2024/Hisaab-Kitaab/main/public/Stork.glb';
+// Load locally to support offline-first capability
+const storkUrl = '/Stork.glb';
 
 function RealisticBird({ onLand, isMobile, onLoaded }: RealisticBirdProps) {
   const group = useRef<THREE.Group>(null);
@@ -125,6 +126,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [hasLanded, setHasLanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
+  const [dpr, setDpr] = useState(1.5);
 
   const [mountTime] = useState(() => Date.now());
 
@@ -196,7 +198,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.5, ease: "easeInOut" } }}
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#020617] overflow-hidden"
-          style={{ perspective: "1200px", position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           role="presentation"
           aria-hidden="true"
         >
@@ -220,9 +222,10 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
           <div className="absolute inset-0 z-[110] pointer-events-none overflow-hidden">
             <Canvas
               camera={{ position: [0, 0, 10], fov: 50 }}
-              dpr={[1, 1.5]}
+              dpr={dpr}
               gl={{ alpha: true, antialias: false, stencil: false, powerPreference: "high-performance" }}
             >
+              <PerformanceMonitor onDecline={() => setDpr(1.0)} />
               <ambientLight intensity={1.5} />
               <pointLight position={[10, 10, 10]} intensity={4} color="#93C5FD" />
               <directionalLight position={[-5, 5, 2]} intensity={1.5} color="#FFFFFF" />
@@ -236,36 +239,32 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             </Canvas>
           </div>
 
-          {/* 3D Logo Container */}
+          {/* 2D optimized Logo Container (avoiding complex CSS 3D transforms for compositor speed) */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.7, rotateY: -35, rotateX: 15, z: -100 }}
-            animate={{ opacity: 1, scale: 1, rotateY: 0, rotateX: 0, z: 0 }}
-            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             className="relative flex flex-col items-center z-10 -translate-y-[10vh] md:-translate-y-[15vh]"
-            style={{ transformStyle: "preserve-3d" }}
           >
-            <div className="relative w-32 h-32 md:w-48 md:h-48 flex items-center justify-center" style={{ transformStyle: "preserve-3d" }}>
+            <div className="relative w-32 h-32 md:w-48 md:h-48 flex items-center justify-center">
               {/* Logo Glow Layer */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.8, 1.2, 0.8] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute inset-0 bg-[radial-gradient(circle,_rgba(59,130,246,0.4)_0%,_rgba(0,0,0,0)_70%)]"
-                style={{ transform: "translateZ(-40px)" }}
               />
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.6 }}
                 transition={{ delay: 0.5, duration: 1 }}
                 className="absolute inset-[-20%] bg-[radial-gradient(circle,_rgba(96,165,250,0.2)_0%,_rgba(0,0,0,0)_70%)]"
-                style={{ transform: "translateZ(-20px)" }}
               />
 
               {/* Actual Logo SVG */}
               <motion.div
                 className="relative z-10 w-24 h-24 md:w-40 md:h-40"
-                style={{ transform: "translateZ(50px)" }}
-                animate={{ y: [0, -8, 0], rotateZ: [0, 2, 0] }}
+                animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
               >
                 <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
@@ -298,19 +297,14 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               </motion.div>
             </div>
 
-            {/* Text with slight Z offset */}
-            <div
-              className="text-center mt-8"
-              style={{ transformStyle: "preserve-3d" }}
-            >
+            {/* Text with slight offset */}
+            <div className="text-center mt-8">
               <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white flex gap-3 justify-center drop-shadow-lg">
                 <span className="text-blue-500">Hisaib</span>
                 <span>Kitaib</span>
               </h1>
 
-              <div
-                className="mt-3 text-xl md:text-3xl text-blue-300/70 font-medium tracking-[0.3em]"
-              >
+              <div className="mt-3 text-xl md:text-3xl text-blue-300/70 font-medium tracking-[0.3em]">
                 حساب کتاب
               </div>
             </div>
@@ -334,7 +328,6 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
               <span className="w-8 h-[1px] bg-gradient-to-l from-transparent to-purple-500/50"></span>
             </div>
           </motion.div>
-
 
         </motion.div>
       )}
