@@ -58,8 +58,8 @@ export function DashboardCalendar() {
   return (
     <div className="bg-[#1E293B]/40 backdrop-blur-3xl border border-white/10 p-4 sm:p-6 lg:p-8 rounded-[2rem] sm:rounded-[2.5rem] relative overflow-hidden group hover:border-blue-500/30 transition-all duration-500 shadow-2xl h-full">
       <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-[80px] group-hover:bg-blue-500/20 transition-all duration-500"></div>
-      <div className="flex flex-col xl:flex-row flex-wrap items-start xl:items-center justify-between gap-4 mb-6 sm:mb-8 relative z-10">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 xl:gap-2 mb-6 sm:mb-8 relative z-10">
+        <div className="flex items-center gap-2 sm:gap-3 lg:-mt-1 xl:-mt-2 shrink-0">
           <div className="w-10 h-10 bg-blue-600/20 rounded-xl flex items-center justify-center text-blue-400">
             <CalendarIcon size={20} />
           </div>
@@ -68,14 +68,14 @@ export function DashboardCalendar() {
             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{isUrdu ? 'ماہانہ خلاصہ' : 'Monthly Summary'}</div>
           </div>
         </div>
-        <div className={`flex items-center gap-2 bg-[#0F172A]/60 backdrop-blur-md border border-white/10 rounded-xl p-1 w-full xl:w-auto justify-between xl:justify-center shrink-0 ${rtl ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-1 sm:gap-2 bg-[#0F172A]/60 backdrop-blur-md border border-white/10 rounded-xl p-1 w-full sm:w-auto justify-center shrink-0 xl:ml-auto ${rtl ? 'flex-row-reverse' : ''}`}>
           <button
             onClick={() => setCurrentDisplayMonth(subMonths(currentDisplayMonth, 1))}
             className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors shrink-0"
           >
             {rtl ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
-          <span className="text-xs font-black text-white min-w-[100px] text-center uppercase tracking-widest tabular-nums shrink-0">
+          <span className="text-xs font-black text-white min-w-[70px] sm:min-w-[90px] text-center uppercase tracking-widest tabular-nums shrink-0">
             {format(currentDisplayMonth, 'MMM yyyy')}
           </span>
           <button
