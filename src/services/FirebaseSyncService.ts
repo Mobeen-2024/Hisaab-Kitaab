@@ -64,11 +64,67 @@ try {
 // Keep track of active Firestore listener unsubscribers
 let activeListeners: (() => void)[] = [];
 
+// Helper to sanitize payload for Firestore (removes undefined, strips symbols/functions)
+export function sanitizeForFirestore(value: any): any {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (value instanceof Date) return value.toISOString();
+
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      const sanitized = sanitizeForFirestore(item);
+      return sanitized === undefined ? null : sanitized;
+    });
+  }
+
+  if (typeof value === 'object') {
+    const output: Record<string, any> = {};
+    for (const [key, val] of Object.entries(value)) {
+      const sanitized = sanitizeForFirestore(val);
+      if (sanitized !== undefined) {
+        output[key] = sanitized;
+      }
+    }
+    return output;
+  }
+
+  if (typeof value === 'function') return undefined;
+  if (typeof value === 'symbol') return undefined;
+
+  return value;
+}
+
+// Development helper to find undefined paths for debugging
+export function findUndefinedPaths(obj: any, path: string = ''): string[] {
+  let paths: string[] = [];
+  if (obj === undefined) {
+    paths.push(path);
+    return paths;
+  }
+  if (obj === null || typeof obj !== 'object' || obj instanceof Date) {
+    return paths;
+  }
+  
+  if (Array.isArray(obj)) {
+    obj.forEach((item, index) => {
+      paths = paths.concat(findUndefinedPaths(item, `${path}[${index}]`));
+    });
+  } else {
+    for (const [key, value] of Object.entries(obj)) {
+      const currentPath = path ? `${path}.${key}` : key;
+      paths = paths.concat(findUndefinedPaths(value, currentPath));
+    }
+  }
+  return paths;
+}
+
 // Flags and interval for background queue processing
 let isProcessingQueue = false;
 let queueIntervalId: any = null;
 
 export const FirebaseSyncService = {
+  isProcessingQueue: false,
+
   // Check if Firebase sync is enabled in settings
   isEnabled(): boolean {
     if (typeof localStorage === 'undefined') return false;
@@ -203,7 +259,8 @@ export const FirebaseSyncService = {
               const docRef = doc(firestore, `users/${userId}/${table.path}/${item.remoteId}`);
               // Strip local database autoincrement ID to keep Firestore clean
               const { id, ...firebaseData } = item;
-              batch.set(docRef, firebaseData, { merge: true });
+              const sanitizedData = sanitizeForFirestore(firebaseData);
+              batch.set(docRef, sanitizedData, { merge: true });
             }
           }
           await batch.commit();
@@ -216,7 +273,8 @@ export const FirebaseSyncService = {
         const docRef = doc(firestore, `users/${userId}/settings/profile`);
         const { id, ...firebaseSettings } = settings[0];
         const { geminiApiKey, ...cleanSettings } = firebaseSettings as any;
-        await setDoc(docRef, cleanSettings, { merge: true });
+        const sanitizedSettings = sanitizeForFirestore(cleanSettings);
+        await setDoc(docRef, sanitizedSettings, { merge: true });
       }
 
       console.log("Initial local database sync upload complete.");
@@ -243,7 +301,8 @@ export const FirebaseSyncService = {
         const { geminiApiKey, ...rest } = cleanData;
         dataToSet = rest;
       }
-      await setDoc(docRef, dataToSet, { merge: true });
+      const sanitizedDataToSet = sanitizeForFirestore(dataToSet);
+      await setDoc(docRef, sanitizedDataToSet, { merge: true });
     } catch (e) {
       console.error(`Error saving to Firestore [${collectionName}]:`, e);
     }
@@ -440,83 +499,81 @@ export const FirebaseSyncService = {
   },
 
   triggerQueueProcessing(): void {
-    if (isProcessingQueue) return;
-    isProcessingQueue = true;
-    this.processQueue()
-      .catch(console.error)
-      .finally(() => {
-        isProcessingQueue = false;
-      });
+    this.processQueue().catch(console.error);
   },
 
   async processQueue(): Promise<void> {
-    if (!this.isEnabled()) return;
-    if (!navigator.onLine) return;
-    
-    const user = auth.currentUser;
-    if (!user) return;
-
-    if (import.meta.env.DEV) {
-      console.log("[Sync Debug] processQueue started");
-    }
-
-    // Load up to 500 items from the syncQueue table
-    const items = await db.syncQueue.limit(500).toArray();
-    if (items.length === 0) {
-      if (import.meta.env.DEV) {
-        console.log("[Sync Debug] processQueue: queue is empty");
-      }
+    if (this.isProcessingQueue) {
+      if (import.meta.env.DEV) console.log('[Sync Debug] processQueue skipped: already running');
       return;
     }
+    this.isProcessingQueue = true;
 
     try {
-      const batch = writeBatch(firestore);
+      if (!this.isEnabled()) return;
+      if (!navigator.onLine) return;
+      
+      const user = auth.currentUser;
+      if (!user) return;
 
-      // Group/consolidate items by document path, keeping only the latest one
-      const consolidatedMap = new Map<string, typeof items[0]>();
-      for (const item of items) {
-        const pathKey = item.entityType === 'settings'
-          ? 'settings/profile'
-          : `${item.entityType}/${item.remoteId}`;
-        consolidatedMap.set(pathKey, item);
+      if (import.meta.env.DEV) {
+        console.log("[Sync Debug] processQueue started");
       }
 
-      for (const item of consolidatedMap.values()) {
-        const docRef = item.entityType === 'settings'
-          ? doc(firestore, `users/${user.uid}/settings/profile`)
-          : doc(firestore, `users/${user.uid}/${item.entityType}/${item.remoteId}`);
+      const queueItems = await db.syncQueue.orderBy('timestamp').toArray();
+      if (queueItems.length === 0) {
+        if (import.meta.env.DEV) {
+          console.log(`[Sync Debug] processQueue: queue is empty.`);
+        }
+        return;
+      }
 
-        if (item.action === 'UPSERT') {
-          const { id, _isRemoteSync, ...cleanPayload } = item.payload || {};
-          let dataToSet = cleanPayload;
-          if (item.entityType === 'settings') {
-            const { geminiApiKey, ...rest } = cleanPayload;
-            dataToSet = rest;
+      for (const item of queueItems) {
+        try {
+          const docRef = item.entityType === 'settings'
+            ? doc(firestore, `users/${user.uid}/settings/profile`)
+            : doc(firestore, `users/${user.uid}/${item.entityType}/${item.remoteId}`);
+
+          if (item.action === 'UPSERT') {
+            const { id, _isRemoteSync, ...cleanPayload } = item.payload || {};
+            let dataToSet = cleanPayload;
+            if (item.entityType === 'settings') {
+              const { geminiApiKey, ...rest } = cleanPayload;
+              dataToSet = rest;
+            }
+
+            if (import.meta.env.DEV) {
+              const undefinedPaths = findUndefinedPaths(dataToSet);
+              if (undefinedPaths.length > 0) {
+                console.log(`[Sync Debug] Found undefined paths in ${item.entityType} ${item.remoteId}:`, undefinedPaths);
+              }
+            }
+
+            const sanitizedDataToSet = sanitizeForFirestore(dataToSet);
+
+            if (import.meta.env.DEV) {
+              console.log(`[Sync Debug] Uploading ${item.entityType} to Firestore: ${item.remoteId}`);
+            }
+            await setDoc(docRef, sanitizedDataToSet, { merge: true });
+          } else if (item.action === 'DELETE') {
+            await deleteDoc(docRef);
           }
-          if (item.entityType === 'transactions' && import.meta.env.DEV) {
-            console.log(`[Sync Debug] Uploading transaction to Firestore: ${item.remoteId}`);
+
+          if (item.id !== undefined) {
+            await db.syncQueue.delete(item.id);
           }
-          batch.set(docRef, dataToSet, { merge: true });
-        } else if (item.action === 'DELETE') {
-          batch.delete(docRef);
+
+          if (import.meta.env.DEV) {
+            console.log(`[Sync Debug] Uploaded and removed from syncQueue: ${item.entityType} ${item.remoteId}`);
+          }
+        } catch (err: any) {
+          if (import.meta.env.DEV) {
+            console.log(`[Sync Debug] Upload failed: ${item.entityType} ${item.remoteId} error ${err.code || err.message}`);
+          }
         }
       }
-
-      await batch.commit();
-
-      // Successfully processed this batch, delete them from the sync queue table
-      const idsToDelete = items.map(item => item.id).filter((id): id is number => id !== undefined);
-      if (idsToDelete.length > 0) {
-        await db.syncQueue.bulkDelete(idsToDelete);
-      }
-
-      // If we processed 500 items, there might be more, trigger next batch immediately
-      if (items.length === 500) {
-        setTimeout(() => this.triggerQueueProcessing(), 0);
-      }
-    } catch (error) {
-      console.error("Failed to process sync queue batch:", error);
-      // Wait for next interval or manual trigger to retry
+    } finally {
+      this.isProcessingQueue = false;
     }
   }
 };

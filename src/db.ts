@@ -126,8 +126,7 @@ export class HisaibKItaibDB extends Dexie {
       'settings'
     ];
 
-    // Audit logs hook that pushes to sync queue but avoids recursive logging
-    this.auditLogs.hook('creating', function (primKey, obj) {
+    this.auditLogs.hook('creating', function (primKey, obj, transaction) {
       if (db.isImporting) return;
       if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
       if (!obj.remoteId) {
@@ -136,19 +135,25 @@ export class HisaibKItaibDB extends Dexie {
           : Math.random().toString(36).substring(2) + Date.now().toString(36);
       }
 
-      this.onsuccess = (resultKey) => {
-        db.syncQueue.add({
-          entityType: 'auditLogs',
-          remoteId: obj.remoteId,
-          action: 'UPSERT',
-          payload: obj,
-          timestamp: new Date().toISOString()
-        }).then(() => {
-          import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-            FirebaseSyncService?.triggerQueueProcessing?.();
-          }).catch(console.error);
-        }).catch(console.error);
+      const queueItem = {
+        entityType: 'auditLogs',
+        remoteId: obj.remoteId,
+        action: 'UPSERT' as const,
+        payload: obj,
+        timestamp: new Date().toISOString()
       };
+
+      transaction.on('complete', () => {
+        setTimeout(async () => {
+          try {
+            await db.syncQueue.add(queueItem);
+            const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
+            FirebaseSyncService?.triggerQueueProcessing?.();
+          } catch (error) {
+            console.error(error);
+          }
+        }, 0);
+      });
     });
 
     this.auditLogs.hook('updating', (modifications, primKey, obj, transaction) => {
@@ -156,17 +161,25 @@ export class HisaibKItaibDB extends Dexie {
       if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
       const updatedObj = { ...obj, ...modifications };
       if (updatedObj.remoteId) {
-        db.syncQueue.add({
+        const queueItem = {
           entityType: 'auditLogs',
           remoteId: updatedObj.remoteId,
-          action: 'UPSERT',
+          action: 'UPSERT' as const,
           payload: updatedObj,
           timestamp: new Date().toISOString()
-        }).then(() => {
-          import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-            FirebaseSyncService?.triggerQueueProcessing?.();
-          }).catch(console.error);
-        }).catch(console.error);
+        };
+
+        transaction.on('complete', () => {
+          setTimeout(async () => {
+            try {
+              await db.syncQueue.add(queueItem);
+              const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
+              FirebaseSyncService?.triggerQueueProcessing?.();
+            } catch (error) {
+              console.error(error);
+            }
+          }, 0);
+        });
       }
     });
 
@@ -174,53 +187,65 @@ export class HisaibKItaibDB extends Dexie {
       if (db.isImporting) return;
       if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
       if (obj.remoteId) {
-        db.syncQueue.add({
+        const queueItem = {
           entityType: 'auditLogs',
           remoteId: obj.remoteId,
-          action: 'DELETE',
+          action: 'DELETE' as const,
           timestamp: new Date().toISOString()
-        }).then(() => {
-          import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-            FirebaseSyncService?.triggerQueueProcessing?.();
-          }).catch(console.error);
-        }).catch(console.error);
+        };
+
+        transaction.on('complete', () => {
+          setTimeout(async () => {
+            try {
+              await db.syncQueue.add(queueItem);
+              const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
+              FirebaseSyncService?.triggerQueueProcessing?.();
+            } catch (error) {
+              console.error(error);
+            }
+          }, 0);
+        });
       }
     });
 
     for (const tableName of tablesToAudit) {
       const table = this.table(tableName);
 
-      table.hook('creating', function (primKey, obj) {
+      table.hook('creating', function (primKey, obj, transaction) {
         if (db.isImporting) return;
         if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
         
-        if (tableName === 'transactions' && import.meta.env.DEV) {
-          console.log(`[Sync Debug] Transaction creating hook fired for remoteId: ${obj.remoteId || 'none_yet'}`);
-        }
-
         if (!obj.remoteId) {
           obj.remoteId = typeof crypto !== 'undefined' && crypto.randomUUID 
             ? crypto.randomUUID() 
             : Math.random().toString(36).substring(2) + Date.now().toString(36);
         }
 
-        this.onsuccess = (resultKey) => {
-          if (tableName === 'transactions' && import.meta.env.DEV) {
-            console.log(`[Sync Debug] Added to syncQueue: transaction ${obj.remoteId}`);
-          }
-          // Add to sync queue
-          db.syncQueue.add({
-            entityType: tableName,
-            remoteId: obj.remoteId,
-            action: 'UPSERT',
-            payload: obj,
-            timestamp: new Date().toISOString()
-          }).then(() => {
-            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-              FirebaseSyncService?.triggerQueueProcessing?.();
-            }).catch(console.error);
-          }).catch(console.error);
+        const queueItem = {
+          entityType: tableName,
+          remoteId: obj.remoteId,
+          action: 'UPSERT' as const,
+          payload: obj,
+          timestamp: new Date().toISOString()
+        };
 
+        transaction.on('complete', () => {
+          setTimeout(async () => {
+            try {
+              await db.syncQueue.add(queueItem);
+              if (tableName === 'transactions' && import.meta.env.DEV) {
+                console.log(`[Sync Debug] Added to syncQueue after transaction complete:`, queueItem.entityType, queueItem.remoteId);
+                console.log(`[Sync Debug] syncQueue count after add:`, await db.syncQueue.count());
+              }
+              const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
+              FirebaseSyncService?.triggerQueueProcessing?.();
+            } catch (error) {
+              console.error(error);
+            }
+          }, 0);
+        });
+
+        this.onsuccess = (resultKey) => {
           Dexie.ignoreTransaction(() => {
             db.auditLogs.add({
               entityType: tableName as any,
@@ -239,17 +264,25 @@ export class HisaibKItaibDB extends Dexie {
         // Merge modifications into copy of obj to sync complete data
         const updatedObj = { ...obj, ...modifications };
         if (updatedObj.remoteId) {
-          db.syncQueue.add({
+          const queueItem = {
             entityType: tableName,
             remoteId: updatedObj.remoteId,
-            action: 'UPSERT',
+            action: 'UPSERT' as const,
             payload: updatedObj,
             timestamp: new Date().toISOString()
-          }).then(() => {
-            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-              FirebaseSyncService?.triggerQueueProcessing?.();
-            }).catch(console.error);
-          }).catch(console.error);
+          };
+
+          transaction.on('complete', () => {
+            setTimeout(async () => {
+              try {
+                await db.syncQueue.add(queueItem);
+                const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
+                FirebaseSyncService?.triggerQueueProcessing?.();
+              } catch (error) {
+                console.error(error);
+              }
+            }, 0);
+          });
         }
 
         Dexie.ignoreTransaction(() => {
@@ -268,16 +301,24 @@ export class HisaibKItaibDB extends Dexie {
         if (db.isImporting) return;
         if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
         if (obj.remoteId) {
-          db.syncQueue.add({
+          const queueItem = {
             entityType: tableName,
             remoteId: obj.remoteId,
-            action: 'DELETE',
+            action: 'DELETE' as const,
             timestamp: new Date().toISOString()
-          }).then(() => {
-            import('./services/FirebaseSyncService').then(({ FirebaseSyncService }) => {
-              FirebaseSyncService?.triggerQueueProcessing?.();
-            }).catch(console.error);
-          }).catch(console.error);
+          };
+
+          transaction.on('complete', () => {
+            setTimeout(async () => {
+              try {
+                await db.syncQueue.add(queueItem);
+                const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
+                FirebaseSyncService?.triggerQueueProcessing?.();
+              } catch (error) {
+                console.error(error);
+              }
+            }, 0);
+          });
         }
 
         Dexie.ignoreTransaction(() => {
