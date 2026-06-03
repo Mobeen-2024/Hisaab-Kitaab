@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "hisaib-kitaib-production"
-  }
+    "default": "hisaib-kitaib-production-b1337"
+  },
+  "targets": {},
+  "etags": {}
 }

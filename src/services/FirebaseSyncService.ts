@@ -456,9 +456,18 @@ export const FirebaseSyncService = {
     const user = auth.currentUser;
     if (!user) return;
 
+    if (import.meta.env.DEV) {
+      console.log("[Sync Debug] processQueue started");
+    }
+
     // Load up to 500 items from the syncQueue table
     const items = await db.syncQueue.limit(500).toArray();
-    if (items.length === 0) return;
+    if (items.length === 0) {
+      if (import.meta.env.DEV) {
+        console.log("[Sync Debug] processQueue: queue is empty");
+      }
+      return;
+    }
 
     try {
       const batch = writeBatch(firestore);
@@ -483,6 +492,9 @@ export const FirebaseSyncService = {
           if (item.entityType === 'settings') {
             const { geminiApiKey, ...rest } = cleanPayload;
             dataToSet = rest;
+          }
+          if (item.entityType === 'transactions' && import.meta.env.DEV) {
+            console.log(`[Sync Debug] Uploading transaction to Firestore: ${item.remoteId}`);
           }
           batch.set(docRef, dataToSet, { merge: true });
         } else if (item.action === 'DELETE') {
