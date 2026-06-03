@@ -68,7 +68,7 @@ export function DashboardCalendar() {
             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{isUrdu ? 'ماہانہ خلاصہ' : 'Monthly Summary'}</div>
           </div>
         </div>
-        <div className={`flex items-center gap-1 sm:gap-2 bg-[#0F172A]/60 backdrop-blur-md border border-white/10 rounded-xl p-1 w-full sm:w-auto justify-center shrink-0 xl:ml-auto ${rtl ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-1 sm:gap-2 bg-[#0F172A]/60 backdrop-blur-md border border-white/10 rounded-xl p-1 w-full xl:w-auto justify-center shrink-0 xl:ml-auto ${rtl ? 'flex-row-reverse' : ''}`}>
           <button
             onClick={() => setCurrentDisplayMonth(subMonths(currentDisplayMonth, 1))}
             className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-colors shrink-0"
