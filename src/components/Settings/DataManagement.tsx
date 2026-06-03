@@ -479,8 +479,10 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
                 <div className="flex gap-2">
                   <button
                     onClick={async () => {
-                      if (confirmModal.type === 'clear') await TransactionService.clearAll();
-                      else {
+                      if (confirmModal.type === 'clear') {
+                        await TransactionService.clearAll();
+                        setConfirmModal({ ...confirmModal, isOpen: false });
+                      } else {
                         // If Cloud Sync is active, disable it as well during full reset
                         if (FirebaseSyncService.isEnabled()) {
                           await FirebaseSyncService.logout();
@@ -488,8 +490,8 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
                           setCurrentUserEmail(null);
                         }
                         await SettingsService.factoryReset();
+                        window.location.reload();
                       }
-                      setConfirmModal({ ...confirmModal, isOpen: false });
                     }}
                     className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-lg"
                   >
