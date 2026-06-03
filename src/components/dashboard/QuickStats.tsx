@@ -61,9 +61,9 @@ export function QuickStats() {
   };
 
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-6 md:gap-8 relative z-10" style={{ perspective: '1200px' }}>
+    <div className="grid grid-cols-3 gap-2 sm:gap-6 md:gap-4 lg:gap-8 relative z-10" style={{ perspective: '1200px' }}>
       {/* Total Balance Card */}
-      <div className="group h-full lg:col-span-1 md:col-span-2">
+      <div className="group h-full lg:col-span-1">
         <TiltCard
           className="group h-full bg-gradient-to-br from-blue-950/60 via-slate-900/60 to-slate-900/60 border border-blue-500/10 hover:border-blue-400/40 p-3 sm:p-8 rounded-2xl sm:rounded-[2.5rem] relative overflow-hidden transition-all duration-700 shadow-2xl"
           glowColor="rgba(59,130,246,0.3)"
@@ -84,7 +84,7 @@ export function QuickStats() {
           <div className="w-full h-[1px] bg-gradient-to-r from-blue-400/10 via-blue-400/60 to-blue-400/10 mt-1 mb-3 sm:mt-1 sm:mb-6 shadow-[0_0_10px_rgba(59,130,246,0.5)] relative z-10" />
 
           <div className="relative z-10 w-full mt-1 sm:mt-2 flex flex-col items-center sm:items-start">
-            <h3 className="text-sm sm:text-4xl lg:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] text-center sm:text-left w-full break-all sm:truncate" style={{ color: '#e0eaff' }} dir="ltr">
+            <h3 className="text-sm sm:text-4xl md:text-3xl lg:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(59,130,246,0.6)] text-center sm:text-left w-full break-all sm:truncate" style={{ color: '#e0eaff' }} dir="ltr">
               {formatCompactCurrency(totalBalancePKR)}
             </h3>
           </div>
@@ -117,7 +117,7 @@ export function QuickStats() {
           <div className="w-full h-[1px] bg-gradient-to-r from-rose-400/10 via-rose-400/60 to-rose-400/10 mt-1 mb-3 sm:mt-1 sm:mb-6 shadow-[0_0_10px_rgba(244,63,94,0.5)] relative z-10" />
 
           <div className="relative z-10 w-full mt-1 sm:mt-2 flex flex-col items-center sm:items-start">
-            <h3 className="text-sm sm:text-4xl lg:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] text-center sm:text-left w-full break-all sm:truncate" style={{ color: '#ffe0e6' }} dir="ltr">
+            <h3 className="text-sm sm:text-4xl md:text-3xl lg:text-5xl font-black tracking-tighter tabular-nums leading-none drop-shadow-[0_0_30px_rgba(244,63,94,0.6)] text-center sm:text-left w-full break-all sm:truncate" style={{ color: '#ffe0e6' }} dir="ltr">
               {formatCompactCurrency(todayExpensePKR)}
             </h3>
           </div>
@@ -174,7 +174,7 @@ export function QuickStats() {
           <div className="w-full h-[1px] bg-gradient-to-r from-amber-400/10 via-amber-400/60 to-amber-400/10 mt-1 mb-3 sm:mt-1 sm:mb-6 shadow-[0_0_10px_rgba(245,158,11,0.5)] relative z-10" />
 
           <div className="relative z-10 w-full mt-1 sm:mt-2 flex flex-col items-center sm:items-start text-center sm:text-left">
-            <h3 className="text-sm sm:text-4xl lg:text-5xl font-black tracking-tighter text-white tabular-nums leading-none w-full break-all sm:truncate" dir="ltr">
+            <h3 className="text-sm sm:text-4xl md:text-3xl lg:text-5xl font-black tracking-tighter text-white tabular-nums leading-none w-full break-all sm:truncate" dir="ltr">
               {formatCompactCurrency(todayHighlightedSalesPKR)}
             </h3>
           </div>
