@@ -26,11 +26,11 @@ export default function Dashboard() {
       <UdhaarSummary />
 
       {/* Calendar & Recent Records - Responsive Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
-        <div className="lg:col-span-1">
+      <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-3 gap-6 relative z-10">
+        <div className="md:col-span-3 lg:col-span-1">
           <DashboardCalendar />
         </div>
-        <div className="lg:col-span-2 flex flex-col h-full">
+        <div className="md:col-span-2 lg:col-span-2 flex flex-col h-full">
           <div className="flex-1 bg-[#0F172A]/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col">
             <div className="p-6 pb-2 flex items-center gap-3">
               <div className="w-9 h-9 bg-blue-600/20 rounded-xl flex items-center justify-center text-blue-400 font-bold">
