@@ -57,9 +57,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div
-      className={`h-[100dvh] min-h-[100dvh] w-full flex overflow-hidden bg-[#020617] text-slate-100 font-sans ${rtl ? 'ur' : ''} relative`}
+      className={`h-[100dvh] min-h-[100dvh] w-full flex flex-col md:flex-row overflow-hidden bg-[#020617] text-slate-100 font-sans ${rtl ? 'ur' : ''} relative`}
       dir={rtl ? 'rtl' : 'ltr'}
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
       {/* Background Glows */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none">
@@ -89,8 +88,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           hasAlerts={hasAlerts}
         />
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 md:p-8 relative custom-scrollbar bg-transparent min-w-0">
-          <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8 pb-[calc(6rem+var(--safe-bottom))] md:pb-8 bg-transparent">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-1 sm:p-2 md:p-4 relative custom-scrollbar bg-transparent min-w-0">
+          <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6 pb-[calc(6rem+var(--safe-bottom))] md:pb-6 bg-transparent">
             {children}
           </div>
         </main>

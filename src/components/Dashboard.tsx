@@ -13,7 +13,7 @@ export default function Dashboard() {
   const { lang, rtl } = useSettings();
 
   return (
-    <div className={`space-y-10 scroll-section ${rtl ? 'text-right' : ''} max-w-full bg-transparent`}>
+    <div className={`space-y-4 sm:space-y-6 md:space-y-8 lg:space-y-10 scroll-section ${rtl ? 'text-right' : ''} max-w-full bg-transparent`}>
       {/* Welcome Header */}
       <WelcomeHeader />
 
