@@ -25,6 +25,7 @@ const MobileMenu = lazy(() => import('./components/MobileMenu'));
 import { VoiceAssistantProvider } from './contexts/VoiceAssistantContext';
 import { VoiceWidget } from './components/VoiceAssistant/VoiceWidget';
 import AccessDenied from './components/common/AccessDenied';
+import SyncIssuesBanner from './components/SyncIssuesBanner';
 
 function RequireAccess({ 
   allowed, 
@@ -92,6 +93,9 @@ function AppRoutes() {
         {/* PWA Custom Install Promo */}
         <PWAInstallBanner lang={lang} />
       </MainLayout>
+
+      {/* Sync issues banner */}
+      <SyncIssuesBanner />
 
       {/* Floating Voice Assistant FAB */}
       <VoiceWidget />

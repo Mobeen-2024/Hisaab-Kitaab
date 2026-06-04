@@ -6,8 +6,18 @@ import { t } from '../lib/i18n';
 import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, LayoutGrid, Cloud } from 'lucide-react';
 import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db';
 
 export default function Sidebar() {
+  const orphanedCount = useLiveQuery(
+    async () => {
+      const itemsNum = await db.syncQueue.where('orphaned').equals(1).toArray();
+      const itemsBool = await db.syncQueue.where('orphaned').equals(true as any).toArray();
+      return new Set([...itemsNum.map(i => i.id), ...itemsBool.map(i => i.id)]).size;
+    }
+  ) ?? 0;
+
   const { 
     lang, 
     currency, 
@@ -107,25 +117,29 @@ export default function Sidebar() {
             {isAuthenticated && isSyncEnabled ? (
               <>
                 <div className="relative shrink-0 flex items-center justify-center">
-                  <Cloud size={20} className="text-sky-400" />
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 border border-slate-950 animate-pulse" />
+                  <Cloud size={20} className={orphanedCount > 0 ? 'text-rose-400' : 'text-sky-400'} />
+                  <span className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-slate-950 animate-pulse ${orphanedCount > 0 ? 'bg-rose-500' : 'bg-emerald-400'}`} />
                 </div>
                 <div className="block md:hidden lg:block overflow-hidden">
-                  <div className="text-[10px] font-bold text-sky-400 uppercase tracking-widest leading-none mb-0.5">Cloud Synced</div>
+                  <div className={`text-[10px] font-bold uppercase tracking-widest leading-none mb-0.5 ${orphanedCount > 0 ? 'text-rose-400' : 'text-sky-400'}`}>
+                    {orphanedCount > 0 ? 'Sync Warning' : 'Cloud Synced'}
+                  </div>
                   <div className="text-xs text-slate-300 font-semibold truncate max-w-[140px] leading-tight">
-                    {user?.email || 'Active'}
+                    {orphanedCount > 0 ? `${orphanedCount} sync issues` : (user?.email || 'Active')}
                   </div>
                 </div>
               </>
             ) : (
               <>
                 <div className="shrink-0 flex items-center justify-center">
-                  <Cloud size={20} className="text-slate-500" />
+                  <Cloud size={20} className={orphanedCount > 0 ? 'text-rose-400' : 'text-slate-500'} />
                 </div>
                 <div className="block md:hidden lg:block">
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-0.5">Offline Mode</div>
+                  <div className={`text-[10px] font-bold uppercase tracking-widest leading-none mb-0.5 ${orphanedCount > 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+                    {orphanedCount > 0 ? 'Sync Warning' : 'Offline Mode'}
+                  </div>
                   <div className="text-xs text-slate-400 font-semibold leading-tight hover:text-white transition-colors">
-                    Connect Cloud Sync
+                    {orphanedCount > 0 ? `${orphanedCount} sync issues` : 'Connect Cloud Sync'}
                   </div>
                 </div>
               </>

@@ -34,6 +34,9 @@ export interface SyncQueueItem {
   action: 'UPSERT' | 'DELETE';
   payload?: any;
   timestamp: string;
+  retryCount?: number;
+  lastAttemptAt?: string;
+  orphaned?: boolean;
 }
 
 export class HisaibKItaibDB extends Dexie {
@@ -112,6 +115,21 @@ export class HisaibKItaibDB extends Dexie {
       appUsers: '++id, role, contextAccess, remoteId',
       messages: '++id, chatId, sender, timestamp, remoteId'
     });
+    // Version 14: index orphaned in syncQueue for query banner performance
+    this.version(14).stores({
+      transactions: '++id, type, categoryId, context, date, customerId, source, importReferenceId, [context+date], remoteId',
+      categories: '++id, type, context, remoteId',
+      settings: '++id, remoteId',
+      customers: '++id, name, phone, balance, type, remoteId',
+      udhaarEntries: '++id, customerId, type, date, dueDate, context, transactionId, isCompleted, remoteId',
+      goals: '++id, context, remoteId',
+      budgets: '++id, month, context, remoteId',
+      inventory: '++id, context, remoteId',
+      auditLogs: '++id, entityType, entityId, action, timestamp, context, remoteId',
+      appUsers: '++id, role, contextAccess, remoteId',
+      messages: '++id, chatId, sender, timestamp, remoteId',
+      syncQueue: '++id, entityType, remoteId, action, timestamp, orphaned'
+    });
 
     const tablesToAudit = [
       'transactions',
@@ -140,7 +158,9 @@ export class HisaibKItaibDB extends Dexie {
         remoteId: obj.remoteId,
         action: 'UPSERT' as const,
         payload: obj,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        retryCount: 0,
+        orphaned: false
       };
 
       transaction.on('complete', () => {
@@ -166,7 +186,9 @@ export class HisaibKItaibDB extends Dexie {
           remoteId: updatedObj.remoteId,
           action: 'UPSERT' as const,
           payload: updatedObj,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          retryCount: 0,
+          orphaned: false
         };
 
         transaction.on('complete', () => {
@@ -191,7 +213,9 @@ export class HisaibKItaibDB extends Dexie {
           entityType: 'auditLogs',
           remoteId: obj.remoteId,
           action: 'DELETE' as const,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          retryCount: 0,
+          orphaned: false
         };
 
         transaction.on('complete', () => {
@@ -226,7 +250,9 @@ export class HisaibKItaibDB extends Dexie {
           remoteId: obj.remoteId,
           action: 'UPSERT' as const,
           payload: obj,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          retryCount: 0,
+          orphaned: false
         };
 
         transaction.on('complete', () => {
@@ -265,7 +291,9 @@ export class HisaibKItaibDB extends Dexie {
             remoteId: updatedObj.remoteId,
             action: 'UPSERT' as const,
             payload: updatedObj,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            retryCount: 0,
+            orphaned: false
           };
 
           transaction.on('complete', () => {
@@ -301,7 +329,9 @@ export class HisaibKItaibDB extends Dexie {
             entityType: tableName,
             remoteId: obj.remoteId,
             action: 'DELETE' as const,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            retryCount: 0,
+            orphaned: false
           };
 
           transaction.on('complete', () => {
@@ -330,10 +360,14 @@ export class HisaibKItaibDB extends Dexie {
     }
 
     this.on('ready', () => {
-
       // Non-blocking background legacy backfill
       setTimeout(async () => {
         try {
+          const settings = await this.settings.toCollection().first();
+          if (settings && (settings as any).backfillVersion >= 1) {
+            return;
+          }
+
           const entries = await this.udhaarEntries.toArray();
           for (const entry of entries) {
             let changed = false;
@@ -400,10 +434,55 @@ export class HisaibKItaibDB extends Dexie {
               await this.udhaarEntries.put(entry);
             }
           }
+
+          if (settings) {
+            await Dexie.ignoreTransaction(async () => {
+              await db.transaction('rw', db.settings, async (tx) => {
+                (tx as any)._isRemoteSync = true;
+                await db.settings.update(settings.id!, { backfillVersion: 1 } as any);
+              });
+            });
+          }
         } catch (error) {
           console.warn("Background legacy backfill encountered an issue:", error);
         }
       }, 1500);
+
+      // Non-blocking background updatedAt backfill (Decision #4)
+      setTimeout(async () => {
+        try {
+          const settings = await this.settings.toCollection().first();
+          if (settings && (settings as any).backfillUpdatedAtVersion >= 1) {
+            return;
+          }
+
+          await db.transaction('rw', tablesToAudit.map(t => this.table(t)), async (tx) => {
+            (tx as any)._isRemoteSync = true;
+            for (const tableName of tablesToAudit) {
+              const table = this.table(tableName);
+              const items = await table.toArray();
+              for (const item of items) {
+                if (!(item as any).updatedAt) {
+                  const now = new Date().toISOString();
+                  const fallbackVal = (item as any).createdAt ?? (item as any).date ?? (item as any).timestamp ?? now;
+                  await table.update(item.id!, { updatedAt: fallbackVal });
+                }
+              }
+            }
+          });
+
+          if (settings) {
+            await Dexie.ignoreTransaction(async () => {
+              await db.transaction('rw', db.settings, async (tx) => {
+                (tx as any)._isRemoteSync = true;
+                await db.settings.update(settings.id!, { backfillUpdatedAtVersion: 1 } as any);
+              });
+            });
+          }
+        } catch (error) {
+          console.warn("Background updatedAt backfill encountered an issue:", error);
+        }
+      }, 2000);
     });
   }
 
@@ -432,6 +511,7 @@ export class HisaibKItaibDB extends Dexie {
 
     const payload = JSON.stringify({
       version: 1,
+      dbSchemaVersion: 14,
       timestamp: new Date().toISOString(),
       warning: 'This backup contains sensitive financial data. Store it securely. User PINs are not included — users must set new PINs after restore.',
       data
@@ -447,7 +527,14 @@ export class HisaibKItaibDB extends Dexie {
   }
 
   async importData(base64Payload: string) {
+    let syncWasEnabled = false;
     try {
+      const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
+      syncWasEnabled = FirebaseSyncService?.isEnabled?.();
+      if (syncWasEnabled && FirebaseSyncService?.stopSync) {
+        FirebaseSyncService.stopSync();
+      }
+
       this.isImporting = true;
       const binary = atob(base64Payload);
       const uint8Array = new Uint8Array(binary.length);
@@ -459,9 +546,10 @@ export class HisaibKItaibDB extends Dexie {
 
       if (!parsed.data) throw new Error("Invalid backup file");
 
-      if (parsed.version && parsed.version !== 1) {
+      const backupVersion = parsed.dbSchemaVersion || parsed.version || 1;
+      if (backupVersion !== 14) {
         const confirmed = window.confirm(
-          `This backup was created with schema version ${parsed.version}. Your current database is version 9. Some fields may not be compatible. Proceed with import?`
+          `This backup was created with schema version ${backupVersion}. Your current database is version 14. Some fields may not be compatible. Proceed with import?`
         );
         if (!confirmed) return false;
       }
@@ -476,7 +564,12 @@ export class HisaibKItaibDB extends Dexie {
         }
       });
 
-
+      if (syncWasEnabled && FirebaseSyncService?.startSync && FirebaseSyncService?.getCurrentUser) {
+        const currentUser = FirebaseSyncService.getCurrentUser();
+        if (currentUser) {
+          FirebaseSyncService.startSync(currentUser.uid);
+        }
+      }
 
       return true;
     } catch (e) {

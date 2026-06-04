@@ -1,4 +1,5 @@
 import { db, AppSettings } from '../db';
+import { AppSettingsSchema } from '../models/schemas';
 
 export const SettingsService = {
   async get() {
@@ -6,6 +7,9 @@ export const SettingsService = {
   },
 
   async update(idOrChanges: number | Partial<AppSettings>, changes?: Partial<AppSettings>) {
+    const data = typeof idOrChanges === 'number' ? changes! : idOrChanges;
+    AppSettingsSchema.partial().parse(data);
+
     if (typeof idOrChanges === 'number') {
       return await db.settings.update(idOrChanges, changes!);
     }

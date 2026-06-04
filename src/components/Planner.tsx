@@ -573,7 +573,7 @@ function AddFundsModal({ goal, currency, onClose }: { goal: Goal, currency: stri
 
     setIsSubmitting(true);
     try {
-      await PlannerService.addFunds(goal.id!, goal.currentAmount || 0, numericAmount);
+      await PlannerService.addFunds(goal.id!, numericAmount);
       showToast('Funds added to goal', 'success');
       onClose();
     } catch (error: any) {

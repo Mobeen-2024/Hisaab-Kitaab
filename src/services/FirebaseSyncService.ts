@@ -119,7 +119,6 @@ export function findUndefinedPaths(obj: any, path: string = ''): string[] {
 }
 
 // Flags and interval for background queue processing
-let isProcessingQueue = false;
 let queueIntervalId: any = null;
 
 export const FirebaseSyncService = {
@@ -259,7 +258,12 @@ export const FirebaseSyncService = {
               const docRef = doc(firestore, `users/${userId}/${table.path}/${item.remoteId}`);
               // Strip local database autoincrement ID to keep Firestore clean
               const { id, ...firebaseData } = item;
-              const sanitizedData = sanitizeForFirestore(firebaseData);
+              let finalData = firebaseData as any;
+              if (table.path === 'appUsers') {
+                const { passcodeHash, passcodeSalt, passcode, ...safe } = firebaseData as any;
+                finalData = safe;
+              }
+              const sanitizedData = sanitizeForFirestore(finalData);
               batch.set(docRef, sanitizedData, { merge: true });
             }
           }
@@ -419,13 +423,27 @@ export const FirebaseSyncService = {
                   // Keep local autoincrement id
                   fullRecord.id = localRecord.id;
                   
-                  // Only update if there's an actual difference to avoid endless update loops
-                  const isDifferent = Object.keys(docData).some(
-                    key => JSON.stringify(docData[key]) !== JSON.stringify((localRecord as any)[key])
-                  );
-                  
-                  if (isDifferent) {
+                  const remoteUpdatedAt = docData.updatedAt ?? '';
+                  const localUpdatedAt = (localRecord as any).updatedAt ?? '';
+
+                  if (remoteUpdatedAt > localUpdatedAt) {
                     await col.dbTable.put(fullRecord);
+                    db.auditLogs.add({
+                      entityType: col.name as any,
+                      entityId: localRecord.id!,
+                      action: 'update',
+                      timestamp: new Date().toISOString(),
+                      details: `Conflict resolved: remote (${remoteUpdatedAt}) > local (${localUpdatedAt})`,
+                      context: (localRecord as any).context
+                    }).catch(() => {});
+                    window.dispatchEvent(new CustomEvent('hk:sync-conflict', { detail: { col: col.name } }));
+                  } else if (remoteUpdatedAt === '' && localUpdatedAt === '') {
+                    const isDifferent = Object.keys(docData).some(
+                      key => JSON.stringify(docData[key]) !== JSON.stringify((localRecord as any)[key])
+                    );
+                    if (isDifferent) {
+                      await col.dbTable.put(fullRecord);
+                    }
                   }
                 } else {
                   // New record from another device - add to Dexie, letting Dexie generate local ID
@@ -520,7 +538,66 @@ export const FirebaseSyncService = {
         return;
       }
 
+      // Group by key (entityType + ':' + remoteId)
+      const grouped = new Map<string, typeof queueItems>();
       for (const item of queueItems) {
+        const key = `${item.entityType}:${item.remoteId}`;
+        if (!grouped.has(key)) {
+          grouped.set(key, []);
+        }
+        grouped.get(key)!.push(item);
+      }
+
+      const deduplicatedItems: typeof queueItems = [];
+      const idsToDelete: number[] = [];
+
+      for (const [key, items] of grouped.entries()) {
+        const latestItem = items[items.length - 1];
+        const hasDelete = items.some(i => i.action === 'DELETE');
+        
+        if (hasDelete) {
+          const deleteItem = items.find(i => i.action === 'DELETE');
+          if (deleteItem) {
+            deduplicatedItems.push(deleteItem);
+            items.forEach(i => {
+              if (i.id !== deleteItem.id && i.id !== undefined) {
+                idsToDelete.push(i.id);
+              }
+            });
+          }
+        } else {
+          deduplicatedItems.push(latestItem);
+          items.forEach(i => {
+            if (i.id !== latestItem.id && i.id !== undefined) {
+              idsToDelete.push(i.id);
+            }
+          });
+        }
+      }
+
+      if (idsToDelete.length > 0) {
+        await db.syncQueue.bulkDelete(idsToDelete);
+      }
+
+      const nowStr = new Date().toISOString();
+      const nowMs = Date.now();
+
+      for (const item of deduplicatedItems) {
+        if (item.orphaned) continue;
+
+        if (item.retryCount !== undefined && item.retryCount >= 10) {
+          await db.syncQueue.update(item.id!, { orphaned: true });
+          continue;
+        }
+
+        if (item.lastAttemptAt && item.retryCount !== undefined) {
+          const backoffTime = Math.min(Math.pow(2, item.retryCount) * 5000, 3600000);
+          const lastAttempt = new Date(item.lastAttemptAt).getTime();
+          if (nowMs - lastAttempt < backoffTime) {
+            continue;
+          }
+        }
+
         try {
           const docRef = item.entityType === 'settings'
             ? doc(firestore, `users/${user.uid}/settings/profile`)
@@ -531,6 +608,9 @@ export const FirebaseSyncService = {
             let dataToSet = cleanPayload;
             if (item.entityType === 'settings') {
               const { geminiApiKey, ...rest } = cleanPayload;
+              dataToSet = rest;
+            } else if (item.entityType === 'appUsers') {
+              const { passcodeHash, passcodeSalt, passcode, ...rest } = cleanPayload;
               dataToSet = rest;
             }
 
@@ -550,6 +630,11 @@ export const FirebaseSyncService = {
             remoteId: item.remoteId,
             errorCode: err?.code,
             errorMessage: err?.message,
+          });
+
+          await db.syncQueue.update(item.id!, {
+            retryCount: (item.retryCount || 0) + 1,
+            lastAttemptAt: nowStr
           });
         }
       }

@@ -54,6 +54,7 @@ export const UdhaarService = {
 
     validated.transactionId = txId;
     validated.context = context;
+    validated.updatedAt = new Date().toISOString();
 
     const id = await db.udhaarEntries.add(validated as UdhaarEntry);
     
@@ -73,22 +74,27 @@ export const UdhaarService = {
   },
 
   async delete(id: number) {
-    const entry = await db.udhaarEntries.get(id);
-    if (!entry) return;
-    
-    if (entry.transactionId) {
-      await TransactionService.delete(entry.transactionId).catch(console.error);
-    }
-    
-    await db.udhaarEntries.delete(id);
-    await CustomerService.syncBalance(entry.customerId);
+    await db.transaction('rw', [db.udhaarEntries, db.transactions, db.customers, db.auditLogs], async () => {
+      const entry = await db.udhaarEntries.get(id);
+      if (!entry) throw new Error('Udhaar entry not found');
+      
+      if (entry.transactionId) {
+        await TransactionService.delete(entry.transactionId);
+      }
+      
+      await db.udhaarEntries.delete(id);
+      await CustomerService.syncBalance(entry.customerId);
+    });
   },
 
   async markAsCompleted(id: number) {
     const entry = await db.udhaarEntries.get(id);
-    if (!entry) return;
+    if (!entry) throw new Error('Udhaar entry not found');
 
-    const result = await db.udhaarEntries.update(id, { isCompleted: true });
+    const result = await db.udhaarEntries.update(id, { 
+      isCompleted: true, 
+      updatedAt: new Date().toISOString() 
+    });
     return result;
   },
 

@@ -8,6 +8,7 @@ export const CategorySchema = z.object({
   name: z.string().min(1),
   type: z.enum(['income', 'expense']),
   context: z.enum(['personal', 'business']),
+  updatedAt: z.string().optional(),
 });
 
 export const CustomerSchema = z.object({
@@ -19,6 +20,7 @@ export const CustomerSchema = z.object({
   initialBalance: z.number().default(0).optional(),
   type: z.enum(['customer', 'supplier']).optional(),
   createdAt: z.string(),
+  updatedAt: z.string().optional(),
 });
 
 export const InventoryItemSchema = z.object({
@@ -31,6 +33,7 @@ export const InventoryItemSchema = z.object({
   unitPrice: z.number(),
   costPrice: z.number().optional(),
   context: z.enum(['personal', 'business']),
+  updatedAt: z.string().optional(),
 });
 
 export const TransactionSchema = z.object({
@@ -41,7 +44,7 @@ export const TransactionSchema = z.object({
   categoryId: z.number(),
   context: z.enum(['personal', 'business']),
   date: z.string(),
-  description: z.string(),
+  description: z.string().max(500),
   customerId: z.number().optional(),
   paymentMethod: z.enum(['cash', 'bank', 'mobile_wallet']).optional(),
   originalCurrency: z.string().optional(),
@@ -50,6 +53,7 @@ export const TransactionSchema = z.object({
   source: z.enum(['manual', 'voice', 'easypaisa', 'jazzcash', 'bank_import', 'pdf', 'ai', 'udhaar', 'inventory', 'legacy_backfill']).optional(),
   sourceId: z.number().optional(),
   importReferenceId: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 
 export const UdhaarEntrySchema = z.object({
@@ -60,13 +64,14 @@ export const UdhaarEntrySchema = z.object({
   amount: z.number().positive(),
   date: z.string(),
   dueDate: z.string().optional(),
-  description: z.string(),
+  description: z.string().max(500),
   isCompleted: z.boolean().optional(),
   originalCurrency: z.string().optional(),
   originalAmount: z.number().optional(),
   exchangeRate: z.number().optional(),
   context: z.enum(['personal', 'business']).default('business'),
   transactionId: z.number().optional(),
+  updatedAt: z.string().optional(),
 });
 
 export const GoalSchema = z.object({
@@ -77,6 +82,7 @@ export const GoalSchema = z.object({
   currentAmount: z.number().default(0),
   deadline: z.string().optional(),
   context: z.enum(['personal', 'business']),
+  updatedAt: z.string().optional(),
 });
 
 export const BudgetSchema = z.object({
@@ -85,6 +91,7 @@ export const BudgetSchema = z.object({
   month: z.string(), // 'YYYY-MM'
   amount: z.number().positive(),
   context: z.enum(['personal', 'business']),
+  updatedAt: z.string().optional(),
 });
 
 export const AppSettingsSchema = z.object({
@@ -116,6 +123,7 @@ export const AppUserSchema = z.object({
   passcodeHash: z.string().optional(),
   passcodeSalt: z.string().optional(),
   avatar: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 
 export const MessageSchema = z.object({
@@ -125,12 +133,13 @@ export const MessageSchema = z.object({
   sender: z.enum(['user', 'ai', 'system']),
   content: z.string(),
   timestamp: z.string(),
+  updatedAt: z.string().optional(),
 });
 
 export const AuditLogSchema = z.object({
   id: z.number().optional(),
   remoteId: z.string().optional(),
-  entityType: z.enum(['transaction', 'customer', 'udhaar', 'goal', 'budget', 'inventory']),
+  entityType: z.enum(['transactions', 'customers', 'udhaarEntries', 'goals', 'budgets', 'inventory', 'categories', 'appUsers', 'messages', 'settings']),
   entityId: z.number(),
   action: z.enum(['create', 'update', 'delete']),
   timestamp: z.string(),

@@ -24,7 +24,10 @@ export const HisaibInventoryService = {
 
 export const InventoryService = {
   async add(input: Omit<InventoryItem, 'id'>) {
-    const validated = InventoryItemSchema.parse(input);
+    const validated = InventoryItemSchema.parse({
+      ...input,
+      updatedAt: new Date().toISOString()
+    });
     return await db.inventory.add(validated as InventoryItem);
   },
 
@@ -32,31 +35,36 @@ export const InventoryService = {
     if (!Number.isFinite(additionalQty) || additionalQty <= 0)
       throw new Error('Invalid quantity provided for restock');
       
-    const item = await db.inventory.get(id);
-    if (!item) throw new Error('Inventory item not found');
-    
-    // Add Expense Transaction
-    const cat = await HisaibInventoryService.getOrCreateInventoryCategory(context);
-    const purchaseCost = item.costPrice ?? item.unitPrice;
-    const cost = additionalQty * purchaseCost;
-    
-    await TransactionService.add({
-      amount: cost,
-      type: 'expense',
-      categoryId: cat.id!,
-      context: context,
-      date: new Date().toLocaleDateString('en-CA'),
-      description: `Restocked ${additionalQty} x ${item.name} @ Rs ${purchaseCost}`,
-      paymentMethod: 'cash',
-      originalCurrency: 'PKR',
-      originalAmount: cost,
-      exchangeRate: 1,
-      source: 'inventory',
-      sourceId: item.id
-    });
+    return await db.transaction('rw', [db.inventory, db.transactions, db.categories, db.auditLogs], async () => {
+      const item = await db.inventory.get(id);
+      if (!item) throw new Error('Inventory item not found');
+      
+      // Add Expense Transaction
+      const cat = await HisaibInventoryService.getOrCreateInventoryCategory(context);
+      const purchaseCost = item.costPrice ?? item.unitPrice;
+      const cost = additionalQty * purchaseCost;
+      
+      await TransactionService.add({
+        amount: cost,
+        type: 'expense',
+        categoryId: cat.id!,
+        context: context,
+        date: new Date().toLocaleDateString('en-CA'),
+        description: `Restocked ${additionalQty} x ${item.name} @ Rs ${purchaseCost}`,
+        paymentMethod: 'cash',
+        originalCurrency: 'PKR',
+        originalAmount: cost,
+        exchangeRate: 1,
+        source: 'inventory',
+        sourceId: item.id
+      });
 
-    const newQty = item.quantity + additionalQty;
-    return await db.inventory.update(id, { quantity: newQty });
+      const newQty = item.quantity + additionalQty;
+      return await db.inventory.update(id, { 
+        quantity: newQty,
+        updatedAt: new Date().toISOString()
+      });
+    });
   },
 
   async updateQuantity(id: number, delta: number) {
@@ -66,15 +74,25 @@ export const InventoryService = {
     const newQty = item.quantity + delta;
     if (newQty < 0) throw new Error(`Insufficient stock for "${item.name}"`);
     
-    return await db.inventory.update(id, { quantity: newQty });
+    return await db.inventory.update(id, { 
+      quantity: newQty,
+      updatedAt: new Date().toISOString()
+    });
   },
 
   async upsert(data: Omit<InventoryItem, 'id'>, id?: number) {
     const validated = InventoryItemSchema.parse(data);
+    const nowStr = new Date().toISOString();
     if (id) {
-      return await db.inventory.update(id, validated);
+      return await db.inventory.update(id, {
+        ...validated,
+        updatedAt: nowStr
+      });
     } else {
-      return await db.inventory.add(validated as InventoryItem);
+      return await db.inventory.add({
+        ...(validated as InventoryItem),
+        updatedAt: nowStr
+      });
     }
   },
 
@@ -104,6 +122,6 @@ export const InventoryService = {
   async search(query: string, context: 'personal' | 'business') {
     const q = query.toLowerCase();
     const items = await this.getByContext(context);
-    return items.filter(i => i.name.toLowerCase().includes(q));
+    return items.filter(i => i.name.toLowerCase().includes(q)).slice(0, 200);
   }
 };

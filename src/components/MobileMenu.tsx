@@ -7,8 +7,18 @@ import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package,
 import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
 import { useUIStore } from '../lib/store';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db';
 
 export default function MobileMenu() {
+  const orphanedCount = useLiveQuery(
+    async () => {
+      const itemsNum = await db.syncQueue.where('orphaned').equals(1).toArray();
+      const itemsBool = await db.syncQueue.where('orphaned').equals(true as any).toArray();
+      return new Set([...itemsNum.map(i => i.id), ...itemsBool.map(i => i.id)]).size;
+    }
+  ) ?? 0;
+
   const { 
     lang, 
     currency, 
@@ -177,17 +187,17 @@ export default function MobileMenu() {
             >
               <div className="flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center relative ${isAuthenticated && isSyncEnabled ? 'bg-sky-400/10 text-sky-400 animate-pulse' : 'bg-slate-500/10 text-slate-500'}`}>
-                  <Cloud size={20} />
+                  <Cloud size={20} className={orphanedCount > 0 ? 'text-rose-400' : ''} />
                   {isAuthenticated && isSyncEnabled && (
-                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-slate-950" />
+                    <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-slate-950 ${orphanedCount > 0 ? 'bg-rose-500' : 'bg-emerald-400'}`} />
                   )}
                 </div>
                 <div>
                   <div className="text-left font-bold text-white text-sm leading-tight">
-                    {isAuthenticated && isSyncEnabled ? 'Cloud Synced' : 'Offline Mode'}
+                    {orphanedCount > 0 ? 'Sync Warning' : (isAuthenticated && isSyncEnabled ? 'Cloud Synced' : 'Offline Mode')}
                   </div>
                   <div className="text-left text-[11px] font-medium text-slate-400 truncate max-w-[180px] mt-0.5">
-                    {isAuthenticated && isSyncEnabled ? user?.email : 'Connect Cloud Sync'}
+                    {orphanedCount > 0 ? `${orphanedCount} sync issues` : (isAuthenticated && isSyncEnabled ? user?.email : 'Connect Cloud Sync')}
                   </div>
                 </div>
               </div>

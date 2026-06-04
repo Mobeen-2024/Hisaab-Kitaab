@@ -7,7 +7,10 @@ export type TransactionInput = Transaction;
 
 export const TransactionService = {
   async add(input: TransactionInput) {
-    const validated = TransactionSchema.parse(input);
+    const validated = TransactionSchema.parse({
+      ...input,
+      updatedAt: new Date().toISOString()
+    });
     const id = await db.transactions.add(validated as Transaction);
     if (validated.customerId) {
       await CustomerService.syncBalance(validated.customerId);
@@ -28,7 +31,10 @@ export const TransactionService = {
     if (!tx) throw new Error("Transaction not found");
     const oldCustomerId = tx.customerId;
 
-    await db.transactions.update(id, input);
+    await db.transactions.update(id, {
+      ...input,
+      updatedAt: new Date().toISOString()
+    });
 
     if (oldCustomerId) {
       await CustomerService.syncBalance(oldCustomerId);
@@ -78,7 +84,7 @@ export const TransactionService = {
     return txs.filter(t =>
       (t.description?.toLowerCase().includes(q)) ||
       (t.amount.toString().includes(q))
-    );
+    ).slice(0, 200);
   },
 
   async getPaginatedByContext(context: 'personal' | 'business', page: number, pageSize: number) {
@@ -141,7 +147,10 @@ export const TransactionService = {
   },
 
   async bulkAdd(transactions: Transaction[]) {
-    const validated = transactions.map(t => TransactionSchema.parse(t));
+    const validated = transactions.map(t => TransactionSchema.parse({
+      ...t,
+      updatedAt: new Date().toISOString()
+    }));
     const result = await db.transactions.bulkAdd(validated as Transaction[]);
     // Sync balances for all affected customers
     const customerIds = [...new Set(validated.map(t => t.customerId).filter(Boolean))];

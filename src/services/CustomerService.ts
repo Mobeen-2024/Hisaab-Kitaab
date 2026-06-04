@@ -12,14 +12,22 @@ export const CustomerService = {
       initialBalance: input.initialBalance ?? input.balance ?? 0
     };
 
-    const validated = CustomerSchema.parse(dataToValidate);
+    const validated = CustomerSchema.parse({
+      ...dataToValidate,
+      updatedAt: new Date().toISOString()
+    });
     return await db.customers.add(validated as Customer);
   },
 
   async update(id: number, input: Partial<CustomerInput>) {
     if (input.name === '') throw new Error('Name cannot be empty');
-    const result = await db.customers.update(id, input);
-    await this.syncBalance(id);
+    const result = await db.customers.update(id, {
+      ...input,
+      updatedAt: new Date().toISOString()
+    });
+    if ('initialBalance' in input || 'balance' in input) {
+      await this.syncBalance(id);
+    }
     return result;
   },
 
@@ -55,7 +63,10 @@ export const CustomerService = {
       return sum + (tx.type === 'expense' ? tx.amount : -tx.amount);
     }, 0);
 
-    await db.customers.update(customerId, { balance });
+    await db.customers.update(customerId, { 
+      balance,
+      updatedAt: new Date().toISOString()
+    });
     return balance;
   },
 
