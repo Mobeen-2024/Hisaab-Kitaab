@@ -56,6 +56,7 @@ export class HisaibKItaibDB extends Dexie {
 
   constructor() {
     super('HisaibKItaibDB');
+    const dbInstance = this;
     this.version(1).stores({
       transactions: '++id, type, categoryId, context, date',
       categories: '++id, type, context',
@@ -113,7 +114,8 @@ export class HisaibKItaibDB extends Dexie {
       inventory: '++id, context, remoteId',
       auditLogs: '++id, entityType, entityId, action, timestamp, context, remoteId',
       appUsers: '++id, role, contextAccess, remoteId',
-      messages: '++id, chatId, sender, timestamp, remoteId'
+      messages: '++id, chatId, sender, timestamp, remoteId',
+      syncQueue: '++id, entityType, remoteId, action, timestamp'
     });
     // Version 14: index orphaned in syncQueue for query banner performance
     this.version(14).stores({
@@ -145,7 +147,7 @@ export class HisaibKItaibDB extends Dexie {
     ];
 
     this.auditLogs.hook('creating', function (primKey, obj, transaction) {
-      if (db.isImporting) return;
+      if (!dbInstance.isOpen() || dbInstance.isImporting) return;
       if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
       if (!obj.remoteId) {
         obj.remoteId = typeof crypto !== 'undefined' && crypto.randomUUID 
@@ -177,7 +179,7 @@ export class HisaibKItaibDB extends Dexie {
     });
 
     this.auditLogs.hook('updating', (modifications, primKey, obj, transaction) => {
-      if (db.isImporting) return;
+      if (!dbInstance.isOpen() || dbInstance.isImporting) return;
       if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
       const updatedObj = { ...obj, ...modifications };
       if (updatedObj.remoteId) {
@@ -194,7 +196,7 @@ export class HisaibKItaibDB extends Dexie {
         transaction.on('complete', () => {
           setTimeout(async () => {
             try {
-              await db.syncQueue.add(queueItem);
+              await dbInstance.syncQueue.add(queueItem);
               const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
               FirebaseSyncService?.triggerQueueProcessing?.();
             } catch (error) {
@@ -206,7 +208,7 @@ export class HisaibKItaibDB extends Dexie {
     });
 
     this.auditLogs.hook('deleting', (primKey, obj, transaction) => {
-      if (db.isImporting) return;
+      if (!dbInstance.isOpen() || dbInstance.isImporting) return;
       if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
       if (obj.remoteId) {
         const queueItem = {
@@ -221,7 +223,7 @@ export class HisaibKItaibDB extends Dexie {
         transaction.on('complete', () => {
           setTimeout(async () => {
             try {
-              await db.syncQueue.add(queueItem);
+              await dbInstance.syncQueue.add(queueItem);
               const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
               FirebaseSyncService?.triggerQueueProcessing?.();
             } catch (error) {
@@ -236,7 +238,7 @@ export class HisaibKItaibDB extends Dexie {
       const table = this.table(tableName);
 
       table.hook('creating', function (primKey, obj, transaction) {
-        if (db.isImporting) return;
+        if (!dbInstance.isOpen() || dbInstance.isImporting) return;
         if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
         
         if (!obj.remoteId) {
@@ -258,7 +260,7 @@ export class HisaibKItaibDB extends Dexie {
         transaction.on('complete', () => {
           setTimeout(async () => {
             try {
-              await db.syncQueue.add(queueItem);
+              await dbInstance.syncQueue.add(queueItem);
               const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
               FirebaseSyncService?.triggerQueueProcessing?.();
             } catch (error) {
@@ -269,7 +271,7 @@ export class HisaibKItaibDB extends Dexie {
 
         this.onsuccess = (resultKey) => {
           Dexie.ignoreTransaction(() => {
-            db.auditLogs.add({
+            dbInstance.auditLogs.add({
               entityType: tableName as any,
               entityId: resultKey as number,
               action: 'create',
@@ -281,7 +283,7 @@ export class HisaibKItaibDB extends Dexie {
       });
 
       table.hook('updating', (modifications, primKey, obj, transaction) => {
-        if (db.isImporting) return;
+        if (!dbInstance.isOpen() || dbInstance.isImporting) return;
         if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
         // Merge modifications into copy of obj to sync complete data
         const updatedObj = { ...obj, ...modifications };
@@ -299,7 +301,7 @@ export class HisaibKItaibDB extends Dexie {
           transaction.on('complete', () => {
             setTimeout(async () => {
               try {
-                await db.syncQueue.add(queueItem);
+                await dbInstance.syncQueue.add(queueItem);
                 const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
                 FirebaseSyncService?.triggerQueueProcessing?.();
               } catch (error) {
@@ -310,7 +312,7 @@ export class HisaibKItaibDB extends Dexie {
         }
 
         Dexie.ignoreTransaction(() => {
-          db.auditLogs.add({
+          dbInstance.auditLogs.add({
             entityType: tableName as any,
             entityId: primKey || obj.id || 0,
             action: 'update',
@@ -322,7 +324,7 @@ export class HisaibKItaibDB extends Dexie {
       });
 
       table.hook('deleting', (primKey, obj, transaction) => {
-        if (db.isImporting) return;
+        if (!dbInstance.isOpen() || dbInstance.isImporting) return;
         if (Dexie.currentTransaction && (Dexie.currentTransaction as any)._isRemoteSync) return;
         if (obj.remoteId) {
           const queueItem = {
@@ -337,7 +339,7 @@ export class HisaibKItaibDB extends Dexie {
           transaction.on('complete', () => {
             setTimeout(async () => {
               try {
-                await db.syncQueue.add(queueItem);
+                await dbInstance.syncQueue.add(queueItem);
                 const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
                 FirebaseSyncService?.triggerQueueProcessing?.();
               } catch (error) {
@@ -348,7 +350,7 @@ export class HisaibKItaibDB extends Dexie {
         }
 
         Dexie.ignoreTransaction(() => {
-          db.auditLogs.add({
+          dbInstance.auditLogs.add({
             entityType: tableName as any,
             entityId: primKey || obj.id || 0,
             action: 'delete',
@@ -437,9 +439,9 @@ export class HisaibKItaibDB extends Dexie {
 
           if (settings) {
             await Dexie.ignoreTransaction(async () => {
-              await db.transaction('rw', db.settings, async (tx) => {
+              await dbInstance.transaction('rw', dbInstance.settings, async (tx) => {
                 (tx as any)._isRemoteSync = true;
-                await db.settings.update(settings.id!, { backfillVersion: 1 } as any);
+                await dbInstance.settings.update(settings.id!, { backfillVersion: 1 } as any);
               });
             });
           }
@@ -456,7 +458,7 @@ export class HisaibKItaibDB extends Dexie {
             return;
           }
 
-          await db.transaction('rw', tablesToAudit.map(t => this.table(t)), async (tx) => {
+          await dbInstance.transaction('rw', tablesToAudit.map(t => this.table(t)), async (tx) => {
             (tx as any)._isRemoteSync = true;
             for (const tableName of tablesToAudit) {
               const table = this.table(tableName);
@@ -473,9 +475,9 @@ export class HisaibKItaibDB extends Dexie {
 
           if (settings) {
             await Dexie.ignoreTransaction(async () => {
-              await db.transaction('rw', db.settings, async (tx) => {
+              await dbInstance.transaction('rw', dbInstance.settings, async (tx) => {
                 (tx as any)._isRemoteSync = true;
-                await db.settings.update(settings.id!, { backfillUpdatedAtVersion: 1 } as any);
+                await dbInstance.settings.update(settings.id!, { backfillUpdatedAtVersion: 1 } as any);
               });
             });
           }

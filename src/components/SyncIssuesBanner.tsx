@@ -11,9 +11,14 @@ export default function SyncIssuesBanner() {
   // Query orphaned count reliably across platforms
   const orphanedCount = useLiveQuery(
     async () => {
-      const itemsNum = await db.syncQueue.where('orphaned').equals(1).toArray();
-      const itemsBool = await db.syncQueue.where('orphaned').equals(true as any).toArray();
-      return new Set([...itemsNum.map(i => i.id), ...itemsBool.map(i => i.id)]).size;
+      try {
+        if (!db.isOpen()) return 0;
+        const allItems = await db.syncQueue.toArray();
+        return allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1).length;
+      } catch (err: any) {
+        console.warn("Failed to query orphanedCount in SyncIssuesBanner:", err);
+        return 0;
+      }
     }
   ) ?? 0;
 
@@ -34,10 +39,9 @@ export default function SyncIssuesBanner() {
 
   const handleRetry = async () => {
     try {
-      // Find both boolean true and numeric 1 orphaned items
-      const itemsNum = await db.syncQueue.where('orphaned').equals(1).toArray();
-      const itemsBool = await db.syncQueue.where('orphaned').equals(true as any).toArray();
-      const allOrphaned = [...itemsNum, ...itemsBool];
+      // Find both boolean true and numeric 1 orphaned items using memory filter
+      const allItems = await db.syncQueue.toArray();
+      const allOrphaned = allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1);
       
       await db.transaction('rw', db.syncQueue, async () => {
         for (const item of allOrphaned) {
@@ -60,9 +64,8 @@ export default function SyncIssuesBanner() {
 
   const handleKeepOffline = async () => {
     try {
-      const itemsNum = await db.syncQueue.where('orphaned').equals(1).toArray();
-      const itemsBool = await db.syncQueue.where('orphaned').equals(true as any).toArray();
-      const allOrphaned = [...itemsNum, ...itemsBool];
+      const allItems = await db.syncQueue.toArray();
+      const allOrphaned = allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1);
       const ids = allOrphaned.map(i => i.id).filter((id): id is number => id !== undefined);
 
       if (ids.length > 0) {

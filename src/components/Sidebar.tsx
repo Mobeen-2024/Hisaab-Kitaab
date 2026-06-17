@@ -12,9 +12,14 @@ import { db } from '../db';
 export default function Sidebar() {
   const orphanedCount = useLiveQuery(
     async () => {
-      const itemsNum = await db.syncQueue.where('orphaned').equals(1).toArray();
-      const itemsBool = await db.syncQueue.where('orphaned').equals(true as any).toArray();
-      return new Set([...itemsNum.map(i => i.id), ...itemsBool.map(i => i.id)]).size;
+      try {
+        if (!db.isOpen()) return 0;
+        const allItems = await db.syncQueue.toArray();
+        return allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1).length;
+      } catch (err: any) {
+        console.error("Failed to query orphanedCount in Sidebar. Error:", err, "Stack:", err?.stack);
+        return 0;
+      }
     }
   ) ?? 0;
 

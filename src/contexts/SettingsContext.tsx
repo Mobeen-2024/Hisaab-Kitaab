@@ -41,8 +41,23 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const settingsObj = useLiveQuery(() => SettingsService.get());
-  const users = useLiveQuery(() => AppUserService.getAll()) || [];
+  const settingsObj = useLiveQuery(async () => {
+    try {
+      return await SettingsService.get();
+    } catch (err) {
+      console.error("useLiveQuery SettingsService.get error:", err);
+      return null;
+    }
+  });
+
+  const users = useLiveQuery(async () => {
+    try {
+      return await AppUserService.getAll();
+    } catch (err) {
+      console.error("useLiveQuery AppUserService.getAll error:", err);
+      return [];
+    }
+  }) || [];
   
   // Bypass loading block if the database is in a crashed state so fallbacks can mount
   const isLoading = settingsObj === undefined && !dbError;

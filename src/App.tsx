@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SettingsProvider, useSettings } from './contexts/SettingsContext';
+import { db } from './db';
 import { ToastProvider } from './contexts/ToastContext';
 import { CloudAuthProvider } from './contexts/CloudAuthContext';
 import DatabaseErrorScreen from './components/common/DatabaseErrorScreen';
@@ -53,6 +54,19 @@ function AppRoutes() {
   } = useSettings();
   const location = useLocation();
   const isOnline = useOnlineStatus();
+
+  React.useEffect(() => {
+    console.log("Dexie Database Version (db.verno):", db.verno);
+    console.log("Dexie Database Open State (db.isOpen()):", db.isOpen());
+    if (db.isOpen()) {
+      try {
+        const table = db.table('syncQueue');
+        console.log("syncQueue schema indexes:", table.schema.indexes.map(idx => idx.name));
+      } catch (e) {
+        console.error("Error reading syncQueue schema:", e);
+      }
+    }
+  }, []);
 
   if (dbError) {
     return <DatabaseErrorScreen error={dbError} onReset={resetDatabase} />;
