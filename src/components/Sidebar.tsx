@@ -17,7 +17,7 @@ export default function Sidebar() {
         const allItems = await db.syncQueue.toArray();
         return allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1).length;
       } catch (err: any) {
-        console.error("Failed to query orphanedCount in Sidebar. Error:", err, "Stack:", err?.stack);
+        console.warn("Failed to query orphanedCount in Sidebar:", err);
         return 0;
       }
     }
