@@ -26,23 +26,39 @@ service cloud.firestore {
           && request.resource.data.date.size() == 10;
       }
       match /customers/{customerId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0;
       }
       match /categories/{categoryId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.type in ['income', 'expense'];
       }
       match /inventory/{inventoryId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.stock is number
+          && request.resource.data.stock >= 0;
       }
       match /appUsers/{appUserId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.role in ['owner', 'manager', 'cashier']
           && !('passcodeHash' in request.resource.data)
           && !('passcodeSalt' in request.resource.data)
           && !('passcode' in request.resource.data);
       }
       match /settings/{docId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId)
+          && !('geminiApiKey' in request.resource.data);
       }
       match /udhaarEntries/{udhaarId} {
         allow read, delete: if isOwner(userId);
@@ -52,10 +68,18 @@ service cloud.firestore {
           && request.resource.data.type in ['give', 'receive'];
       }
       match /goals/{goalId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.name is string
+          && request.resource.data.targetAmount is number
+          && request.resource.data.targetAmount > 0;
       }
       match /budgets/{budgetId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.name is string
+          && request.resource.data.limitAmount is number
+          && request.resource.data.limitAmount > 0;
       }
       match /messages/{messageId} {
         allow read, write: if isOwner(userId);

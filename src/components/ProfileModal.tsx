@@ -24,7 +24,6 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('20:00');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const backupInputRef = useRef<HTMLInputElement>(null);
 
   const countries = [
     { name: 'Pakistan', code: '+92', flag: '🇵🇰' },
@@ -80,44 +79,6 @@ export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProp
     }
   };
 
-  const handleExportData = async () => {
-    try {
-      const data = await SettingsService.exportData();
-      const blob = new Blob([data], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `HisaibKitaib_Backup_${new Date().toISOString().split('T')[0]}.bak`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      alert("Failed to export data");
-    }
-  };
-
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const str = reader.result as string;
-        try {
-          const success = await SettingsService.importData(str);
-          if (success) {
-            alert("Data restored successfully!");
-            window.location.reload();
-          } else {
-            alert("Backup file is corrupt or invalid.");
-          }
-        } catch(err) {
-          alert("Backup file is corrupt or invalid.");
-        }
-      };
-      reader.readAsText(file);
-    }
-  };
 
   const rtl = isRTL(lang);
   const isUrdu = lang === 'ur';

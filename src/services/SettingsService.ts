@@ -21,12 +21,12 @@ export const SettingsService = {
     }
   },
 
-  async exportData() {
-    return await db.exportData();
+  async exportData(password?: string) {
+    return await db.exportData(password);
   },
 
-  async importData(data: string) {
-    return await db.importData(data);
+  async importData(data: string, password?: string) {
+    return await db.importData(data, password);
   },
 
   async factoryReset() {

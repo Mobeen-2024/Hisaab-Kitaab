@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { AppUser } from '../db';
 import { AppUserService } from '../services/AppUserService';
 import { SettingsService } from '../services/SettingsService';
-import { Shield, UserPlus, Users, X, Key, Trash2 } from 'lucide-react';
+import { Shield, UserPlus, Users, X, Key, Trash2, Edit2, AlertCircle } from 'lucide-react';
 import { useAppUsers, useAppSettings } from '../hooks/useData';
+import { useCloudAuth } from '../contexts/CloudAuthContext';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
 interface ManageUsersProps {
   onClose: () => void;
@@ -13,13 +15,26 @@ interface ManageUsersProps {
 export default function ManageUsers({ onClose, activeContext }: ManageUsersProps) {
   const users = useAppUsers();
   const settingsObj = useAppSettings();
+  const { user: cloudUser, isSyncEnabled } = useCloudAuth();
+
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState('');
   const [role, setRole] = useState<'owner' | 'spouse' | 'cashier' | 'employee'>('employee');
   const [contextAccess, setContextAccess] = useState<'personal' | 'business' | 'both'>('business');
   const [passcode, setPasscode] = useState('');
+
   const [switchingUserId, setSwitchingUserId] = useState<number | null>(null);
   const [switchPin, setSwitchPin] = useState('');
+
+  // Admin Override
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [editPasscode, setEditPasscode] = useState('');
+
+  // Owner PIN Reset
+  const [resettingOwner, setResettingOwner] = useState(false);
+  const [firebasePassword, setFirebasePassword] = useState('');
+  const [newOwnerPin, setNewOwnerPin] = useState('');
+  const [isFirebaseVerified, setIsFirebaseVerified] = useState(false);
 
   const activeUser = users.find(u => u.id === settingsObj?.activeUserId);
   const isOwner = activeUser?.role === 'owner' || users.length === 0;
@@ -57,7 +72,6 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
     const success = await AppUserService.verifyAndMigrate(switchingUserId, switchPin);
     if (success) {
       if (settingsObj?.id) {
-        // Find user to check context access
         const targetUser = users.find(u => u.id === switchingUserId);
         let newContext = settingsObj.activeContext;
         if (targetUser) {
@@ -86,7 +100,40 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
     }
   };
 
-  // Seed owner if users list is empty
+  const handleUpdatePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingUserId === null || !editPasscode) return;
+    await AppUserService.update(editingUserId, { passcode: editPasscode });
+    setEditingUserId(null);
+    setEditPasscode('');
+    alert("PIN updated successfully.");
+  };
+
+  const handleVerifyFirebase = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cloudUser || !cloudUser.email) return;
+    
+    try {
+      const auth = getAuth();
+      await signInWithEmailAndPassword(auth, cloudUser.email, firebasePassword);
+      setIsFirebaseVerified(true);
+    } catch (err) {
+      alert("Incorrect Cloud Sync Password.");
+    }
+  };
+
+  const handleResetOwnerPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (switchingUserId === null || !newOwnerPin) return;
+    
+    await AppUserService.update(switchingUserId, { passcode: newOwnerPin });
+    setResettingOwner(false);
+    setIsFirebaseVerified(false);
+    setFirebasePassword('');
+    setNewOwnerPin('');
+    alert("Owner PIN reset successfully. You can now switch users.");
+  };
+
   const handleSeedOwner = async () => {
     const defaultOwnerName = settingsObj?.ownerName || 'Owner';
     const newOwnerId = await AppUserService.add({
@@ -113,9 +160,69 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
         </div>
       ) : (
         <>
-          {switchingUserId !== null && (
+          {resettingOwner && switchingUserId !== null ? (
+            <div className="bg-slate-900 border border-amber-500/50 p-4 rounded-xl space-y-3">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Shield size={16} className="text-amber-400" />
+                Reset Owner PIN
+              </h4>
+              
+              {!isSyncEnabled || !cloudUser ? (
+                <div className="text-sm text-slate-300 bg-white/5 p-3 rounded-lg border border-white/10">
+                  <AlertCircle size={16} className="text-rose-400 mb-2" />
+                  Cloud Sync is not enabled. Without an associated email account, there is no way to automatically recover the Owner PIN. You must restore from a backup or factory reset the app.
+                  <button type="button" onClick={() => setResettingOwner(false)} className="mt-3 w-full py-2 bg-white/10 text-white rounded-lg text-xs font-bold hover:bg-white/20 transition-colors">Go Back</button>
+                </div>
+              ) : !isFirebaseVerified ? (
+                <form onSubmit={handleVerifyFirebase} className="space-y-3">
+                  <p className="text-xs text-slate-400">
+                    To verify your identity, please enter the Cloud Sync Password for <strong>{cloudUser.email}</strong>.
+                  </p>
+                  <input 
+                    autoFocus 
+                    type="password" 
+                    value={firebasePassword} 
+                    onChange={e => setFirebasePassword(e.target.value)} 
+                    placeholder="Firebase Password" 
+                    className="w-full bg-[#1E293B] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-500/50" 
+                  />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setResettingOwner(false)} className="flex-1 py-1.5 bg-white/5 text-white rounded-lg text-xs font-bold transition-colors">Cancel</button>
+                    <button type="submit" className="flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold transition-colors">Verify Identity</button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleResetOwnerPin} className="space-y-3">
+                  <p className="text-xs text-emerald-400">Identity verified. Please set a new Owner PIN.</p>
+                  <input 
+                    autoFocus 
+                    type="password" 
+                    pattern="[0-9]*" 
+                    inputMode="numeric"
+                    maxLength={8}
+                    value={newOwnerPin} 
+                    onChange={e => setNewOwnerPin(e.target.value)} 
+                    placeholder="New 4-8 Digit PIN" 
+                    className="w-full bg-[#1E293B] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500/50" 
+                  />
+                  <button type="submit" className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors">Save New PIN</button>
+                </form>
+              )}
+            </div>
+          ) : switchingUserId !== null ? (
             <form onSubmit={handleSwitchUserSubmit} className="bg-slate-900 border border-indigo-500/30 p-4 rounded-xl space-y-3">
-              <h4 className="text-sm font-bold text-white">Enter Passcode for {users.find(u => u.id === switchingUserId)?.name}</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-bold text-white">Enter Passcode for {users.find(u => u.id === switchingUserId)?.name}</h4>
+                {users.find(u => u.id === switchingUserId)?.role === 'owner' && (
+                  <button 
+                    type="button" 
+                    onClick={() => setResettingOwner(true)}
+                    className="text-xs text-amber-400 hover:underline"
+                  >
+                    Forgot PIN?
+                  </button>
+                )}
+              </div>
               <input 
                 autoFocus 
                 type="password" 
@@ -130,6 +237,27 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
               <div className="flex gap-2">
                 <button type="button" onClick={() => setSwitchingUserId(null)} className="flex-1 py-1.5 bg-white/5 text-white rounded-lg text-xs font-bold transition-colors">Cancel</button>
                 <button type="submit" className="flex-1 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-500 transition-colors">Verify</button>
+              </div>
+            </form>
+          ) : null}
+
+          {editingUserId !== null && (
+            <form onSubmit={handleUpdatePin} className="bg-slate-900 border border-emerald-500/30 p-4 rounded-xl space-y-3">
+              <h4 className="text-sm font-bold text-white">Reset PIN for {users.find(u => u.id === editingUserId)?.name}</h4>
+              <input 
+                autoFocus 
+                type="password" 
+                pattern="[0-9]*" 
+                inputMode="numeric"
+                maxLength={8}
+                value={editPasscode} 
+                onChange={e => setEditPasscode(e.target.value)} 
+                placeholder="Enter New PIN" 
+                className="w-full bg-[#1E293B] border border-white/10 text-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500/50" 
+              />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => { setEditingUserId(null); setEditPasscode(''); }} className="flex-1 py-1.5 bg-white/5 text-white rounded-lg text-xs font-bold transition-colors">Cancel</button>
+                <button type="submit" className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors">Save New PIN</button>
               </div>
             </form>
           )}
@@ -156,12 +284,21 @@ export default function ManageUsers({ onClose, activeContext }: ManageUsersProps
                     </button>
                   )}
                   {isOwner && u.role !== 'owner' && (
-                    <button 
-                      onClick={() => handleDeleteUser(u.id!)}
-                      className="p-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <>
+                      <button 
+                        onClick={() => setEditingUserId(u.id!)}
+                        className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-colors"
+                        title="Reset PIN"
+                      >
+                        <Key size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteUser(u.id!)}
+                        className="p-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie';
+import { encryptData, decryptData } from './lib/encryption';
 import {
   Category,
   Customer,
@@ -488,7 +489,7 @@ export class HisaibKItaibDB extends Dexie {
     });
   }
 
-  async exportData() {
+  async exportData(password?: string) {
     const data: any = {};
     for (const table of this.tables) {
       if (table.name === 'syncQueue') continue;
@@ -519,16 +520,10 @@ export class HisaibKItaibDB extends Dexie {
       data
     });
 
-    const uint8Array = new TextEncoder().encode(payload);
-    let binary = '';
-    const len = uint8Array.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(uint8Array[i]);
-    }
-    return btoa(binary);
+    return await encryptData(payload, password);
   }
 
-  async importData(base64Payload: string) {
+  async importData(base64Payload: string, password?: string) {
     let syncWasEnabled = false;
     try {
       const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
@@ -538,12 +533,7 @@ export class HisaibKItaibDB extends Dexie {
       }
 
       this.isImporting = true;
-      const binary = atob(base64Payload);
-      const uint8Array = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        uint8Array[i] = binary.charCodeAt(i);
-      }
-      const payload = new TextDecoder().decode(uint8Array);
+      const payload = await decryptData(base64Payload, password);
       const parsed = JSON.parse(payload);
 
       if (!parsed.data) throw new Error("Invalid backup file");
@@ -556,6 +546,17 @@ export class HisaibKItaibDB extends Dexie {
         if (!confirmed) return false;
       }
 
+      // Pre-process items to ensure updatedAt exists
+      const nowStr = new Date().toISOString();
+      for (const tableName of Object.keys(parsed.data)) {
+        const items = parsed.data[tableName];
+        for (const item of items) {
+          if (!item.updatedAt && tableName !== 'syncQueue') {
+            item.updatedAt = item.createdAt ?? item.date ?? item.timestamp ?? nowStr;
+          }
+        }
+      }
+
       await this.transaction('rw', this.tables, async () => {
         for (const table of this.tables) {
           if (table.name === 'syncQueue') continue;
@@ -566,16 +567,25 @@ export class HisaibKItaibDB extends Dexie {
         }
       });
 
-      if (syncWasEnabled && FirebaseSyncService?.startSync && FirebaseSyncService?.getCurrentUser) {
+      if (syncWasEnabled && FirebaseSyncService?.getCurrentUser) {
         const currentUser = FirebaseSyncService.getCurrentUser();
         if (currentUser) {
-          FirebaseSyncService.startSync(currentUser.uid);
+          if (FirebaseSyncService.clearCloudData) {
+             await FirebaseSyncService.clearCloudData(currentUser.uid);
+          }
+          if (FirebaseSyncService.uploadAllLocalData) {
+             await FirebaseSyncService.uploadAllLocalData(currentUser.uid);
+          }
+          if (FirebaseSyncService.startSync) {
+            FirebaseSyncService.startSync(currentUser.uid);
+          }
         }
       }
 
       return true;
-    } catch (e) {
+    } catch (e: any) {
       console.error("Backup recovery failed:", e);
+      if (e && e.message) throw e;
       return false;
     } finally {
       this.isImporting = false;

@@ -17,6 +17,7 @@ import { SettingsService } from '../../services/SettingsService';
 import { TransactionService } from '../../services/TransactionService';
 import { FirebaseSyncService } from '../../services/FirebaseSyncService';
 import { db } from '../../db';
+import PasswordDialog from '../PasswordDialog';
 
 interface DataManagementProps {
   setImportModalOpen: (open: boolean) => void;
@@ -47,15 +48,22 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
+  // Password Prompt State
+  const [passwordPrompt, setPasswordPrompt] = useState<{ isOpen: boolean, mode: 'export' | 'import' | 'none', data?: string }>({ isOpen: false, mode: 'none' });
+
   // Refresh status periodically or on state change
   useEffect(() => {
     setIsSyncEnabled(FirebaseSyncService.isEnabled());
     setCurrentUserEmail(localStorage.getItem('firebase_sync_email'));
   }, []);
 
-  const handleExportData = async () => {
+  const handleExportData = () => {
+    setPasswordPrompt({ isOpen: true, mode: 'export' });
+  };
+
+  const executeExport = async (password: string) => {
     try {
-      const data = await SettingsService.exportData();
+      const data = await SettingsService.exportData(password);
       const blob = new Blob([data], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -67,6 +75,8 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
       URL.revokeObjectURL(url);
     } catch (e) {
       alert("Failed to export data");
+    } finally {
+      setPasswordPrompt({ isOpen: false, mode: 'none' });
     }
   };
 
@@ -76,36 +86,52 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
       const reader = new FileReader();
       reader.onloadend = async () => {
         const str = reader.result as string;
-        if (FirebaseSyncService.isEnabled()) {
-          setPendingImportData(str);
-          setShowRestoreModal(true);
+        if (str.startsWith('ENC:')) {
+          setPasswordPrompt({ isOpen: true, mode: 'import', data: str });
         } else {
-          try {
-            const success = await SettingsService.importData(str);
-            if (success) {
-              await db.syncQueue.clear();
-              alert("Data restored successfully!");
-              window.location.reload();
-            } else {
-              alert("Backup file is corrupt or invalid.");
-            }
-          } catch (err) {
-            alert("Backup file is corrupt or invalid.");
-          }
+          // Old unencrypted backup
+          processImportData(str, '');
         }
       };
       reader.readAsText(file);
     }
+    // Reset file input so same file can be selected again
+    if (backupInputRef.current) backupInputRef.current.value = '';
   };
 
-  const executeRestore = async (choice: 'local' | 'cloud') => {
-    if (!pendingImportData) return;
+  const processImportData = (str: string, password?: string) => {
+    setPendingImportData(JSON.stringify({ str, password }));
+    if (FirebaseSyncService.isEnabled()) {
+      setShowRestoreModal(true);
+    } else {
+      executeRestore('local', str, password);
+    }
+  };
+
+  const executeRestore = async (choice: 'local' | 'cloud', explicitData?: string, explicitPassword?: string) => {
+    if (!pendingImportData && !explicitData) return;
+    
+    let str = explicitData || '';
+    let pwd = explicitPassword || '';
+    
+    if (!explicitData && pendingImportData) {
+      try {
+        const parsed = JSON.parse(pendingImportData);
+        str = parsed.str;
+        pwd = parsed.password;
+      } catch (e) {
+        str = pendingImportData;
+      }
+    }
+
     setIsRestoring(true);
     try {
       if (choice === 'local') {
         // Disable Sync and logout
-        await FirebaseSyncService.logout();
-        const success = await SettingsService.importData(pendingImportData);
+        if (FirebaseSyncService.isEnabled()) {
+          await FirebaseSyncService.logout();
+        }
+        const success = await SettingsService.importData(str, pwd);
         if (success) {
           await db.syncQueue.clear();
           alert("Data restored successfully! Cloud sync has been disabled.");
@@ -131,16 +157,10 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
         // Pause sync listener
         FirebaseSyncService.stopSync();
 
-        const success = await SettingsService.importData(pendingImportData);
+        const success = await SettingsService.importData(str, pwd);
         if (success) {
           await db.syncQueue.clear();
-          // Clear cloud collections completely
-          await FirebaseSyncService.clearCloudData(user.uid);
-          // Upload local data to clean cloud state
-          await FirebaseSyncService.uploadAllLocalData(user.uid);
-          // Restart sync listener
-          FirebaseSyncService.startSync(user.uid);
-
+          // The database handles Firebase clear/upload/start now.
           alert("Data restored successfully and uploaded to Cloud!");
           window.location.reload();
         } else {
@@ -561,6 +581,22 @@ export default function DataManagement({ setImportModalOpen, confirmModal, setCo
           )}
         </AnimatePresence>
       </div>
+
+      <PasswordDialog
+        isOpen={passwordPrompt.isOpen}
+        onClose={() => setPasswordPrompt({ isOpen: false, mode: 'none' })}
+        title={passwordPrompt.mode === 'export' ? 'Secure Backup' : 'Enter Backup Password'}
+        message={passwordPrompt.mode === 'export' ? 'Enter a password to encrypt your backup file. You will need this password to restore your data later.' : 'This backup file is encrypted. Please enter the password you used when creating it.'}
+        submitText={passwordPrompt.mode === 'export' ? 'Create Encrypted Backup' : 'Decrypt & Restore'}
+        onSubmit={(password) => {
+          if (passwordPrompt.mode === 'export') {
+            executeExport(password);
+          } else if (passwordPrompt.mode === 'import' && passwordPrompt.data) {
+            setPasswordPrompt({ isOpen: false, mode: 'none' });
+            processImportData(passwordPrompt.data, password);
+          }
+        }}
+      />
     </div>
   );
 }
