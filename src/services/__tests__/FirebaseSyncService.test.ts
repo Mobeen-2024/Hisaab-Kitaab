@@ -306,4 +306,57 @@ describe('FirebaseSyncService Tests', () => {
     const count = await db.syncQueue.count();
     expect(count).toBe(1);
   });
+
+  describe('Pending Full Sync Tests', () => {
+    it('processPendingFullSync runs clearCloudData and uploadAllLocalData, then clears flag', async () => {
+      localStorage.setItem('HK_PENDING_FULL_SYNC', 'true');
+      localStorage.setItem('HK_PENDING_FULL_SYNC_USER_ID', 'test-uid');
+      
+      const clearCloudDataSpy = vi.spyOn(FirebaseSyncService, 'clearCloudData').mockResolvedValue(undefined);
+      const uploadAllLocalDataSpy = vi.spyOn(FirebaseSyncService, 'uploadAllLocalData').mockResolvedValue(undefined);
+
+      const success = await FirebaseSyncService.processPendingFullSync('test-uid');
+
+      expect(clearCloudDataSpy).toHaveBeenCalledWith('test-uid');
+      expect(uploadAllLocalDataSpy).toHaveBeenCalledWith('test-uid');
+      expect(success).toBe(true);
+      expect(localStorage.getItem('HK_PENDING_FULL_SYNC')).toBeNull();
+
+      clearCloudDataSpy.mockRestore();
+      uploadAllLocalDataSpy.mockRestore();
+    });
+
+    it('processPendingFullSync retains flag if upload fails', async () => {
+      localStorage.setItem('HK_PENDING_FULL_SYNC', 'true');
+      localStorage.setItem('HK_PENDING_FULL_SYNC_USER_ID', 'test-uid');
+      
+      const clearCloudDataSpy = vi.spyOn(FirebaseSyncService, 'clearCloudData').mockResolvedValue(undefined);
+      const uploadAllLocalDataSpy = vi.spyOn(FirebaseSyncService, 'uploadAllLocalData').mockRejectedValue(new Error('Network failure'));
+
+      const success = await FirebaseSyncService.processPendingFullSync('test-uid');
+
+      expect(clearCloudDataSpy).toHaveBeenCalledWith('test-uid');
+      expect(uploadAllLocalDataSpy).toHaveBeenCalledWith('test-uid');
+      expect(success).toBe(false);
+      expect(localStorage.getItem('HK_PENDING_FULL_SYNC')).toBe('true');
+
+      clearCloudDataSpy.mockRestore();
+      uploadAllLocalDataSpy.mockRestore();
+    });
+
+    it('processPendingFullSync ignores wrong user id', async () => {
+      localStorage.setItem('HK_PENDING_FULL_SYNC', 'true');
+      localStorage.setItem('HK_PENDING_FULL_SYNC_USER_ID', 'wrong-uid');
+      
+      const clearCloudDataSpy = vi.spyOn(FirebaseSyncService, 'clearCloudData');
+
+      const success = await FirebaseSyncService.processPendingFullSync('test-uid');
+
+      expect(clearCloudDataSpy).not.toHaveBeenCalled();
+      expect(success).toBe(true); // Does not block current user
+      expect(localStorage.getItem('HK_PENDING_FULL_SYNC')).toBe('true');
+
+      clearCloudDataSpy.mockRestore();
+    });
+  });
 });

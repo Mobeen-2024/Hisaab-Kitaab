@@ -557,9 +557,19 @@ export class HisaibKItaibDB extends Dexie {
         }
       }
 
-      // Flag that an import occurred. The sync service and UI will handle cloud sync and PIN resets on reload.
-      localStorage.setItem('firebase_needs_full_sync', 'true');
-      localStorage.setItem('needs_owner_pin_reset', 'true');
+      let currentUser = null;
+      if (FirebaseSyncService?.getCurrentUser) {
+        currentUser = FirebaseSyncService.getCurrentUser();
+      }
+
+      if (syncWasEnabled || currentUser) {
+        localStorage.setItem('HK_PENDING_FULL_SYNC', 'true');
+        if (currentUser) {
+          localStorage.setItem('HK_PENDING_FULL_SYNC_USER_ID', currentUser.uid);
+        }
+        localStorage.setItem('HK_PENDING_FULL_SYNC_CREATED_AT', nowStr);
+      }
+      localStorage.setItem('HK_REQUIRES_OWNER_PIN_SETUP', 'true');
 
       await this.transaction('rw', this.tables, async () => {
         for (const table of this.tables) {

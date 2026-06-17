@@ -109,7 +109,7 @@ import MandatoryPinReset from './components/MandatoryPinReset';
 export default function App() {
   const [showSplash, setShowSplash] = React.useState(true);
   const [needsPinReset, setNeedsPinReset] = React.useState(
-    () => localStorage.getItem('needs_owner_pin_reset') === 'true'
+    () => localStorage.getItem('HK_REQUIRES_OWNER_PIN_SETUP') === 'true'
   );
 
   return (
@@ -122,7 +122,7 @@ export default function App() {
                 <SplashScreen onComplete={() => setShowSplash(false)} />
               ) : needsPinReset ? (
                 <MandatoryPinReset onComplete={() => {
-                  localStorage.removeItem('needs_owner_pin_reset');
+                  localStorage.removeItem('HK_REQUIRES_OWNER_PIN_SETUP');
                   setNeedsPinReset(false);
                 }} />
               ) : (

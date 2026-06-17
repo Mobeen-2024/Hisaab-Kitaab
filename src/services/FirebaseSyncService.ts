@@ -384,9 +384,16 @@ export const FirebaseSyncService = {
   },
 
   // Start real-time Firestore listeners to sync down changes to Dexie
-  startSync(userId: string): void {
+  async startSync(userId: string): Promise<void> {
     // Prevent starting duplicate listeners
     this.stopSync();
+
+    // Process pending full sync if applicable
+    const success = await this.processPendingFullSync(userId);
+    if (!success) {
+      console.warn("[Sync] Pending full sync failed. Listeners will not be started until it succeeds.");
+      return;
+    }
 
     this.startQueueTimer();
 
@@ -507,21 +514,44 @@ export const FirebaseSyncService = {
     }
   },
 
+  hasPendingFullSync(): boolean {
+    return localStorage.getItem('HK_PENDING_FULL_SYNC') === 'true';
+  },
+
+  clearPendingFullSync(): void {
+    localStorage.removeItem('HK_PENDING_FULL_SYNC');
+    localStorage.removeItem('HK_PENDING_FULL_SYNC_USER_ID');
+    localStorage.removeItem('HK_PENDING_FULL_SYNC_CREATED_AT');
+  },
+
+  async processPendingFullSync(userId: string): Promise<boolean> {
+    if (!this.hasPendingFullSync()) return true;
+
+    const pendingUserId = localStorage.getItem('HK_PENDING_FULL_SYNC_USER_ID');
+    if (pendingUserId && pendingUserId !== userId) {
+      console.warn("[Sync] Pending full sync is for a different user. Ignoring.");
+      return true; // Don't block current user
+    }
+
+    console.log("[Sync] Offline restore detected. Performing full sync now.");
+    // Ensure listeners are stopped before wipe
+    this.stopSync();
+
+    try {
+      await this.clearCloudData(userId);
+      await this.uploadAllLocalData(userId);
+      this.clearPendingFullSync();
+      return true;
+    } catch (error) {
+      console.error("[Sync] Failed to perform full sync after restore:", error);
+      return false;
+    }
+  },
+
   // Automatically start sync on page load if enabled
   initSyncOnAuth(): void {
     onAuthStateChanged(auth, async (user) => {
       if (user && this.isEnabled()) {
-        if (localStorage.getItem('firebase_needs_full_sync') === 'true') {
-          console.log("[Sync] Offline restore detected. Performing full sync now.");
-          try {
-            await this.clearCloudData(user.uid);
-            await this.uploadAllLocalData(user.uid);
-            localStorage.removeItem('firebase_needs_full_sync');
-          } catch (error) {
-            console.error("[Sync] Failed to perform full sync after restore:", error);
-            // We intentionally leave the flag if it fails so it retries later
-          }
-        }
         this.startSync(user.uid);
       } else {
         this.stopSync();
