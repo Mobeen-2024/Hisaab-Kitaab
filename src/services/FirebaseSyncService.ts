@@ -225,39 +225,7 @@ export const FirebaseSyncService = {
     }
   },
 
-  // Clear all cloud data for the given user (destructive)
-  async clearCloudData(userId: string): Promise<void> {
-    try {
-      const collectionsToClear = [
-        'transactions', 'customers', 'categories', 'inventory',
-        'udhaarEntries', 'goals', 'budgets', 'appUsers', 'messages', 'auditLogs', 'settings'
-      ];
-      for (const colName of collectionsToClear) {
-        const colRef = collection(firestore, `users/${userId}/${colName}`);
-        const snapshot = await getDocs(colRef);
-        
-        const chunkSize = 400;
-        let batch = writeBatch(firestore);
-        let count = 0;
-        
-        for (const document of snapshot.docs) {
-          batch.delete(document.ref);
-          count++;
-          if (count >= chunkSize) {
-            await batch.commit();
-            batch = writeBatch(firestore);
-            count = 0;
-          }
-        }
-        if (count > 0) {
-          await batch.commit();
-        }
-      }
-      console.log("Cloud data cleared successfully.");
-    } catch (e) {
-      console.error("Error clearing cloud data:", e);
-    }
-  },
+
 
   // Upload all local data to Firestore (runs on initial login/registration)
   async uploadAllLocalData(userId: string): Promise<void> {
