@@ -104,8 +104,13 @@ function AppRoutes() {
   );
 }
 
+import MandatoryPinReset from './components/MandatoryPinReset';
+
 export default function App() {
   const [showSplash, setShowSplash] = React.useState(true);
+  const [needsPinReset, setNeedsPinReset] = React.useState(
+    () => localStorage.getItem('needs_owner_pin_reset') === 'true'
+  );
 
   return (
     <SettingsProvider>
@@ -115,6 +120,11 @@ export default function App() {
             <BrowserRouter>
               {showSplash ? (
                 <SplashScreen onComplete={() => setShowSplash(false)} />
+              ) : needsPinReset ? (
+                <MandatoryPinReset onComplete={() => {
+                  localStorage.removeItem('needs_owner_pin_reset');
+                  setNeedsPinReset(false);
+                }} />
               ) : (
                 <AppRoutes />
               )}
@@ -125,3 +135,4 @@ export default function App() {
     </SettingsProvider>
   );
 }
+

@@ -557,6 +557,10 @@ export class HisaibKItaibDB extends Dexie {
         }
       }
 
+      // Flag that an import occurred. The sync service and UI will handle cloud sync and PIN resets on reload.
+      localStorage.setItem('firebase_needs_full_sync', 'true');
+      localStorage.setItem('needs_owner_pin_reset', 'true');
+
       await this.transaction('rw', this.tables, async () => {
         for (const table of this.tables) {
           if (table.name === 'syncQueue') continue;
@@ -566,21 +570,6 @@ export class HisaibKItaibDB extends Dexie {
           }
         }
       });
-
-      if (syncWasEnabled && FirebaseSyncService?.getCurrentUser) {
-        const currentUser = FirebaseSyncService.getCurrentUser();
-        if (currentUser) {
-          if (FirebaseSyncService.clearCloudData) {
-             await FirebaseSyncService.clearCloudData(currentUser.uid);
-          }
-          if (FirebaseSyncService.uploadAllLocalData) {
-             await FirebaseSyncService.uploadAllLocalData(currentUser.uid);
-          }
-          if (FirebaseSyncService.startSync) {
-            FirebaseSyncService.startSync(currentUser.uid);
-          }
-        }
-      }
 
       return true;
     } catch (e: any) {

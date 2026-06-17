@@ -509,8 +509,19 @@ export const FirebaseSyncService = {
 
   // Automatically start sync on page load if enabled
   initSyncOnAuth(): void {
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (user && this.isEnabled()) {
+        if (localStorage.getItem('firebase_needs_full_sync') === 'true') {
+          console.log("[Sync] Offline restore detected. Performing full sync now.");
+          try {
+            await this.clearCloudData(user.uid);
+            await this.uploadAllLocalData(user.uid);
+            localStorage.removeItem('firebase_needs_full_sync');
+          } catch (error) {
+            console.error("[Sync] Failed to perform full sync after restore:", error);
+            // We intentionally leave the flag if it fails so it retries later
+          }
+        }
         this.startSync(user.uid);
       } else {
         this.stopSync();
