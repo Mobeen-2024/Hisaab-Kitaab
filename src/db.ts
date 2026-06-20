@@ -563,11 +563,11 @@ export class HisaibKItaibDB extends Dexie {
       }
 
       if (syncWasEnabled || currentUser) {
-        localStorage.setItem('HK_PENDING_FULL_SYNC', 'true');
+        localStorage.setItem('firebase_needs_full_sync', 'true');
         if (currentUser) {
-          localStorage.setItem('HK_PENDING_FULL_SYNC_USER_ID', currentUser.uid);
+          localStorage.setItem('firebase_needs_full_sync_user_id', currentUser.uid);
         }
-        localStorage.setItem('HK_PENDING_FULL_SYNC_CREATED_AT', nowStr);
+        localStorage.setItem('firebase_needs_full_sync_created_at', nowStr);
       }
       localStorage.setItem('HK_REQUIRES_OWNER_PIN_SETUP', 'true');
 

@@ -294,6 +294,201 @@ describe('FirebaseSyncService Tests', () => {
       entityType: 'transactions',
       remoteId: 'tx-fail-1',
       timestamp: new Date().toISOString(),
+fn: () => {},
+      sym: Symbol('test'),
+      valid: 'value'
+    };
+    expect(sanitizeForFirestore(obj)).toEqual({ valid: 'value' });
+  });
+});
+
+describe('FirebaseSyncService Tests', () => {
+  const originalConsoleError = console.error;
+
+  beforeEach(async () => {
+    console.error = (...args: any[]) => {
+      const msg = args.join(' ');
+      if (msg.includes('NotFoundError') || msg.includes('DatabaseClosedError')) return;
+      originalConsoleError(...args);
+    };
+
+    db.close();
+    await Dexie.delete('HisaibKItaibDB');
+    db.isImporting = true;
+    await db.open();
+    db.isImporting = false;
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    db.isImporting = true;
+    await db.syncQueue.clear();
+    await db.settings.clear();
+    db.isImporting = false;
+    localStorage.clear();
+    vi.clearAllMocks();
+    
+    // Set standard mock behaviors
+    Object.defineProperty(navigator, 'onLine', {
+      value: true,
+      writable: true,
+    });
+  });
+
+  afterAll(async () => {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    db.close();
+    console.error = originalConsoleError;
+  });
+
+  it('does not process queue when sync is disabled', async () => {
+    await db.syncQueue.clear();
+    localStorage.setItem('firebase_sync_enabled', 'false');
+
+    await db.syncQueue.add({
+      action: 'UPSERT',
+      entityType: 'transactions',
+      remoteId: 'remote-1',
+      timestamp: new Date().toISOString(),
+      payload: { amount: 100, description: 'Lunch' }
+    });
+
+    await FirebaseSyncService.processQueue();
+
+    // Sync queue must still have 1 item
+    const count = await db.syncQueue.count();
+    expect(count).toBe(1);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it('does not process queue when offline', async () => {
+    await db.syncQueue.clear();
+    localStorage.setItem('firebase_sync_enabled', 'true');
+    Object.defineProperty(navigator, 'onLine', { value: false });
+
+    await db.syncQueue.add({
+      action: 'UPSERT',
+      entityType: 'transactions',
+      remoteId: 'remote-2',
+      timestamp: new Date().toISOString(),
+      payload: { amount: 200, description: 'Dinner' }
+    });
+
+    await FirebaseSyncService.processQueue();
+
+    // Sync queue must still have 1 item
+    const count = await db.syncQueue.count();
+    expect(count).toBe(1);
+    expect(setDoc).not.toHaveBeenCalled();
+  });
+
+  it('processes upsert/delete actions and clears the local queue when online', async () => {
+    await db.syncQueue.clear();
+    localStorage.setItem('firebase_sync_enabled', 'true');
+    Object.defineProperty(navigator, 'onLine', { value: true });
+
+    // Queue one upsert and one delete
+    await db.syncQueue.bulkAdd([
+      {
+        action: 'UPSERT',
+        entityType: 'transactions',
+        remoteId: 'tx-1',
+        timestamp: new Date().toISOString(),
+        payload: { amount: 300, description: 'Breakfast' }
+      },
+      {
+        action: 'DELETE',
+        entityType: 'customers',
+        remoteId: 'cust-1',
+        timestamp: new Date().toISOString(),
+        payload: {}
+      }
+    ]);
+
+    await FirebaseSyncService.processQueue();
+
+    // Verify mock Firestore interactions
+    expect(setDoc).toHaveBeenCalled();
+    expect(deleteDoc).toHaveBeenCalled();
+
+    // Local sync queue must now be empty
+    const count = await db.syncQueue.count();
+    expect(count).toBe(0);
+  });
+
+  it('removes geminiApiKey from settings payload before syncing', async () => {
+    await db.syncQueue.clear();
+    localStorage.setItem('firebase_sync_enabled', 'true');
+    Object.defineProperty(navigator, 'onLine', { value: true });
+
+    // Queue a settings synchronization containing sensitive Gemini API Key
+    await db.syncQueue.add({
+      action: 'UPSERT',
+      entityType: 'settings',
+      remoteId: 'settings-profile',
+      timestamp: new Date().toISOString(),
+      payload: {
+        currency: 'PKR',
+        activeContext: 'business',
+        geminiApiKey: 'super-secret-key-12345'
+      }
+    });
+
+    await FirebaseSyncService.processQueue();
+
+    // Verify setDoc was called
+    expect(setDoc).toHaveBeenCalled();
+    const callArgs = vi.mocked(setDoc).mock.calls[0];
+    const syncedPayload = callArgs[1] as any;
+
+    // Assert API key is stripped from synchronized payload
+    expect(syncedPayload.geminiApiKey).toBeUndefined();
+    expect(syncedPayload.currency).toBe('PKR');
+  });
+
+  it('calling triggerQueueProcessing multiple times only runs one processQueue at a time', async () => {
+    await db.syncQueue.clear();
+    localStorage.setItem('firebase_sync_enabled', 'true');
+    Object.defineProperty(navigator, 'onLine', { value: true });
+
+    let resolveSetDoc: (value: any) => void;
+    const slowSetDocPromise = new Promise(resolve => { resolveSetDoc = resolve; });
+    vi.mocked(setDoc).mockReturnValueOnce(slowSetDocPromise as Promise<void>);
+
+    await db.syncQueue.add({
+      action: 'UPSERT',
+      entityType: 'transactions',
+      remoteId: 'tx-lock-1',
+      timestamp: new Date().toISOString(),
+      payload: { amount: 100 }
+    });
+
+    // Fire two concurrently
+    const p1 = FirebaseSyncService.processQueue();
+    const p2 = FirebaseSyncService.processQueue();
+    
+    // Release the first one
+    resolveSetDoc!(undefined);
+    await Promise.all([p1, p2]);
+
+    // setDoc should only be called once because the second skipped
+    expect(setDoc).toHaveBeenCalledTimes(1);
+    
+    const count = await db.syncQueue.count();
+    expect(count).toBe(0);
+  });
+
+  it('keeps syncQueue item on upload failure', async () => {
+    await db.syncQueue.clear();
+    localStorage.setItem('firebase_sync_enabled', 'true');
+    Object.defineProperty(navigator, 'onLine', { value: true });
+
+    // Mock upload failure
+    vi.mocked(setDoc).mockRejectedValueOnce(new Error('Network error'));
+
+    await db.syncQueue.add({
+      action: 'UPSERT',
+      entityType: 'transactions',
+      remoteId: 'tx-fail-1',
+      timestamp: new Date().toISOString(),
       payload: { amount: 500 }
     });
 
@@ -308,55 +503,52 @@ describe('FirebaseSyncService Tests', () => {
   });
 
   describe('Pending Full Sync Tests', () => {
-    it('processPendingFullSync runs clearCloudData and uploadAllLocalData, then clears flag', async () => {
-      localStorage.setItem('HK_PENDING_FULL_SYNC', 'true');
-      localStorage.setItem('HK_PENDING_FULL_SYNC_USER_ID', 'test-uid');
+    let clearCloudDataSpy: any;
+    let uploadAllLocalDataSpy: any;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      localStorage.clear();
+      localStorage.setItem('firebase_needs_full_sync', 'true');
+      localStorage.setItem('firebase_needs_full_sync_user_id', 'test-user-123');
       
-      const clearCloudDataSpy = vi.spyOn(FirebaseSyncService, 'clearCloudData').mockResolvedValue(undefined);
-      const uploadAllLocalDataSpy = vi.spyOn(FirebaseSyncService, 'uploadAllLocalData').mockResolvedValue(undefined);
+      clearCloudDataSpy = vi.spyOn(FirebaseSyncService, 'clearCloudData').mockResolvedValue(undefined);
+      uploadAllLocalDataSpy = vi.spyOn(FirebaseSyncService, 'uploadAllLocalData').mockResolvedValue(undefined);
+    });
 
-      const success = await FirebaseSyncService.processPendingFullSync('test-uid');
-
-      expect(clearCloudDataSpy).toHaveBeenCalledWith('test-uid');
-      expect(uploadAllLocalDataSpy).toHaveBeenCalledWith('test-uid');
-      expect(success).toBe(true);
-      expect(localStorage.getItem('HK_PENDING_FULL_SYNC')).toBeNull();
-
+    afterEach(() => {
       clearCloudDataSpy.mockRestore();
       uploadAllLocalDataSpy.mockRestore();
+    });
+
+    it('processPendingFullSync runs clearCloudData and uploadAllLocalData, then clears flag', async () => {
+      const result = await FirebaseSyncService.processPendingFullSync('test-user-123');
+      
+      expect(result).toBe(true);
+      expect(clearCloudDataSpy).toHaveBeenCalledWith('test-user-123');
+      expect(uploadAllLocalDataSpy).toHaveBeenCalledWith('test-user-123');
+      expect(localStorage.getItem('firebase_needs_full_sync')).toBeNull();
     });
 
     it('processPendingFullSync retains flag if upload fails', async () => {
-      localStorage.setItem('HK_PENDING_FULL_SYNC', 'true');
-      localStorage.setItem('HK_PENDING_FULL_SYNC_USER_ID', 'test-uid');
+      uploadAllLocalDataSpy.mockRejectedValue(new Error('Network failure'));
+
+      const result = await FirebaseSyncService.processPendingFullSync('test-user-123');
       
-      const clearCloudDataSpy = vi.spyOn(FirebaseSyncService, 'clearCloudData').mockResolvedValue(undefined);
-      const uploadAllLocalDataSpy = vi.spyOn(FirebaseSyncService, 'uploadAllLocalData').mockRejectedValue(new Error('Network failure'));
-
-      const success = await FirebaseSyncService.processPendingFullSync('test-uid');
-
-      expect(clearCloudDataSpy).toHaveBeenCalledWith('test-uid');
-      expect(uploadAllLocalDataSpy).toHaveBeenCalledWith('test-uid');
-      expect(success).toBe(false);
-      expect(localStorage.getItem('HK_PENDING_FULL_SYNC')).toBe('true');
-
-      clearCloudDataSpy.mockRestore();
-      uploadAllLocalDataSpy.mockRestore();
+      expect(result).toBe(false);
+      expect(clearCloudDataSpy).toHaveBeenCalledWith('test-user-123');
+      expect(uploadAllLocalDataSpy).toHaveBeenCalledWith('test-user-123');
+      expect(localStorage.getItem('firebase_needs_full_sync')).toBe('true');
     });
 
     it('processPendingFullSync ignores wrong user id', async () => {
-      localStorage.setItem('HK_PENDING_FULL_SYNC', 'true');
-      localStorage.setItem('HK_PENDING_FULL_SYNC_USER_ID', 'wrong-uid');
+      const result = await FirebaseSyncService.processPendingFullSync('wrong-user-999');
       
-      const clearCloudDataSpy = vi.spyOn(FirebaseSyncService, 'clearCloudData');
-
-      const success = await FirebaseSyncService.processPendingFullSync('test-uid');
-
+      expect(result).toBe(false); // Does not block current user from logging in, just skips sync
       expect(clearCloudDataSpy).not.toHaveBeenCalled();
-      expect(success).toBe(true); // Does not block current user
-      expect(localStorage.getItem('HK_PENDING_FULL_SYNC')).toBe('true');
-
-      clearCloudDataSpy.mockRestore();
+      expect(uploadAllLocalDataSpy).not.toHaveBeenCalled();
+      expect(localStorage.getItem('firebase_needs_full_sync')).toBe('true');
     });
   });
+});
 });

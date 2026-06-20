@@ -99,9 +99,10 @@ describe('Offline Restore Sync and PIN logic', () => {
     const success = await db.importData(backupBase64, 'password123');
     expect(success).toBe(true);
 
-    // 1. HK_PENDING_FULL_SYNC flag is set
-    expect(localStorage.getItem('HK_PENDING_FULL_SYNC')).toBe('true');
-    expect(localStorage.getItem('HK_PENDING_FULL_SYNC_USER_ID')).toBe('user123');
+    // 1. firebase_needs_full_sync flag is set
+    expect(localStorage.getItem('firebase_needs_full_sync')).toBe('true');
+    expect(localStorage.getItem('firebase_needs_full_sync_user_id')).toBe('user123');
+    expect(localStorage.getItem('firebase_needs_full_sync_created_at')).toBeDefined();
     
     // 6. HK_REQUIRES_OWNER_PIN_SETUP is set
     expect(localStorage.getItem('HK_REQUIRES_OWNER_PIN_SETUP')).toBe('true');
