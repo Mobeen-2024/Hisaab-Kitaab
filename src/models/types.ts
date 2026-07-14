@@ -11,7 +11,10 @@ import {
   AppSettingsSchema,
   AppUserSchema,
   MessageSchema,
-  AuditLogSchema
+  AuditLogSchema,
+  InvoiceSchema,
+  RepairJobSchema,
+  WarrantySchema
 } from './schemas';
 
 export type Lang = z.infer<typeof LangSchema>;
@@ -26,3 +29,6 @@ export type AppSettings = z.infer<typeof AppSettingsSchema>;
 export type AppUser = z.infer<typeof AppUserSchema>;
 export type Message = z.infer<typeof MessageSchema>;
 export type AuditLog = z.infer<typeof AuditLogSchema>;
+export type Invoice = z.infer<typeof InvoiceSchema>;
+export type RepairJob = z.infer<typeof RepairJobSchema>;
+export type Warranty = z.infer<typeof WarrantySchema>;

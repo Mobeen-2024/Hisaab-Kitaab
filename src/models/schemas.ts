@@ -53,6 +53,7 @@ export const TransactionSchema = z.object({
   source: z.enum(['manual', 'voice', 'easypaisa', 'jazzcash', 'bank_import', 'pdf', 'ai', 'udhaar', 'inventory', 'legacy_backfill']).optional(),
   sourceId: z.number().optional(),
   importReferenceId: z.string().optional(),
+  metadata: z.record(z.any()).optional(),
   updatedAt: z.string().optional(),
 });
 
@@ -111,6 +112,8 @@ export const AppSettingsSchema = z.object({
   reminderTime: z.string().optional(),
   activeUserId: z.number().optional(),
   geminiApiKey: z.string().optional(),
+  businessMode: z.enum(['general', 'retail', 'grocery', 'restaurant', 'solar', 'repair', 'wholesale', 'personal']).default('general'),
+  activeModules: z.array(z.string()).default([]),
 });
 
 export const AppUserSchema = z.object({
@@ -139,10 +142,60 @@ export const MessageSchema = z.object({
 export const AuditLogSchema = z.object({
   id: z.number().optional(),
   remoteId: z.string().optional(),
-  entityType: z.enum(['transactions', 'customers', 'udhaarEntries', 'goals', 'budgets', 'inventory', 'categories', 'appUsers', 'messages', 'settings']),
+  entityType: z.enum(['transactions', 'customers', 'udhaarEntries', 'goals', 'budgets', 'inventory', 'categories', 'appUsers', 'messages', 'settings', 'invoices', 'repairJobs', 'warranties']),
   entityId: z.number(),
   action: z.enum(['create', 'update', 'delete']),
   timestamp: z.string(),
   details: z.string().optional(),
   context: z.enum(['personal', 'business']).optional(),
+});
+
+export const InvoiceSchema = z.object({
+  id: z.number().optional(),
+  remoteId: z.string().optional(),
+  customerId: z.number(),
+  transactionId: z.number().optional(),
+  type: z.enum(['invoice', 'quotation']),
+  subtotal: z.number(),
+  tax: z.number().default(0),
+  discount: z.number().default(0),
+  total: z.number(),
+  dueDate: z.string().optional(),
+  items: z.array(z.object({
+    itemId: z.number().optional(),
+    description: z.string(),
+    quantity: z.number(),
+    unitPrice: z.number(),
+    total: z.number()
+  })).optional(),
+  context: z.enum(['personal', 'business']).default('business'),
+  createdAt: z.string(),
+  updatedAt: z.string().optional(),
+});
+
+export const RepairJobSchema = z.object({
+  id: z.number().optional(),
+  remoteId: z.string().optional(),
+  customerId: z.number(),
+  deviceModel: z.string(),
+  issueDescription: z.string(),
+  status: z.enum(['pending', 'ready', 'delivered']),
+  estimatedCost: z.number(),
+  transactionId: z.number().optional(),
+  context: z.enum(['personal', 'business']).default('business'),
+  createdAt: z.string(),
+  updatedAt: z.string().optional(),
+});
+
+export const WarrantySchema = z.object({
+  id: z.number().optional(),
+  remoteId: z.string().optional(),
+  itemId: z.number(),
+  customerId: z.number(),
+  serialNumber: z.string(),
+  saleDate: z.string(),
+  warrantyMonths: z.number(),
+  status: z.enum(['active', 'expired', 'claimed']),
+  context: z.enum(['personal', 'business']).default('business'),
+  updatedAt: z.string().optional(),
 });

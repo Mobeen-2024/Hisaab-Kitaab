@@ -11,7 +11,10 @@ import {
   AppSettings,
   AppUser,
   Message,
-  AuditLog
+  AuditLog,
+  Invoice,
+  RepairJob,
+  Warranty
 } from './models';
 
 export type {
@@ -25,7 +28,10 @@ export type {
   AppSettings,
   AppUser,
   Message,
-  AuditLog
+  AuditLog,
+  Invoice,
+  RepairJob,
+  Warranty
 };
 
 export interface SyncQueueItem {
@@ -54,6 +60,9 @@ export class HisaibKItaibDB extends Dexie {
   appUsers!: Table<AppUser, number>;
   messages!: Table<Message, number>;
   syncQueue!: Table<SyncQueueItem, number>;
+  invoices!: Table<Invoice, number>;
+  repairJobs!: Table<RepairJob, number>;
+  warranties!: Table<Warranty, number>;
 
   constructor() {
     super('HisaibKItaibDB');
@@ -133,6 +142,24 @@ export class HisaibKItaibDB extends Dexie {
       messages: '++id, chatId, sender, timestamp, remoteId',
       syncQueue: '++id, entityType, remoteId, action, timestamp, orphaned'
     });
+    // Version 15: Add Business Mode specialized tables
+    this.version(15).stores({
+      transactions: '++id, type, categoryId, context, date, customerId, source, importReferenceId, [context+date], remoteId',
+      categories: '++id, type, context, remoteId',
+      settings: '++id, remoteId',
+      customers: '++id, name, phone, balance, type, remoteId',
+      udhaarEntries: '++id, customerId, type, date, dueDate, context, transactionId, isCompleted, remoteId',
+      goals: '++id, context, remoteId',
+      budgets: '++id, month, context, remoteId',
+      inventory: '++id, context, remoteId',
+      auditLogs: '++id, entityType, entityId, action, timestamp, context, remoteId',
+      appUsers: '++id, role, contextAccess, remoteId',
+      messages: '++id, chatId, sender, timestamp, remoteId',
+      syncQueue: '++id, entityType, remoteId, action, timestamp, orphaned',
+      invoices: '++id, customerId, transactionId, type, context, remoteId',
+      repairJobs: '++id, customerId, status, context, remoteId',
+      warranties: '++id, itemId, customerId, serialNumber, status, context, remoteId'
+    });
 
     const tablesToAudit = [
       'transactions',
@@ -144,7 +171,10 @@ export class HisaibKItaibDB extends Dexie {
       'categories',
       'appUsers',
       'messages',
-      'settings'
+      'settings',
+      'invoices',
+      'repairJobs',
+      'warranties'
     ];
 
     this.auditLogs.hook('creating', function (primKey, obj, transaction) {
@@ -514,7 +544,7 @@ export class HisaibKItaibDB extends Dexie {
 
     const payload = JSON.stringify({
       version: 1,
-      dbSchemaVersion: 14,
+      dbSchemaVersion: 15,
       timestamp: new Date().toISOString(),
       warning: 'This backup contains sensitive financial data. Store it securely. User PINs are not included — users must set new PINs after restore.',
       data
@@ -539,9 +569,9 @@ export class HisaibKItaibDB extends Dexie {
       if (!parsed.data) throw new Error("Invalid backup file");
 
       const backupVersion = parsed.dbSchemaVersion || parsed.version || 1;
-      if (backupVersion !== 14) {
+      if (backupVersion !== 15) {
         const confirmed = window.confirm(
-          `This backup was created with schema version ${backupVersion}. Your current database is version 14. Some fields may not be compatible. Proceed with import?`
+          `This backup was created with schema version ${backupVersion}. Your current database is version 15. Some fields may not be compatible. Proceed with import?`
         );
         if (!confirmed) return false;
       }

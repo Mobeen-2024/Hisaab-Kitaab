@@ -11,6 +11,9 @@ interface SettingsContextType {
   currency: string;
   activeContext: 'personal' | 'business';
   rtl: boolean;
+  businessMode: string;
+  activeModules: string[];
+  hasModule: (module: string) => boolean;
   ownerName: string;
   ownerAvatar: string | null;
   activeRole: string;
@@ -65,6 +68,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const lang = (settingsObj?.language || 'en') as Lang;
   const currency = settingsObj?.currency || 'PKR';
   const activeContext = settingsObj?.activeContext || 'business';
+  const businessMode = settingsObj?.businessMode || 'general';
+  const activeModules = settingsObj?.activeModules || [];
   const rtl = isRTL(lang);
   const ownerName = settingsObj?.ownerName || 'Mobeen';
   const ownerAvatar = settingsObj?.ownerAvatar || null;
@@ -119,11 +124,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const hasModule = (module: string) => activeModules.includes(module);
+
   const value = {
     lang,
     currency,
     activeContext,
     rtl,
+    businessMode,
+    activeModules,
+    hasModule,
     ownerName,
     ownerAvatar,
     activeRole,
