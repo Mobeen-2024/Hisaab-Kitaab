@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCloudAuth } from '../contexts/CloudAuthContext';
 import { t } from '../lib/i18n';
-import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, MessageSquare, Bell, ChevronRight, LayoutDashboard, Cloud, ShoppingCart } from 'lucide-react';
+import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, MessageSquare, Bell, ChevronRight, LayoutDashboard, Cloud, ShoppingCart, Wrench, Shield } from 'lucide-react';
 import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
 import { useUIStore } from '../lib/store';
@@ -70,7 +70,9 @@ export default function MobileMenu() {
         ...(activeContext === 'business' && canAccessBusiness ? [
           { to: '/intelligence', icon: <Activity size={20} />, label: 'Business Intelligence', color: 'text-rose-400', bg: 'bg-rose-400/10' },
           { to: '/inventory', icon: <Package size={20} />, label: 'Inventory Management', color: 'text-amber-400', bg: 'bg-amber-400/10' },
-          ...(hasModule('pos') ? [{ to: '/pos', icon: <ShoppingCart size={20} />, label: 'Point of Sale (POS)', color: 'text-emerald-400', bg: 'bg-emerald-400/10' }] : [])
+          ...(hasModule('pos') ? [{ to: '/pos', icon: <ShoppingCart size={20} />, label: 'Point of Sale (POS)', color: 'text-emerald-400', bg: 'bg-emerald-400/10' }] : []),
+          ...(hasModule('job_card') ? [{ to: '/repairs', icon: <Wrench size={20} />, label: 'Repair Jobs', color: 'text-blue-400', bg: 'bg-blue-400/10' }] : []),
+          ...(hasModule('warranty') ? [{ to: '/warranties', icon: <Shield size={20} />, label: 'Warranties', color: 'text-indigo-400', bg: 'bg-indigo-400/10' }] : [])
         ] : []),
         ...(canViewPlanner ? [{ to: '/planner', icon: <PieChart size={20} />, label: 'Planner & Goals', color: 'text-purple-400', bg: 'bg-purple-400/10' }] : []),
         ...(canViewSmart ? [{ to: '/smart', icon: <Sparkles size={20} />, label: 'AI Assistant', color: 'text-cyan-400', bg: 'bg-cyan-400/10' }] : []),

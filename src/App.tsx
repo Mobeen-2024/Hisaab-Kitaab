@@ -22,6 +22,8 @@ const BusinessHealth = lazy(() => import('./components/BusinessHealth'));
 const Inventory = lazy(() => import('./components/Inventory'));
 const POS = lazy(() => import('./components/POS'));
 const InvoiceViewer = lazy(() => import('./components/InvoiceViewer'));
+const RepairJobs = lazy(() => import('./components/RepairJobs'));
+const Warranties = lazy(() => import('./components/Warranties'));
 const Settings = lazy(() => import('./components/Settings'));
 const MobileMenu = lazy(() => import('./components/MobileMenu'));
 import BusinessOnboarding from './components/BusinessOnboarding';
@@ -95,6 +97,8 @@ function AppRoutes() {
               <Route path="/inventory" element={<RequireAccess allowed={canAccessBusiness}><Inventory /></RequireAccess>} />
               <Route path="/pos" element={<RequireAccess allowed={canAccessBusiness && hasModule('pos')}><POS /></RequireAccess>} />
               <Route path="/invoice/:id" element={<RequireAccess allowed={canAccessBusiness}><InvoiceViewer /></RequireAccess>} />
+              <Route path="/repairs" element={<RequireAccess allowed={canAccessBusiness && hasModule('job_card')}><RepairJobs /></RequireAccess>} />
+              <Route path="/warranties" element={<RequireAccess allowed={canAccessBusiness && hasModule('warranty')}><Warranties /></RequireAccess>} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/menu" element={<MobileMenu />} />
               <Route path="*" element={<Navigate to="/" replace />} />

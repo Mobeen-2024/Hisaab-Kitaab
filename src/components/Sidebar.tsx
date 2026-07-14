@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCloudAuth } from '../contexts/CloudAuthContext';
 import { t } from '../lib/i18n';
-import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, LayoutGrid, Cloud, ShoppingCart } from 'lucide-react';
+import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, LayoutGrid, Cloud, ShoppingCart, Wrench, Shield } from 'lucide-react';
 import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -46,7 +46,9 @@ export default function Sidebar() {
     ...(activeContext === 'business' && canAccessBusiness ? [
       { to: '/intelligence', icon: <Activity size={20} className="shrink-0" />, label: 'Intelligence' },
       { to: '/inventory', icon: <Package size={20} className="shrink-0" />, label: 'Inventory' },
-      ...(hasModule('pos') ? [{ to: '/pos', icon: <ShoppingCart size={20} className="shrink-0" />, label: 'Point of Sale' }] : [])
+      ...(hasModule('pos') ? [{ to: '/pos', icon: <ShoppingCart size={20} className="shrink-0" />, label: 'Point of Sale' }] : []),
+      ...(hasModule('job_card') ? [{ to: '/repairs', icon: <Wrench size={20} className="shrink-0" />, label: 'Repair Jobs' }] : []),
+      ...(hasModule('warranty') ? [{ to: '/warranties', icon: <Shield size={20} className="shrink-0" />, label: 'Warranties' }] : [])
     ] : [])
   ];
 
