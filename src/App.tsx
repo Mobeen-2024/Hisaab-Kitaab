@@ -22,6 +22,7 @@ const BusinessHealth = lazy(() => import('./components/BusinessHealth'));
 const Inventory = lazy(() => import('./components/Inventory'));
 const Settings = lazy(() => import('./components/Settings'));
 const MobileMenu = lazy(() => import('./components/MobileMenu'));
+import BusinessOnboarding from './components/BusinessOnboarding';
 
 import { VoiceAssistantProvider } from './contexts/VoiceAssistantContext';
 import { VoiceWidget } from './components/VoiceAssistant/VoiceWidget';
@@ -50,7 +51,8 @@ function AppRoutes() {
     canViewReports,
     canViewPlanner,
     canViewSmart,
-    canAccessBusiness
+    canAccessBusiness,
+    isOnboarded
   } = useSettings();
   const location = useLocation();
   const isOnline = useOnlineStatus();
@@ -60,6 +62,10 @@ function AppRoutes() {
   }
 
   if (isLoading) return <PageLoader />;
+
+  if (!isOnboarded) {
+    return <BusinessOnboarding onComplete={() => {}} />;
+  }
 
   return (
     <>

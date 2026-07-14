@@ -1,8 +1,9 @@
 import React from 'react';
 import { useSettings } from '../contexts/SettingsContext';
-import { Search, Mail, Bell } from 'lucide-react';
+import { Search, Mail, Bell, Store } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
+import BusinessOnboarding from './BusinessOnboarding';
 
 interface TopHeaderProps {
   onSearchOpen: () => void;
@@ -19,9 +20,11 @@ export default function TopHeader({
   onProfileOpen,
   hasAlerts
 }: TopHeaderProps) {
-  const { ownerName, ownerAvatar } = useSettings();
+  const { ownerName, ownerAvatar, businessMode } = useSettings();
+  const [showModeSwitcher, setShowModeSwitcher] = React.useState(false);
 
   return (
+    <>
     <header className="h-[calc(4rem+var(--safe-top))] md:h-[calc(5rem+var(--safe-top))] pt-[var(--safe-top)] bg-[#0F172A]/80 backdrop-blur-2xl border-b border-white/10 flex items-center justify-between px-4 md:px-8 shrink-0 z-20 overflow-hidden">
       <div className="flex items-center gap-4 flex-1">
         {/* Mobile Title */}
@@ -56,6 +59,16 @@ export default function TopHeader({
       </div>
 
       <div className="flex items-center gap-2 md:gap-5">
+        {/* Mode Switcher */}
+        <button 
+          onClick={() => setShowModeSwitcher(true)}
+          className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors text-xs font-bold capitalize"
+          title="Change Business Mode"
+        >
+          <Store size={14} />
+          {businessMode.replace('_', ' ')}
+        </button>
+
         {/* Mobile Search Button */}
         <Button
           variant="secondary"
@@ -109,5 +122,7 @@ export default function TopHeader({
         </button>
       </div>
     </header>
+    {showModeSwitcher && <BusinessOnboarding onComplete={() => setShowModeSwitcher(false)} />}
+    </>
   );
 }

@@ -13,6 +13,7 @@ interface SettingsContextType {
   rtl: boolean;
   businessMode: string;
   activeModules: string[];
+  isOnboarded: boolean;
   hasModule: (module: string) => boolean;
   ownerName: string;
   ownerAvatar: string | null;
@@ -70,6 +71,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const activeContext = settingsObj?.activeContext || 'business';
   const businessMode = settingsObj?.businessMode || 'general';
   const activeModules = settingsObj?.activeModules || [];
+  const isOnboarded = settingsObj?.isOnboarded || false;
   const rtl = isRTL(lang);
   const ownerName = settingsObj?.ownerName || 'Mobeen';
   const ownerAvatar = settingsObj?.ownerAvatar || null;
@@ -133,6 +135,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     rtl,
     businessMode,
     activeModules,
+    isOnboarded,
     hasModule,
     ownerName,
     ownerAvatar,

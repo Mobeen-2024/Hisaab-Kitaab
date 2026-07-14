@@ -114,6 +114,7 @@ export const AppSettingsSchema = z.object({
   geminiApiKey: z.string().optional(),
   businessMode: z.enum(['general', 'retail', 'grocery', 'restaurant', 'solar', 'repair', 'wholesale', 'personal']).default('general'),
   activeModules: z.array(z.string()).default([]),
+  isOnboarded: z.boolean().default(false).optional(),
 });
 
 export const AppUserSchema = z.object({

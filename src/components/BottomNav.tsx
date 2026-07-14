@@ -1,8 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, FileText, LayoutGrid, Menu } from 'lucide-react';
+import { Users, FileText, LayoutGrid, Menu, Package } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 
 export default function BottomNav() {
+  const { hasModule, activeContext } = useSettings();
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0F172A]/90 backdrop-blur-2xl border-t border-white/10 flex items-center justify-between px-2 z-40" style={{ paddingBottom: 'var(--safe-bottom)', height: 'calc(4rem + var(--safe-bottom))' }}>
       <NavLink
@@ -24,13 +26,23 @@ export default function BottomNav() {
       {/* FAB Spacer */}
       <div className="w-16 h-full pointer-events-none"></div>
 
-      <NavLink
-        to="/reports"
-        className={({ isActive }) => `flex-1 flex flex-col items-center justify-center h-16 gap-1 ${isActive ? 'text-indigo-400' : 'text-slate-500 hover:text-white'}`}
-      >
-        <FileText size={20} />
-        <span className="text-[10px] font-medium">Reports</span>
-      </NavLink>
+      {hasModule('inventory') && activeContext === 'business' ? (
+        <NavLink
+          to="/inventory"
+          className={({ isActive }) => `flex-1 flex flex-col items-center justify-center h-16 gap-1 ${isActive ? 'text-amber-400' : 'text-slate-500 hover:text-white'}`}
+        >
+          <Package size={20} />
+          <span className="text-[10px] font-medium">Stock</span>
+        </NavLink>
+      ) : (
+        <NavLink
+          to="/reports"
+          className={({ isActive }) => `flex-1 flex flex-col items-center justify-center h-16 gap-1 ${isActive ? 'text-indigo-400' : 'text-slate-500 hover:text-white'}`}
+        >
+          <FileText size={20} />
+          <span className="text-[10px] font-medium">Reports</span>
+        </NavLink>
+      )}
 
       <NavLink
         to="/customers"
