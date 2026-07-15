@@ -76,28 +76,9 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 3000,
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              // three.js: match exact package path to avoid circular with its own peer deps
-              if (id.includes('/node_modules/three/') || id.includes('/node_modules/@react-three/')) {
-                return 'three-bundle';
-              }
-              if (id.includes('/node_modules/firebase/') || id.includes('/node_modules/@firebase/')) {
-                return 'firebase-bundle';
-              }
-              if (id.includes('/node_modules/dexie/')) {
-                return 'dexie-bundle';
-              }
-              if (id.includes('/node_modules/zod/')) {
-                return 'zod-bundle';
-              }
-              if (id.includes('/node_modules/@google/generative-ai')) {
-                return 'google-ai-bundle';
-              }
-              // Everything else (react, react-dom, router, etc.) goes to vendor
-              return 'vendor';
-            }
-          },
+          // Simplified chunking to prevent React from being split away from its consumers
+          // which often causes "Cannot read properties of undefined (reading 'useLayoutEffect')"
+          manualChunks: undefined,
         },
       },
     },

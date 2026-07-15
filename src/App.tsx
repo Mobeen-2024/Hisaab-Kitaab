@@ -121,6 +121,19 @@ function AppRoutes() {
 
 import MandatoryPinReset from './components/MandatoryPinReset';
 
+class SplashErrorBoundary extends React.Component<{ children: React.ReactNode, onFallback: () => void }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: any) {
+    console.error("Splash Screen crashed:", error);
+    this.props.onFallback();
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = React.useState(true);
   const [needsPinReset, setNeedsPinReset] = React.useState(
@@ -134,7 +147,9 @@ export default function App() {
           <VoiceAssistantProvider>
             <BrowserRouter>
               {showSplash ? (
-                <SplashScreen onComplete={() => setShowSplash(false)} />
+                <SplashErrorBoundary onFallback={() => setShowSplash(false)}>
+                  <SplashScreen onComplete={() => setShowSplash(false)} />
+                </SplashErrorBoundary>
               ) : needsPinReset ? (
                 <MandatoryPinReset onComplete={() => {
                   localStorage.removeItem('HK_REQUIRES_OWNER_PIN_SETUP');

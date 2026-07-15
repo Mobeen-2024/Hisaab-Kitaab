@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { registerSW } from 'virtual:pwa-register';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Register the PWA service worker automatically on boot
 registerSW({
@@ -21,7 +22,9 @@ const root = createRoot(rootElement);
 startTransition(() => {
   root.render(
     <StrictMode>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </StrictMode>
   );
 });
