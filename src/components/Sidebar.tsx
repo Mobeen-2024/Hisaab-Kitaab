@@ -44,7 +44,7 @@ export default function Sidebar() {
     ...(canViewPlanner ? [{ to: '/planner', icon: <PieChart size={20} className="shrink-0" />, label: 'Planner & Goals' }] : []),
     ...(canViewSmart ? [{ to: '/smart', icon: <Sparkles size={20} className="shrink-0" />, label: 'AI Assistant' }] : []),
     ...(activeContext === 'business' && canAccessBusiness ? [
-      { to: '/intelligence', icon: <Activity size={20} className="shrink-0" />, label: 'Intelligence' },
+      { to: '/intelligence', icon: <Activity size={20} className="shrink-0" />, label: 'Business Brain' },
       { to: '/inventory', icon: <Package size={20} className="shrink-0" />, label: 'Inventory' },
       ...(hasModule('pos') ? [{ to: '/pos', icon: <ShoppingCart size={20} className="shrink-0" />, label: 'Point of Sale' }] : []),
       ...(hasModule('job_card') ? [{ to: '/repairs', icon: <Wrench size={20} className="shrink-0" />, label: 'Repair Jobs' }] : []),

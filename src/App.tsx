@@ -18,7 +18,7 @@ const Customers = lazy(() => import('./components/Customers'));
 const Reports = lazy(() => import('./components/Reports'));
 const Planner = lazy(() => import('./components/Planner'));
 const SmartAssistant = lazy(() => import('./components/SmartAssistant'));
-const BusinessHealth = lazy(() => import('./components/BusinessHealth'));
+const BusinessHealth = lazy(() => import('./components/dashboard/BusinessBrainDashboard'));
 const Inventory = lazy(() => import('./components/Inventory'));
 const POS = lazy(() => import('./components/POS'));
 const InvoiceViewer = lazy(() => import('./components/InvoiceViewer'));

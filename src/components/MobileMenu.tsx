@@ -71,7 +71,7 @@ export default function MobileMenu() {
       title: 'Business Tools',
       items: [
         ...(activeContext === 'business' && canAccessBusiness ? [
-          { to: '/intelligence', icon: <Activity size={20} />, label: 'Business Intelligence', color: 'text-rose-400', bg: 'bg-rose-400/10' },
+          { to: '/intelligence', icon: <Activity size={20} />, label: 'Business Brain', color: 'text-rose-400', bg: 'bg-rose-400/10' },
           { to: '/inventory', icon: <Package size={20} />, label: 'Inventory Management', color: 'text-amber-400', bg: 'bg-amber-400/10' },
           ...(hasModule('pos') ? [{ to: '/pos', icon: <ShoppingCart size={20} />, label: 'Point of Sale (POS)', color: 'text-emerald-400', bg: 'bg-emerald-400/10' }] : []),
           ...(hasModule('job_card') ? [{ to: '/repairs', icon: <Wrench size={20} />, label: 'Repair Jobs', color: 'text-blue-400', bg: 'bg-blue-400/10' }] : []),
