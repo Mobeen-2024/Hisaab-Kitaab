@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useBusinessBrainData, ProfitLeak, UdhaarRisk, ActionItem } from '../../hooks/useBusinessBrainData';
 import { useUdhaarAgingReport } from '../../hooks/useUdhaarAgingReport';
+import { useGlobalStockIntelligence } from '../../hooks/useStockIntelligence';
 import { formatCurrency } from '../../lib/currency';
 import { 
   Activity, TrendingDown, AlertTriangle, AlertCircle, 
@@ -13,6 +14,7 @@ export default function BusinessBrainDashboard() {
   const { lang, currency, activeContext } = useSettings();
   const brainData = useBusinessBrainData(activeContext);
   const agingReport = useUdhaarAgingReport();
+  const stockData = useGlobalStockIntelligence(activeContext) || [];
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
 
   const { 
@@ -23,6 +25,23 @@ export default function BusinessBrainDashboard() {
   const scoreColor = healthScore >= 80 ? 'text-emerald-400' : healthScore >= 50 ? 'text-orange-400' : 'text-rose-400';
   const scoreBg = healthScore >= 80 ? 'from-emerald-500/20 to-emerald-500/5' : healthScore >= 50 ? 'from-orange-500/20 to-orange-500/5' : 'from-rose-500/20 to-rose-500/5';
   const scoreBorder = healthScore >= 80 ? 'border-emerald-500/30' : healthScore >= 50 ? 'border-orange-500/30' : 'border-rose-500/30';
+
+  const deadStockItems = stockData.filter(i => i.intelligence?.velocity === 'dead_stock');
+  const deadStockValue = deadStockItems.reduce((sum, item) => sum + (item.quantity * (item.costPrice ?? item.unitPrice)), 0);
+
+  const marginDropItems = stockData.filter(i => i.intelligence?.marginWarning);
+  
+  const combinedActionList = [...actionList];
+  marginDropItems.forEach(item => {
+    combinedActionList.push({
+      id: `margin_${item.id}`,
+      type: 'margin_drop' as any,
+      title: `Margin Drop: ${item.name}`,
+      description: `Margin dropped to ${item.intelligence!.currentMarginPercent.toFixed(1)}%. Consider raising price.`,
+      urgent: false,
+      referenceId: item.id
+    });
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-24">
@@ -110,14 +129,14 @@ export default function BusinessBrainDashboard() {
             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <CheckCircle2 size={20} className="text-blue-400" /> Today's Action List
             </h3>
-            {actionList.length === 0 ? (
+            {combinedActionList.length === 0 ? (
               <div className="text-center py-6 text-slate-400">
                 <ShieldCheck size={40} className="mx-auto mb-2 text-emerald-400/50" />
                 <p>No urgent actions needed today. You're all caught up!</p>
               </div>
             ) : (
               <ul className="space-y-3">
-                {actionList.map(action => (
+                {combinedActionList.map(action => (
                   <li key={action.id} className="flex gap-4 items-start p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
                     <div className={`p-2 rounded-lg ${action.urgent ? 'bg-rose-500/20 text-rose-400' : 'bg-blue-500/20 text-blue-400'}`}>
                       {action.type === 'low_stock' ? <Package size={18} /> : <DollarSign size={18} />}
@@ -136,7 +155,19 @@ export default function BusinessBrainDashboard() {
       </div>
 
       {/* Detailed Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Dead Stock Widget */}
+        <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem]">
+           <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+             <Package size={20} className="text-purple-400" /> Dead Stock Value
+           </h3>
+           <div className="flex flex-col items-center justify-center p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl text-center">
+             <p className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Capital Tied Up</p>
+             <p className="text-3xl font-black text-purple-400">{formatCurrency(deadStockValue, currency, lang)}</p>
+             <p className="text-xs text-slate-500 mt-2">{deadStockItems.length} items with 0 sales in 30 days</p>
+           </div>
+        </div>
         
         {/* Profit Leaks Details */}
         <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem]">
