@@ -21,9 +21,9 @@ export interface AIImageResult {
 }
 
 export const AIService = {
-  async generateInsights(activeContext: string, stats: AIInsightStats): Promise<string[]> {
+  async generateInsights(activeContext: string, businessMode: string, activeModules: string[], stats: AIInsightStats): Promise<string[]> {
     const ai = await getGeminiInstance();
-    const prompt = `User context: ${activeContext}. Recent data: ${JSON.stringify(stats)}. Provide 3 concise, actionable financial insights. Return ONLY a JSON array of strings.`;
+    const prompt = `User context: ${activeContext}. Business mode: ${businessMode}. Enabled modules: ${activeModules.join(', ')}. Recent data: ${JSON.stringify(stats)}. Provide 3 concise, actionable financial insights. Return ONLY a JSON array of strings.`;
     const response = await withRetry(
       () => ai.models.generateContent({
         model: AI_MODELS.fast,
@@ -37,13 +37,18 @@ export const AIService = {
 
   async getChatResponse(
     activeContext: string,
+    businessMode: string,
+    activeModules: string[],
     stats: AIInsightStats,
     currency: string,
     messages: { sender: 'user' | 'ai' | 'system'; content: string }[],
     userMsg: string
   ): Promise<string> {
     const ai = await getGeminiInstance();
-    const systemContext = `Financial advisor for ${activeContext} mode. Data: ${JSON.stringify(stats)}. Currency: ${currency}.`;
+    const systemContext = `You are an expert financial and operational advisor for a ${businessMode} business (mode: ${activeContext}). 
+The user has the following modules active: ${activeModules.join(', ')}. 
+Use this knowledge to answer questions specifically related to their operational workflows (e.g. if 'pos' is active, they have a Point of Sale; if 'job_card', they can manage repair jobs; if 'warranty', they can track solar warranties). 
+Data: ${JSON.stringify(stats)}. Currency: ${currency}.`;
     const contents = [
       { role: 'user', parts: [{ text: `System Context: ${systemContext}` }] },
       { role: 'model', parts: [{ text: "Understood." }] },

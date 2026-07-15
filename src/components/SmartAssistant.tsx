@@ -13,7 +13,7 @@ import AssistantChat from './SmartAssistant/AssistantChat';
 import AssistantReminders from './SmartAssistant/AssistantReminders';
 
 export default function SmartAssistant() {
-  const { lang, currency, activeContext } = useSettings();
+  const { lang, currency, activeContext, businessMode, activeModules } = useSettings();
   const transactions = useTransactions(activeContext);
   const categories = useCategories(activeContext);
   const inventory = useInventory(activeContext);
@@ -50,7 +50,7 @@ export default function SmartAssistant() {
     setLoading(true);
     setError(null);
     try {
-      const result = await AIService.generateInsights(activeContext, stats);
+      const result = await AIService.generateInsights(activeContext, businessMode, activeModules, stats);
       setInsights(result);
     } catch (err: any) {
       setError(err.message || 'Failed to generate insights');
@@ -66,7 +66,7 @@ export default function SmartAssistant() {
     setChatLoading(true);
     await MessageService.add('ai', 'user', userMsg);
     try {
-      const content = await AIService.getChatResponse(activeContext, stats, currency, messages, userMsg);
+      const content = await AIService.getChatResponse(activeContext, businessMode, activeModules, stats, currency, messages, userMsg);
       await MessageService.add('ai', 'ai', content);
     } catch (err: any) {
       await MessageService.add('ai', 'ai', `Error: ${err.message}`);
