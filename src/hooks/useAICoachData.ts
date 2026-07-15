@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
-import { Invoice, Transaction, UdhaarEntry, InventoryItem, RepairJob } from '../models/schemas';
+import { Invoice, Transaction, UdhaarEntry, InventoryItem, RepairJob } from '../models/types';
 
 export interface AICoachData {
   totalSales: number;
@@ -50,7 +50,7 @@ export function calculateAICoachData(
   udhaarEntries.forEach(u => {
     if (u.type === 'give') {
       totalReceivables += u.amount;
-    } else if (u.type === 'take') {
+    } else if (u.type === 'receive') {
       totalPayables += u.amount;
     }
   });

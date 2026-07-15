@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateAICoachData } from '../hooks/useAICoachData';
-import { Invoice, Transaction, UdhaarEntry, InventoryItem, RepairJob } from '../models/schemas';
+import { Invoice, Transaction, UdhaarEntry, InventoryItem, RepairJob } from '../models/types';
 
 describe('useAICoachData', () => {
   it('correctly aggregates business metrics across all modules', () => {
@@ -11,7 +11,7 @@ describe('useAICoachData', () => {
         total: 1500,
         createdAt: '2023-01-01T10:00:00Z',
         items: [
-          { id: '1', itemId: 1, quantity: 2, unitPrice: 750, name: 'Item 1' }
+          { itemId: 1, quantity: 2, unitPrice: 750, description: 'Item 1', total: 1500 }
         ]
       }
     ];
@@ -29,7 +29,7 @@ describe('useAICoachData', () => {
 
     const mockUdhaarEntries: Partial<UdhaarEntry>[] = [
       { id: 1, type: 'give', amount: 1000, date: '2023-01-01T10:00:00Z', customerId: 1, context: 'business' },
-      { id: 2, type: 'take', amount: 400, date: '2023-01-01T11:00:00Z', customerId: 2, context: 'business' }
+      { id: 2, type: 'receive', amount: 400, date: '2023-01-01T11:00:00Z', customerId: 2, context: 'business' }
     ];
 
     const mockRepairs: Partial<RepairJob>[] = [
