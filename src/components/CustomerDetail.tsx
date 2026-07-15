@@ -6,12 +6,13 @@ import { UdhaarService } from '../services/UdhaarService';
 import { InventoryService } from '../services/InventoryService';
 import { useUdhaarEntries, useCustomerTransactions, useInventory } from '../hooks/useData';
 import { t, Lang } from '../lib/i18n';
-import { ArrowLeft, Phone, Calendar, ArrowUpRight, ArrowDownRight, MessageSquare, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Phone, Calendar, ArrowUpRight, ArrowDownRight, MessageSquare, Plus, Trash2, BrainCircuit, ShieldAlert, ShieldCheck, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import DatePicker from './DatePicker';
 import { useToast } from '../contexts/ToastContext';
+import { useUdhaarIntelligence } from '../hooks/useUdhaarIntelligence';
 
 export default function CustomerDetail({
   customer,
@@ -36,6 +37,8 @@ export default function CustomerDetail({
   const transactions = useCustomerTransactions(customer.id);
 
   const computedBalance = customer.balance;
+
+  const intelligence = useUdhaarIntelligence(customer.id || 0, customer.name);
 
   const unifiedHistory = React.useMemo(() => {
     const history: any[] = [];
@@ -98,9 +101,12 @@ export default function CustomerDetail({
       return;
     }
     const amount = formatCurrency(Math.abs(computedBalance));
-    const message = computedBalance > 0
-      ? `Asalam-o-Alaikum ${customer.name}, you have a pending amount of ${amount}. Please pay your balance at your earliest convenience.`
-      : `Asalam-o-Alaikum ${customer.name}, your advance balance is ${amount}.`;
+    let message = '';
+    if (computedBalance > 0) {
+      message = intelligence.whatsappTemplate;
+    } else {
+      message = `Asalam-o-Alaikum ${customer.name}, your advance balance is ${amount}.`;
+    }
 
     // Format phone for whatsapp (remove leading 0 and add 92 for PK, this is basic formatting)
     let phoneNum = customer.phone.replace(/[^0-9]/g, '');
@@ -238,6 +244,33 @@ export default function CustomerDetail({
             </button>
           </div>
         </div>
+
+        {/* Business Brain Insights */}
+        {computedBalance > 0 && customer.type !== 'supplier' && (
+          <div className="mt-8 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-[2rem] p-6 relative overflow-hidden group">
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-colors"></div>
+            <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <BrainCircuit size={16} /> Business Brain Insights
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-[#0F172A]/50 rounded-xl p-4 border border-white/5">
+                <p className="text-xs text-slate-400 mb-1">Risk Level</p>
+                <div className="flex items-center gap-2">
+                  {intelligence.riskLevel === 'high' ? <ShieldAlert size={16} className="text-rose-400" /> : intelligence.riskLevel === 'medium' ? <Shield size={16} className="text-yellow-400" /> : <ShieldCheck size={16} className="text-emerald-400" />}
+                  <span className={`font-bold capitalize ${intelligence.riskLevel === 'high' ? 'text-rose-400' : intelligence.riskLevel === 'medium' ? 'text-yellow-400' : 'text-emerald-400'}`}>{intelligence.riskLevel} Risk</span>
+                </div>
+              </div>
+              <div className="bg-[#0F172A]/50 rounded-xl p-4 border border-white/5">
+                <p className="text-xs text-slate-400 mb-1">Recommended Limit</p>
+                <p className="font-bold text-white">{formatCurrency(intelligence.recommendedCreditLimit)}</p>
+              </div>
+              <div className="bg-[#0F172A]/50 rounded-xl p-4 border border-white/5">
+                <p className="text-xs text-slate-400 mb-1">Payment Behavior</p>
+                <p className="font-bold text-white text-sm">{intelligence.paymentBehavior}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* History */}

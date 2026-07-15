@@ -163,7 +163,7 @@ export function useBusinessBrainData(context: 'personal' | 'business'): Business
     // --- Low Stock Alerts ---
     let lowStockCount = 0;
     inventory.forEach(item => {
-      if (item.quantity <= (item.minStockLevel || 0)) {
+      if (item.quantity <= (item.minQuantity || 0)) {
         lowStockCount++;
         actionList.push({
           id: `stock_${item.id}`,

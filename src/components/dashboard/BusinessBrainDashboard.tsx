@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useBusinessBrainData, ProfitLeak, UdhaarRisk, ActionItem } from '../../hooks/useBusinessBrainData';
+import { useUdhaarAgingReport } from '../../hooks/useUdhaarAgingReport';
 import { formatCurrency } from '../../lib/currency';
 import { 
   Activity, TrendingDown, AlertTriangle, AlertCircle, 
-  CheckCircle2, DollarSign, Package, UserMinus, ShieldCheck
+  CheckCircle2, DollarSign, Package, UserMinus, ShieldCheck, BarChart3
 } from 'lucide-react';
 import DailyClosingModal from './DailyClosingModal';
 
 export default function BusinessBrainDashboard() {
   const { lang, currency, activeContext } = useSettings();
   const brainData = useBusinessBrainData(activeContext);
+  const agingReport = useUdhaarAgingReport();
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
 
   const { 
@@ -185,6 +187,28 @@ export default function BusinessBrainDashboard() {
            )}
         </div>
 
+      </div>
+
+      {/* Udhaar Aging Report */}
+      <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem]">
+        <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+          <BarChart3 size={20} className="text-indigo-400" /> Udhaar Aging Report
+        </h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {agingReport.map((bucket, index) => {
+            const isSevere = index >= 2; // 61-90 and 90+ days
+            const isWarning = index === 1; // 31-60 days
+            const colorClass = isSevere ? 'text-rose-400' : isWarning ? 'text-orange-400' : 'text-blue-400';
+            const bgClass = isSevere ? 'bg-rose-500/10 border-rose-500/20' : isWarning ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20';
+            
+            return (
+              <div key={bucket.label} className={`p-4 rounded-xl border ${bgClass} flex flex-col justify-center items-center text-center`}>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{bucket.label}</p>
+                <p className={`text-2xl font-black ${colorClass}`}>{formatCurrency(bucket.amount, currency, lang)}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
     </div>

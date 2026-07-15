@@ -88,8 +88,8 @@ describe('useBusinessBrainData', () => {
     (useData.useCustomers as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (useData.useUdhaarEntries as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (useData.useInventory as ReturnType<typeof vi.fn>).mockReturnValue([
-      { id: 1, name: 'Item A', quantity: 5, minStockLevel: 10, context: 'business' },
-      { id: 2, name: 'Item B', quantity: 20, minStockLevel: 10, context: 'business' }
+      { id: 1, name: 'Item A', quantity: 5, minQuantity: 10, context: 'business' },
+      { id: 2, name: 'Item B', quantity: 20, minQuantity: 10, context: 'business' }
     ]);
 
     const { result } = renderHook(() => useBusinessBrainData('business'));
