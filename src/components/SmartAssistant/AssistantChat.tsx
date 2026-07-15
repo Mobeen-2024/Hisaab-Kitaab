@@ -16,6 +16,7 @@ interface AssistantChatProps {
   chatLoading: boolean;
   onSendMessage: () => void;
   chatEndRef: React.RefObject<HTMLDivElement>;
+  onQuickPrompt?: (text: string) => void;
 }
 
 export default function AssistantChat({
@@ -24,7 +25,8 @@ export default function AssistantChat({
   setChatInput,
   chatLoading,
   onSendMessage,
-  chatEndRef
+  chatEndRef,
+  onQuickPrompt
 }: AssistantChatProps) {
   const sortedMessages = [...messages].reverse();
   const { startSession, state } = useVoiceAssistant();
@@ -78,6 +80,24 @@ export default function AssistantChat({
       </div>
 
       <div className="p-4 border-t border-white/10">
+        {onQuickPrompt && (
+          <div className="flex gap-2 overflow-x-auto pb-3 custom-scrollbar hide-scrollbar">
+            {[
+              "What is my biggest profit leak?",
+              "How much Udhaar is outstanding?",
+              "Is my inventory value healthy?",
+              "What are my total payables?"
+            ].map(q => (
+              <button 
+                key={q} 
+                onClick={() => onQuickPrompt(q)} 
+                className="shrink-0 text-xs bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 px-3 py-1.5 rounded-full transition-colors border border-indigo-500/20"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <input
             type="text"

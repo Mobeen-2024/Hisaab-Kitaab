@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTransactions, useCategories, useInventory, useMessages } from '../hooks/useData';
+import { useAICoachData } from '../hooks/useAICoachData';
 import { useSettings } from '../contexts/SettingsContext';
 import { AIService } from '../services/AIService';
 import { MessageService } from '../services/MessageService';
@@ -18,6 +19,7 @@ export default function SmartAssistant() {
   const categories = useCategories(activeContext);
   const inventory = useInventory(activeContext);
   const messages = useMessages('ai');
+  const coachStats = useAICoachData(activeContext);
 
   const [insights, setInsights] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -59,14 +61,15 @@ export default function SmartAssistant() {
     }
   };
 
-  const sendChatMessage = async () => {
-    if (!chatInput.trim() || chatLoading) return;
-    const userMsg = chatInput.trim();
+  const sendChatMessage = async (presetMsg?: string) => {
+    const msgToSend = presetMsg || chatInput.trim();
+    if (!msgToSend || chatLoading) return;
     setChatInput('');
     setChatLoading(true);
-    await MessageService.add('ai', 'user', userMsg);
+    await MessageService.add('ai', 'user', msgToSend);
     try {
-      const content = await AIService.getChatResponse(activeContext, businessMode, activeModules, stats, currency, messages, userMsg);
+      const statsToPass = activeContext === 'business' ? coachStats : undefined;
+      const content = await AIService.getChatResponse(activeContext, businessMode, activeModules, stats, currency, messages, msgToSend, statsToPass);
       await MessageService.add('ai', 'ai', content);
     } catch (err: any) {
       await MessageService.add('ai', 'ai', `Error: ${err.message}`);
@@ -104,8 +107,9 @@ export default function SmartAssistant() {
         chatInput={chatInput}
         setChatInput={setChatInput}
         chatLoading={chatLoading}
-        onSendMessage={sendChatMessage}
+        onSendMessage={() => sendChatMessage()}
         chatEndRef={chatEndRef}
+        onQuickPrompt={sendChatMessage}
       />
 
       <AssistantReminders

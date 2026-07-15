@@ -42,13 +42,25 @@ export const AIService = {
     stats: AIInsightStats,
     currency: string,
     messages: { sender: 'user' | 'ai' | 'system'; content: string }[],
-    userMsg: string
+    userMsg: string,
+    coachStats?: any
   ): Promise<string> {
     const ai = await getGeminiInstance();
-    const systemContext = `You are an expert financial and operational advisor for a ${businessMode} business (mode: ${activeContext}). 
+    let systemContext = `You are an expert financial and operational advisor for a ${businessMode} business (mode: ${activeContext}). 
 The user has the following modules active: ${activeModules.join(', ')}. 
-Use this knowledge to answer questions specifically related to their operational workflows (e.g. if 'pos' is active, they have a Point of Sale; if 'job_card', they can manage repair jobs; if 'warranty', they can track solar warranties). 
+Use this knowledge to answer questions specifically related to their operational workflows.
 Data: ${JSON.stringify(stats)}. Currency: ${currency}.`;
+
+    if (coachStats) {
+      systemContext += `\nAs their Business Coach, here are their all-time operational metrics (DO NOT mention these numbers unless relevant to their question, and DO NOT output JSON, just conversational text):
+- Total All-Time Sales: ${currency} ${coachStats.totalSales}
+- Total Expenses: ${currency} ${coachStats.totalExpenses}
+- Estimated Profit: ${currency} ${coachStats.profitEstimate}
+- Total Receivables (Udhaar Given): ${currency} ${coachStats.totalReceivables}
+- Total Payables (Udhaar Taken): ${currency} ${coachStats.totalPayables}
+- Inventory Value: ${currency} ${coachStats.inventoryValue}
+- Pending Repairs Value: ${currency} ${coachStats.pendingRepairsValue}`;
+    }
     const contents = [
       { role: 'user', parts: [{ text: `System Context: ${systemContext}` }] },
       { role: 'model', parts: [{ text: "Understood." }] },
