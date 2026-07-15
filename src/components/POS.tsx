@@ -48,8 +48,7 @@ export default function POS() {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (item.sku && item.sku.toLowerCase().includes(searchQuery.toLowerCase()))
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [items, searchQuery]);
 
@@ -150,7 +149,6 @@ export default function POS() {
                   <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2">
                     {item.name}
                   </h3>
-                  {item.sku && <p className="text-xs text-slate-400 mt-1">{item.sku}</p>}
                 </div>
                 <div className="mt-4 flex items-end justify-between">
                   <div>
