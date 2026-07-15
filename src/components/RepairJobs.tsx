@@ -4,10 +4,11 @@ import { useSettings } from '../contexts/SettingsContext';
 import { RepairService } from '../services/RepairService';
 import { CustomerService } from '../services/CustomerService';
 import type { RepairJob, Customer } from '../db';
-import toast from 'react-hot-toast';
+import { useToast } from '../contexts/ToastContext';
 
 export default function RepairJobs() {
   const { lang, currency, activeContext } = useSettings();
+  const { showToast } = useToast();
   
   const [jobs, setJobs] = useState<RepairJob[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -32,8 +33,8 @@ export default function RepairJobs() {
       const allCustomers = await CustomerService.getAll();
       setCustomers(allCustomers.filter(c => c.type === 'customer'));
     } catch (e) {
-      console.error(e);
-      toast.error('Failed to load repair jobs');
+      console.error('Failed to load repair jobs', e);
+      showToast('Failed to load repair jobs', 'error');
     }
   };
 
@@ -63,12 +64,12 @@ export default function RepairJobs() {
         estimatedCost: Number(estimatedCost),
         context: activeContext
       });
-      toast.success('Repair job added');
+      showToast('Repair job added', 'success');
       setIsModalOpen(false);
       resetForm();
       loadData();
     } catch (e: any) {
-      toast.error(e.message || 'Failed to add repair job');
+      showToast(e.message || 'Failed to add repair job', 'error');
     }
   };
 
@@ -85,22 +86,22 @@ export default function RepairJobs() {
         // Will auto-generate transaction
         if (confirm(`Mark as delivered? This will generate a payment transaction of ${currency} ${job.estimatedCost}.`)) {
           await RepairService.deliverAndPay(job.id!);
-          toast.success('Job delivered and payment recorded');
+          showToast('Job delivered and payment recorded', 'success');
         }
       } else {
         await RepairService.update(job.id!, { status: newStatus });
-        toast.success(`Job marked as ${newStatus}`);
+        showToast(`Job marked as ${newStatus}`, 'success');
       }
       loadData();
     } catch (e: any) {
-      toast.error(e.message || 'Failed to update status');
+      showToast(e.message || 'Failed to update status', 'error');
     }
   };
 
   const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this job?')) {
       await RepairService.delete(id);
-      toast.success('Job deleted');
+      showToast('Job deleted', 'success');
       loadData();
     }
   };

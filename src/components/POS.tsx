@@ -6,7 +6,7 @@ import { InventoryService } from '../services/InventoryService';
 import { CustomerService } from '../services/CustomerService';
 import { InvoiceService } from '../services/InvoiceService';
 import type { InventoryItem, Customer } from '../db';
-import toast from 'react-hot-toast';
+import { useToast } from '../contexts/ToastContext';
 
 interface CartItem {
   item: InventoryItem;
@@ -15,6 +15,7 @@ interface CartItem {
 
 export default function POS() {
   const { lang, currency, activeContext, businessMode } = useSettings();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -41,7 +42,7 @@ export default function POS() {
       setCustomers(allCustomers.filter(c => c.type === 'customer'));
     } catch (error) {
       console.error('Failed to load POS data', error);
-      toast.error('Failed to load inventory');
+      showToast('Failed to load inventory', 'error');
     }
   };
 
@@ -57,7 +58,7 @@ export default function POS() {
       const existing = prev.find(c => c.item.id === item.id);
       if (existing) {
         if (existing.quantity >= item.quantity) {
-          toast.error(`Only ${item.quantity} in stock`);
+          showToast(`Only ${item.quantity} in stock`, 'error');
           return prev;
         }
         return prev.map(c => c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
@@ -71,7 +72,7 @@ export default function POS() {
       if (c.item.id === itemId) {
         const newQ = c.quantity + delta;
         if (newQ > c.item.quantity) {
-          toast.error(`Only ${c.item.quantity} in stock`);
+          showToast(`Only ${c.item.quantity} in stock`, 'error');
           return c;
         }
         return { ...c, quantity: Math.max(1, newQ) };
@@ -88,8 +89,8 @@ export default function POS() {
   const total = subtotal + tax - discount;
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return toast.error('Cart is empty');
-    if (total < 0) return toast.error('Total cannot be negative');
+    if (cart.length === 0) return showToast('Cart is empty', 'error');
+    if (total < 0) return showToast('Total cannot be negative', 'error');
 
     setIsProcessing(true);
     try {
@@ -110,11 +111,11 @@ export default function POS() {
         }))
       });
       
-      toast.success('Sale completed successfully!');
+      showToast('Sale completed successfully!', 'success');
       navigate(`/invoice/${invoiceId}`);
     } catch (error) {
       console.error('Checkout failed', error);
-      toast.error('Failed to complete sale');
+      showToast('Failed to complete sale', 'error');
       setIsProcessing(false);
     }
   };

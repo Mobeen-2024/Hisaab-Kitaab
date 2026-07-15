@@ -5,10 +5,11 @@ import { WarrantyService } from '../services/WarrantyService';
 import { CustomerService } from '../services/CustomerService';
 import { InventoryService } from '../services/InventoryService';
 import type { Warranty, Customer, InventoryItem } from '../db';
-import toast from 'react-hot-toast';
+import { useToast } from '../contexts/ToastContext';
 
 export default function Warranties() {
   const { lang, activeContext } = useSettings();
+  const { showToast } = useToast();
   
   const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -39,8 +40,8 @@ export default function Warranties() {
       const allItems = await InventoryService.getAllByContext(activeContext);
       setInventory(allItems);
     } catch (e) {
-      console.error(e);
-      toast.error('Failed to load warranties');
+      console.error('Failed to load warranties', e);
+      showToast('Failed to load warranties', 'error');
     }
   };
 
@@ -60,7 +61,7 @@ export default function Warranties() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemId) {
-      toast.error('Please select an item');
+      showToast('Please select an item', 'error');
       return;
     }
 
@@ -74,12 +75,12 @@ export default function Warranties() {
         status: 'active',
         context: activeContext
       });
-      toast.success('Warranty registered');
+      showToast('Warranty registered', 'success');
       setIsModalOpen(false);
       resetForm();
       loadData();
     } catch (e: any) {
-      toast.error(e.message || 'Failed to add warranty');
+      showToast(e.message || 'Failed to add warranty', 'error');
     }
   };
 
@@ -94,7 +95,7 @@ export default function Warranties() {
   const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this warranty record?')) {
       await WarrantyService.delete(id);
-      toast.success('Warranty deleted');
+      showToast('Warranty deleted', 'success');
       loadData();
     }
   };
