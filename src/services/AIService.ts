@@ -202,12 +202,38 @@ Return ONLY a valid JSON object matching this structure:
     }
 
     const text = response.text || '';
-    const defaultResult = {
+      const defaultResult = {
       type: 'unknown' as const,
       platform: 'other' as const,
       transactions: [],
       confidence: 0
     };
     return parseAIJson(text, defaultResult);
+  },
+
+  async generateDailySummary(businessMode: string, data: any, currency: string): Promise<string> {
+    const ai = await getGeminiInstance();
+    const prompt = `Business Mode: ${businessMode}.
+Today's Data:
+Sales: ${data.todaySales} ${currency}
+Expenses: ${data.todayExpenses} ${currency}
+Profit Estimate: ${data.profitEstimate} ${currency}
+Net Cash: ${data.cashExpected} ${currency}
+Udhaar Given: ${data.udhaarGiven} ${currency}
+Udhaar Received: ${data.udhaarReceived} ${currency}
+Low Stock Items: ${data.lowStockCount}
+Pending Repairs: ${data.pendingRepairs}
+Active Warranties: ${data.activeWarranties}
+
+Generate a concise 2-sentence summary for the shop owner highlighting the best aspects or biggest risks today. Do not invent any numbers. Do not use PII. Keep it professional.`;
+
+    const response = await withRetry(
+      () => ai.models.generateContent({
+        model: AI_MODELS.fast,
+        contents: prompt
+      }),
+      AI_TIMEOUT_MS
+    );
+    return response.text?.trim() || 'Summary could not be generated.';
   }
 };
