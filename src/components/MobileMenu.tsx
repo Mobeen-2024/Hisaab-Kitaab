@@ -3,12 +3,13 @@ import { NavLink } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { useCloudAuth } from '../contexts/CloudAuthContext';
 import { t } from '../lib/i18n';
-import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, MessageSquare, Bell, ChevronRight, LayoutDashboard, Cloud, ShoppingCart, Wrench, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Users, FileText, PieChart, Sparkles, Package, Activity, MessageSquare, Bell, ChevronRight, LayoutDashboard, Cloud, ShoppingCart, Wrench, Shield, Store } from 'lucide-react';
 import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
 import { useUIStore } from '../lib/store';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
+import BusinessOnboarding from './BusinessOnboarding';
 
 export default function MobileMenu() {
   const orphanedCount = useLiveQuery(
@@ -27,7 +28,8 @@ export default function MobileMenu() {
   const { 
     lang, 
     currency, 
-    activeContext, 
+    activeContext,
+    businessMode,
     updateSetting,
     canViewReports,
     canViewPlanner,
@@ -38,6 +40,7 @@ export default function MobileMenu() {
   } = useSettings();
   const { user, isAuthenticated, isSyncEnabled } = useCloudAuth();
   const { setMessagesOpen, setNotificationsOpen } = useUIStore();
+  const [showModeSwitcher, setShowModeSwitcher] = React.useState(false);
   
   const menuGroups = [
     {
@@ -139,6 +142,29 @@ export default function MobileMenu() {
             )}
           </div>
         </div>
+
+        {/* Business Mode Indicator (Mobile) */}
+        {activeContext === 'business' && (
+           <div className="mb-8 relative">
+             <button 
+               onClick={() => setShowModeSwitcher(true)}
+               className="w-full flex items-center justify-between p-4 rounded-2xl bg-[#0F172A]/50 border border-white/10 hover:bg-white/5 transition-colors group"
+             >
+               <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                   <Store size={24} />
+                 </div>
+                 <div className="text-left">
+                   <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">Business Type</div>
+                   <div className="text-base font-black text-white capitalize leading-none">{businessMode.replace('_', ' ')}</div>
+                 </div>
+               </div>
+               <div className="text-xs font-bold text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-xl border border-blue-500/20">
+                 Change
+               </div>
+             </button>
+           </div>
+        )}
 
         <div className="space-y-8 relative">
           {menuGroups.map((group, idx) => group.items.length > 0 && (
@@ -261,6 +287,8 @@ export default function MobileMenu() {
         <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.3em]">Hisaib Kitaib v2.0</p>
         <p className="text-[9px] text-slate-700 mt-1 uppercase tracking-widest font-medium">Professional Financial Operating System</p>
       </div>
+
+      {showModeSwitcher && <BusinessOnboarding onComplete={() => setShowModeSwitcher(false)} />}
     </div>
   );
 }
