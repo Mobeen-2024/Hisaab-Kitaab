@@ -17,7 +17,7 @@ import { useHasLowStock } from '../hooks/useData';
 import { Plus } from 'lucide-react';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
-  const { rtl, lang, currency, activeContext } = useSettings();
+  const { rtl, lang, currency, activeContext, businessMode, activeModules } = useSettings();
   const {
     isQuickEntryOpen, setQuickEntryOpen,
     isAddCustomerModalOpen, setAddCustomerModalOpen,
@@ -122,7 +122,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       )}
       
       {/* Systems */}
-      <ReminderSystem settingsObj={{ language: lang, currency, activeContext }} />
+      <ReminderSystem settingsObj={{ language: lang, currency, activeContext, businessMode: businessMode as any, activeModules }} />
     </div>
   );
 }

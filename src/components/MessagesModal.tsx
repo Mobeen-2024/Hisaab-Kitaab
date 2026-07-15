@@ -69,6 +69,8 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
 
         const aiResponse = await AIService.getChatResponse(
           'business', // Context could be dynamic
+          'general',  // businessMode
+          [],         // activeModules
           stats,
           currency,
           messages.map(m => ({ sender: m.sender, content: m.content })),

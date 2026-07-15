@@ -50,10 +50,10 @@ export const TransactionSchema = z.object({
   originalCurrency: z.string().optional(),
   originalAmount: z.number().optional(),
   exchangeRate: z.number().optional(),
-  source: z.enum(['manual', 'voice', 'easypaisa', 'jazzcash', 'bank_import', 'pdf', 'ai', 'udhaar', 'inventory', 'legacy_backfill']).optional(),
+  source: z.enum(['manual', 'voice', 'easypaisa', 'jazzcash', 'bank_import', 'pdf', 'ai', 'udhaar', 'inventory', 'legacy_backfill', 'pos', 'repair']).optional(),
   sourceId: z.number().optional(),
   importReferenceId: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   updatedAt: z.string().optional(),
 });
 

@@ -653,6 +653,8 @@ db.on('populate', async () => {
   await db.settings.add({
     language: 'en',
     currency: 'PKR',
-    activeContext: 'business'
+    activeContext: 'business',
+    businessMode: 'general',
+    activeModules: []
   });
 });

@@ -9,7 +9,7 @@ import { useSettings } from '../contexts/SettingsContext';
 export default function InvoiceViewer() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currency, businessProfile } = useSettings();
+  const { currency, ownerName, ownerAvatar } = useSettings();
   
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -69,9 +69,8 @@ export default function InvoiceViewer() {
             <p className="text-slate-500">{new Date(invoice.createdAt).toLocaleString()}</p>
           </div>
           <div className="text-right">
-            <h2 className="text-xl font-bold">{businessProfile.name || 'Hisaib Kitaib Business'}</h2>
-            <p className="text-slate-500">{businessProfile.phone}</p>
-            <p className="text-slate-500">{businessProfile.address}</p>
+            <h2 className="text-xl font-bold">{ownerName || 'Hisaib Kitaib Business'}</h2>
+            <p className="text-slate-500 text-sm">Powered by Hisaib Kitaib</p>
           </div>
         </div>
 
@@ -82,7 +81,6 @@ export default function InvoiceViewer() {
             <div>
               <p className="font-bold text-lg">{customer.name}</p>
               {customer.phone && <p className="text-slate-600">{customer.phone}</p>}
-              {customer.address && <p className="text-slate-600">{customer.address}</p>}
             </div>
           ) : (
             <p className="font-bold text-lg">Walk-in Customer</p>
