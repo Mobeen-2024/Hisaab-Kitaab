@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Printer, ArrowLeft } from 'lucide-react';
+import { Printer, ArrowLeft, Share2 } from 'lucide-react';
 import { InvoiceService } from '../services/InvoiceService';
 import { CustomerService } from '../services/CustomerService';
 import type { Invoice, Customer } from '../db';
@@ -39,6 +39,18 @@ export default function InvoiceViewer() {
     return <div className="p-8 text-center text-white">Loading invoice...</div>;
   }
 
+  const handleWhatsAppShare = () => {
+    if (!invoice) return;
+    const custName = customer ? customer.name : 'Valued Customer';
+    const invId = invoice.id?.toString().padStart(6, '0');
+    const text = `Hello ${custName},\n\nHere is the summary of your recent purchase (Invoice INV-${invId}).\nTotal Amount: ${currency} ${invoice.total.toLocaleString()}\n\nThank you for your business with us!\n- _Powered by Hisaib Kitaib_`;
+    
+    // Extract numbers only for phone, default to empty to let user select
+    const phoneNum = customer?.phone?.replace(/[^0-9+]/g, '') || '';
+    const url = `https://wa.me/${phoneNum}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
   return (
     <div className="max-w-3xl mx-auto py-8 print:py-0 print:max-w-full">
       {/* Non-printable action bar */}
@@ -50,13 +62,22 @@ export default function InvoiceViewer() {
           <ArrowLeft size={20} />
           Back
         </button>
-        <button 
-          onClick={() => window.print()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2"
-        >
-          <Printer size={20} />
-          Print Invoice
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={handleWhatsAppShare}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors"
+          >
+            <Share2 size={20} />
+            Share WhatsApp
+          </button>
+          <button 
+            onClick={() => window.print()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2"
+          >
+            <Printer size={20} />
+            Print Invoice
+          </button>
+        </div>
       </div>
 
       {/* Printable Invoice Area */}

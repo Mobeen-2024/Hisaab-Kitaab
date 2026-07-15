@@ -6,7 +6,7 @@ import { UdhaarService } from '../services/UdhaarService';
 import { InventoryService } from '../services/InventoryService';
 import { useUdhaarEntries, useCustomerTransactions, useInventory } from '../hooks/useData';
 import { t, Lang } from '../lib/i18n';
-import { ArrowLeft, Phone, Calendar, ArrowUpRight, ArrowDownRight, MessageSquare, Plus, Trash2, BrainCircuit, ShieldAlert, ShieldCheck, Shield } from 'lucide-react';
+import { ArrowLeft, Phone, Calendar, ArrowUpRight, ArrowDownRight, MessageSquare, Plus, Trash2, BrainCircuit, ShieldAlert, ShieldCheck, Shield, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
@@ -117,6 +117,22 @@ export default function CustomerDetail({
     window.open(`https://wa.me/${phoneNum}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const handleShareStatement = () => {
+    let message = `Hello ${customer.name},\n\nHere is your account statement.\nCurrent Balance: ${formatCurrency(Math.abs(computedBalance))} ${computedBalance > 0 ? '(Due)' : '(Advance)'}\n\nRecent Transactions:\n`;
+    
+    unifiedHistory.slice(0, 5).forEach(tx => {
+      message += `- ${new Date(tx.date).toLocaleDateString()}: ${formatCurrency(tx.amount)} (${tx.type === 'give' ? 'Given' : 'Received'})\n`;
+    });
+    
+    message += `\nPlease review and let us know if you have any questions.\n- _Powered by Hisaib Kitaib_`;
+
+    let phoneNum = customer.phone?.replace(/[^0-9]/g, '') || '';
+    if (phoneNum.startsWith('0')) {
+      phoneNum = '92' + phoneNum.substring(1);
+    }
+    window.open(`https://wa.me/${phoneNum}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   const handleDelete = async () => {
     if (customer.id) {
       try {
@@ -193,7 +209,14 @@ export default function CustomerDetail({
               className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-bold transition-colors"
             >
               <MessageSquare size={16} />
-              WhatsApp Reminder
+              Reminder
+            </button>
+            <button
+              onClick={handleShareStatement}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 rounded-xl text-sm font-bold transition-colors"
+            >
+              <Share2 size={16} />
+              Statement
             </button>
             <button
               onClick={() => setIsDeleting(true)}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wrench, Plus, CheckCircle, Clock, CheckSquare, Search, Trash2, Phone } from 'lucide-react';
+import { Wrench, Plus, CheckCircle, Clock, CheckSquare, Search, Trash2, Phone, Share2 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { RepairService } from '../services/RepairService';
 import { CustomerService } from '../services/CustomerService';
@@ -78,6 +78,27 @@ export default function RepairJobs() {
     setDeviceModel('');
     setIssueDescription('');
     setEstimatedCost('');
+  };
+
+  const handleShareRepair = (job: RepairJob) => {
+    const customerName = getCustomerName(job.customerId);
+    const phone = getCustomerPhone(job.customerId);
+    
+    let message = `Hello ${customerName},\n\n`;
+    if (job.status === 'ready') {
+      message += `Good news! Your device (${job.deviceModel}) is repaired and ready for pickup.\nEstimated Cost: ${currency} ${job.estimatedCost.toLocaleString()}\n\nPlease visit the shop to collect it.\n`;
+    } else if (job.status === 'pending') {
+      message += `Your device (${job.deviceModel}) has been received for repair.\nEstimated Cost: ${currency} ${job.estimatedCost.toLocaleString()}\nWe will notify you when it is ready.\n`;
+    } else {
+      message += `Your device (${job.deviceModel}) repair is marked as completed.\nThank you for choosing us!\n`;
+    }
+    message += `\n- _Powered by Hisaib Kitaib_`;
+
+    let phoneNum = phone?.replace(/[^0-9]/g, '') || '';
+    if (phoneNum.startsWith('0')) {
+      phoneNum = '92' + phoneNum.substring(1);
+    }
+    window.open(`https://wa.me/${phoneNum}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleStatusChange = async (job: RepairJob, newStatus: 'pending' | 'ready' | 'delivered') => {
@@ -203,6 +224,9 @@ export default function RepairJobs() {
                     Completed
                   </div>
                 )}
+                <button onClick={() => handleShareRepair(job)} className="p-2 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors" title="Notify via WhatsApp">
+                  <Share2 size={16} />
+                </button>
                 <button onClick={() => handleDelete(job.id!)} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
                   <Trash2 size={16} />
                 </button>

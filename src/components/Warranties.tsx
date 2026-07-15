@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, ShieldCheck, ShieldAlert, Plus, Search, Trash2 } from 'lucide-react';
+import { Shield, ShieldCheck, ShieldAlert, Plus, Search, Trash2, Share2 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { WarrantyService } from '../services/WarrantyService';
 import { CustomerService } from '../services/CustomerService';
@@ -92,6 +92,24 @@ export default function Warranties() {
     setSaleDate(new Date().toISOString().split('T')[0]);
   };
 
+  const handleShareWarranty = (warranty: Warranty) => {
+    const customerName = getCustomerName(warranty.customerId);
+    const itemName = getItemName(warranty.itemId);
+    
+    const d = new Date(warranty.saleDate);
+    d.setMonth(d.getMonth() + warranty.warrantyMonths);
+    const expiryDate = d.toLocaleDateString();
+
+    let message = `Hello ${customerName},\n\nYour warranty for ${itemName} (SN: ${warranty.serialNumber}) has been successfully registered.\nIt is valid for ${warranty.warrantyMonths} months until ${expiryDate}.\n\nKeep this message as proof of warranty.\n- _Powered by Hisaib Kitaib_`;
+
+    const phone = customers.find(c => c.id === warranty.customerId)?.phone;
+    let phoneNum = phone?.replace(/[^0-9]/g, '') || '';
+    if (phoneNum.startsWith('0')) {
+      phoneNum = '92' + phoneNum.substring(1);
+    }
+    window.open(`https://wa.me/${phoneNum}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this warranty record?')) {
       await WarrantyService.delete(id);
@@ -162,9 +180,14 @@ export default function Warranties() {
             <div key={warranty.id} className="bg-slate-800/40 border border-white/10 rounded-2xl p-5 hover:border-white/20 transition-colors flex flex-col">
               <div className="flex justify-between items-start mb-3">
                 {getStatusBadge(warranty)}
-                <button onClick={() => handleDelete(warranty.id!)} className="text-slate-500 hover:text-red-400 transition-colors">
-                  <Trash2 size={16} />
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => handleShareWarranty(warranty)} className="text-emerald-500 hover:text-emerald-400 transition-colors" title="Share Warranty">
+                    <Share2 size={16} />
+                  </button>
+                  <button onClick={() => handleDelete(warranty.id!)} className="text-slate-500 hover:text-red-400 transition-colors">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
               
               <h3 className="font-bold text-white text-lg line-clamp-1">{getItemName(warranty.itemId)}</h3>
