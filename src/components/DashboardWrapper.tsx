@@ -3,19 +3,27 @@ import Dashboard from './Dashboard';
 import TransactionList from './TransactionList';
 import CustomersSummary from './CustomersSummary';
 import { useSettings } from '../contexts/SettingsContext';
+import { useInView } from 'react-intersection-observer';
 
 const Analytics = lazy(() => import('./Analytics'));
 
 export default function DashboardWrapper() {
   const { lang, currency, activeContext } = useSettings();
+  const { ref, inView } = useInView({ triggerOnce: true, rootMargin: '200px' });
   
   return (
     <>
       <Dashboard />
       <div className="space-y-8 w-full">
-        <Suspense fallback={<div className="h-64 animate-pulse bg-white/5 rounded-3xl" />}>
-          <Analytics />
-        </Suspense>
+        <div className="min-h-64 w-full" ref={ref}>
+          {inView ? (
+            <Suspense fallback={<div className="h-64 animate-pulse bg-white/5 rounded-3xl" />}>
+              <Analytics />
+            </Suspense>
+          ) : (
+            <div className="h-64 animate-pulse bg-white/5 rounded-3xl" />
+          )}
+        </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] relative overflow-hidden group hover:border-blue-500/30 transition-colors duration-500">

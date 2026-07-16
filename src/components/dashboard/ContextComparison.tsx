@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useTransactions } from '../../hooks/useData';
+import { useContextStats } from '../../hooks/useData';
 import { t } from '../../lib/i18n';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 
@@ -8,37 +8,11 @@ export function ContextComparison() {
   const { lang, currency, rtl } = useSettings();
   const isUrdu = lang === 'ur';
 
-  const allTransactions = useTransactions();
+  const { businessRevenue, businessCost, personalIncome, personalExpense, personalMonthlyIncome, personalMonthlyExpense } = useContextStats();
 
   const formatCurrency = (valInPKR: number) => formatSharedCurrency(valInPKR, currency, lang);
   const formatCompactCurrency = (valInPKR: number) => formatSharedCurrency(valInPKR, currency, lang, true);
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
-
-  const { businessRevenue, businessCost, personalIncome, personalExpense, personalMonthlyIncome, personalMonthlyExpense } = React.useMemo(() => {
-    let bRev = 0, bCost = 0, pInc = 0, pExp = 0, pMonInc = 0, pMonExp = 0;
-    for (let i = 0; i < allTransactions.length; i++) {
-      const t = allTransactions[i];
-      if (t.context === 'business') {
-        if (t.type === 'income') bRev += t.amount;
-        else if (t.type === 'expense') bCost += t.amount;
-      } else if (t.context === 'personal') {
-        if (t.type === 'income') {
-          pInc += t.amount;
-          if (t.date.startsWith(currentMonth)) pMonInc += t.amount;
-        }
-        else if (t.type === 'expense') {
-          pExp += t.amount;
-          if (t.date.startsWith(currentMonth)) pMonExp += t.amount;
-        }
-      }
-    }
-    return {
-      businessRevenue: bRev, businessCost: bCost,
-      personalIncome: pInc, personalExpense: pExp,
-      personalMonthlyIncome: pMonInc, personalMonthlyExpense: pMonExp
-    };
-  }, [allTransactions, currentMonth]);
 
   // Business calculations
   const businessProfit = businessRevenue - businessCost;

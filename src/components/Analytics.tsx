@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { t, Lang, isRTL } from '../lib/i18n';
-import { useTransactions, useCategories } from '../hooks/useData';
+import { useDateRangeTransactions, useCategories } from '../hooks/useData';
 import { ComposedChart, Bar, Line, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { startOfWeek, addDays, getDay, isSameDay, startOfMonth, endOfMonth, endOfWeek, isSameMonth, isToday, addMonths, subMonths, format } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -12,8 +12,20 @@ import { useSettings } from '../contexts/SettingsContext';
 
 export default function Analytics() {
   const { lang, currency, activeContext } = useSettings();
-  const allTransactions = useTransactions();
-  const transactions = useTransactions(activeContext);
+  
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const weekStart = startOfWeek(now);
+  const minDate = monthStart < weekStart ? monthStart : weekStart;
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 1); // safe upper bound
+
+  const transactions = useDateRangeTransactions(
+    activeContext,
+    format(minDate, 'yyyy-MM-dd'),
+    format(maxDate, 'yyyy-MM-dd')
+  ) || [];
+
   const categories = useCategories();
 
   const rtl = isRTL(lang);

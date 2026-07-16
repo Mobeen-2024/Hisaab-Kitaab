@@ -1,15 +1,28 @@
 import React, { useMemo } from 'react';
 import { Lang, t } from '../lib/i18n';
-import { useTransactions, useCustomers } from '../hooks/useData';
+import { useDateRangeTransactions, useTotalBankBalance, useCustomers } from '../hooks/useData';
 import { formatCurrency } from '../lib/currency';
 import { Activity, TrendingUp, TrendingDown, ShieldAlert, DollarSign, Target, PieChart, ShieldCheck } from 'lucide-react';
-import { subMonths, isAfter, startOfMonth } from 'date-fns';
+import { subMonths, isAfter, startOfMonth, format } from 'date-fns';
 
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function BusinessHealth() {
   const { lang, currency, activeContext } = useSettings();
-  const transactions = useTransactions(activeContext);
+  
+  const now = new Date();
+  const lastMonth = subMonths(now, 1);
+  const thisMonthStart = startOfMonth(now);
+  const lastMonthStart = startOfMonth(lastMonth);
+
+  const transactions = useDateRangeTransactions(
+    activeContext,
+    format(lastMonthStart, 'yyyy-MM-dd'),
+    format(new Date(), 'yyyy-MM-dd'),
+    true
+  ) || [];
+
+  const totalBank = useTotalBankBalance(activeContext);
   const customers = useCustomers();
 
   const healthData = useMemo(() => {
@@ -33,8 +46,6 @@ export default function BusinessHealth() {
     // Receivables/Payables
     const totalReceivables = customers.filter(c => c.type !== 'supplier' && c.balance > 0).reduce((sum, c) => sum + c.balance, 0);
     const totalPayables = customers.filter(c => c.type === 'supplier' && c.balance > 0).reduce((sum, c) => sum + c.balance, 0);
-
-    const totalBank = transactions.reduce((sum, t) => t.type === 'income' ? sum + t.amount : sum - t.amount, 0);
 
     const savingsRatio = thisMonthIncome > 0 ? (thisMonthProfit / thisMonthIncome) * 100 : 0;
     
@@ -64,12 +75,11 @@ export default function BusinessHealth() {
       totalPayables,
       thisMonthIncome,
       thisMonthProfit,
-      thisMonthExpense,
-      totalBank
+      thisMonthExpense
     };
   }, [transactions, customers, activeContext]);
 
-  const { savingsRatio, score, trendDirection, profitGrowth, totalReceivables, totalPayables, thisMonthIncome, thisMonthProfit, thisMonthExpense, totalBank } = healthData;
+  const { savingsRatio, score, trendDirection, profitGrowth, totalReceivables, totalPayables, thisMonthIncome, thisMonthProfit, thisMonthExpense } = healthData;
 
   const scoreColor = score >= 80 ? 'text-emerald-400' : score >= 50 ? 'text-orange-400' : 'text-rose-400';
   const scoreBg = score >= 80 ? 'from-emerald-500/20 to-emerald-500/5' : score >= 50 ? 'from-orange-500/20 to-orange-500/5' : 'from-rose-500/20 to-rose-500/5';

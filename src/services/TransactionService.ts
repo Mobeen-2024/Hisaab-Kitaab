@@ -80,11 +80,16 @@ export const TransactionService = {
 
   async search(query: string, context: 'personal' | 'business') {
     const q = query.toLowerCase();
-    const txs = await this.getByContext(context);
-    return txs.filter(t =>
-      (t.description?.toLowerCase().includes(q)) ||
-      (t.amount.toString().includes(q))
-    ).slice(0, 200);
+    return await db.transactions
+      .where('context')
+      .equals(context)
+      .reverse()
+      .filter(t => 
+        (t.description?.toLowerCase().includes(q)) ||
+        (t.amount.toString().includes(q))
+      )
+      .limit(200)
+      .toArray();
   },
 
   async getPaginatedByContext(context: 'personal' | 'business', page: number, pageSize: number) {

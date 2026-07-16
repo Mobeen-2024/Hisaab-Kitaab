@@ -9,7 +9,7 @@ import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import DatePicker from './DatePicker';
 import RetentionCards from './RetentionCards';
-import { useGoals, useBudgets, useTransactions } from '../hooks/useData';
+import { useGoals, useBudgets, useCurrentMonthTransactions } from '../hooks/useData';
 import { useSettings } from '../contexts/SettingsContext';
 import { useToast } from '../contexts/ToastContext';
 import { GoalSchema, BudgetSchema } from '../models/schemas';
@@ -23,7 +23,7 @@ export default function Planner() {
 
   const goals = useGoals(activeContext);
   const budgets = useBudgets(activeContext, currentMonth);
-  const transactions = useTransactions(activeContext);
+  const transactions = useCurrentMonthTransactions(activeContext) || [];
 
   const currentBudget = budgets.length > 0 ? budgets[0] : null;
 

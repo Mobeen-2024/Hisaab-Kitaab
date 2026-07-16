@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useTransactions, useCategories, useInventory, useMessages } from '../hooks/useData';
+import { useDateRangeTransactions, useCategories, useInventory, useMessages } from '../hooks/useData';
 import { useAICoachData } from '../hooks/useAICoachData';
 import { useSettings } from '../contexts/SettingsContext';
 import { AIService } from '../services/AIService';
@@ -15,7 +15,12 @@ import AssistantReminders from './SmartAssistant/AssistantReminders';
 
 export default function SmartAssistant() {
   const { lang, currency, activeContext, businessMode, activeModules } = useSettings();
-  const transactions = useTransactions(activeContext);
+  const transactions = useDateRangeTransactions(
+    activeContext,
+    format(subMonths(new Date(), 1), 'yyyy-MM-dd'),
+    format(new Date(), 'yyyy-MM-dd'),
+    true
+  ) || [];
   const categories = useCategories(activeContext);
   const inventory = useInventory(activeContext);
   const messages = useMessages('ai');

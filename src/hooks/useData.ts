@@ -67,6 +67,58 @@ export function useLast7DaysTransactions(context: 'personal' | 'business') {
   );
 }
 
+export function useTotalBankBalance(context: 'personal' | 'business') {
+  return useLiveQuery(
+    async () => {
+      let balance = 0;
+      await db.transactions.where('context').equals(context).each(t => {
+        balance += t.type === 'income' ? t.amount : -t.amount;
+      });
+      return balance;
+    },
+    [context],
+    0
+  );
+}
+
+export function useTransactionDates() {
+  return useLiveQuery(
+    async () => {
+      // Get all unique dates from the date index
+      const dates = await db.transactions.orderBy('date').uniqueKeys();
+      return dates as string[];
+    },
+    [],
+    [] as string[]
+  );
+}
+
+export function useContextStats() {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  return useLiveQuery(
+    async () => {
+      let bRev = 0, bCost = 0, pInc = 0, pExp = 0, pMonInc = 0, pMonExp = 0;
+      await db.transactions.each(t => {
+        if (t.context === 'business') {
+          if (t.type === 'income') bRev += t.amount;
+          else if (t.type === 'expense') bCost += t.amount;
+        } else if (t.context === 'personal') {
+          if (t.type === 'income') {
+            pInc += t.amount;
+            if (t.date.startsWith(currentMonth)) pMonInc += t.amount;
+          } else if (t.type === 'expense') {
+            pExp += t.amount;
+            if (t.date.startsWith(currentMonth)) pMonExp += t.amount;
+          }
+        }
+      });
+      return { businessRevenue: bRev, businessCost: bCost, personalIncome: pInc, personalExpense: pExp, personalMonthlyIncome: pMonInc, personalMonthlyExpense: pMonExp };
+    },
+    [],
+    { businessRevenue: 0, businessCost: 0, personalIncome: 0, personalExpense: 0, personalMonthlyIncome: 0, personalMonthlyExpense: 0 }
+  );
+}
+
 export function useCurrentMonthTransactions(context: 'personal' | 'business') {
   const currentMonth = new Date().toISOString().substring(0, 7); // 'yyyy-MM'
   return useMonthTransactions(context, currentMonth);

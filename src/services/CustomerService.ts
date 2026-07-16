@@ -94,10 +94,12 @@ export const CustomerService = {
 
   async search(query: string) {
     const q = query.toLowerCase();
-    const all = await this.getAll();
-    return all.filter(c =>
-      c.name.toLowerCase().includes(q) ||
-      (c.phone && c.phone.includes(q))
-    );
+    return await db.customers
+      .filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        (c.phone && c.phone.includes(q))
+      )
+      .limit(200)
+      .toArray();
   }
 };

@@ -2,18 +2,18 @@ import React, { useMemo } from 'react';
 import { Flame, Trophy, TrendingUp, Calendar, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 import { format, subDays, isSameDay } from 'date-fns';
-import { useTransactions, useAppSettings } from '../hooks/useData';
+import { useTransactionDates, useAppSettings } from '../hooks/useData';
 
 export default function RetentionCards({ lang, currency }: { lang: any, currency: string }) {
-  const allTransactions = useTransactions();
+  const transactionDates = useTransactionDates();
   const settingsObj = useAppSettings();
 
   // Compute streaks
   const { currentStreak, longestStreak } = useMemo(() => {
-    if (!allTransactions.length) return { currentStreak: 0, longestStreak: 0 };
+    if (!transactionDates.length) return { currentStreak: 0, longestStreak: 0 };
     
-    // get unique dates of transactions
-    const dates = [...new Set(allTransactions.map(t => t.date.split('T')[0]))].sort().reverse();
+    // get unique dates of transactions (strip time)
+    const dates = [...new Set(transactionDates.map(d => d.split('T')[0]))].sort().reverse();
     
     let current = 0;
     let longest = 0;
