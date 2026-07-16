@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { t, Lang, isRTL } from '../lib/i18n';
 import { useCategories, useAppUsers, useRecentTransactionsByContext } from '../hooks/useData';
 import { TransactionService } from '../services/TransactionService';
@@ -13,12 +13,10 @@ import { Transaction } from '../models';
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function TransactionList({ hideTitle = false, compact = false }: { hideTitle?: boolean, compact?: boolean }) {
-  const { lang, currency, activeContext, settingsObj } = useSettings();
+  const { lang, currency, activeContext, settingsObj, activeRole } = useSettings();
   const categories = useCategories();
   const users = useAppUsers();
 
-  const activeUser = users.find(u => u.id === settingsObj?.activeUserId);
-  const activeRole = activeUser?.role || 'owner';
   const canDelete = activeRole === 'owner' || activeRole === 'spouse';
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,16 +74,16 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
     return () => clearInterval(timer);
   }, []);
 
-  const formatCurrency = (valInPKR: number) => {
+  const formatCurrency = useCallback((valInPKR: number) => {
     return formatSharedCurrency(valInPKR, currency, lang);
-  };
+  }, [currency, lang]);
 
-  const getCategoryName = (id: number) => {
+  const getCategoryName = useCallback((id: number) => {
     const cat = categories.find(c => c.id === id);
     return cat ? t(lang, cat.name) : 'Unknown';
-  };
+  }, [categories, lang]);
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     const d = new Date(dateStr);
     const today = new Date();
     const yesterday = new Date();
@@ -97,20 +95,20 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
       return t(lang, 'yesterday') || 'Yesterday';
     }
     return format(d, 'MMM dd, yyyy');
-  };
+  }, [lang]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (confirmDeleteId) {
       await TransactionService.delete(confirmDeleteId);
       setConfirmDeleteId(null);
     }
-  };
+  }, [confirmDeleteId]);
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (hasMore) {
       setVisibleLimit(prev => prev + 25);
     }
-  };
+  }, [hasMore]);
 
   const editingTransaction = useMemo(() => {
     return transactions.find(t => t.id === editingTransactionId) || null;

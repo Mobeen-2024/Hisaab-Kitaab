@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Lang, t } from '../lib/i18n';
 import { FileText, Download, FileSpreadsheet, Calendar, ArrowUpRight, ArrowDownRight, Wallet, Upload, Search, TrendingUp } from 'lucide-react';
 import { format, parseISO, endOfMonth, isWithinInterval, startOfYear, endOfYear } from 'date-fns';
@@ -34,6 +34,12 @@ export default function Reports() {
   // Scoped transactions for selected month
   const filteredTransactions = useMonthTransactions(activeContext, selectedMonth);
 
+  const formatCurrency = useCallback((val: number) => formatSharedCurrency(val, currency, lang), [currency, lang]);
+  const getCategoryName = useCallback((id: number) => {
+    const cat = categories.find(c => c.id === id);
+    return cat ? t(lang, cat.name) : 'Unknown';
+  }, [categories, lang]);
+
   // YTD transactions using startOfYear & endOfYear dates
   const currentYear = new Date().getFullYear();
   const yearStart = `${currentYear}-01-01`;
@@ -49,7 +55,7 @@ export default function Reports() {
       t.description.toLowerCase().includes(q) ||
       getCategoryName(t.categoryId).toLowerCase().includes(q)
     );
-  }, [filteredTransactions, debouncedTableSearch]);
+  }, [filteredTransactions, debouncedTableSearch, getCategoryName]);
 
   const ytdIncome = useMemo(() => ytdTransactionsFiltered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [ytdTransactionsFiltered]);
   const ytdExpense = useMemo(() => ytdTransactionsFiltered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [ytdTransactionsFiltered]);
@@ -63,19 +69,14 @@ export default function Reports() {
       .map(([catId, amount]) => ({ name: getCategoryName(Number(catId)), amount }))
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 8);
-  }, [filteredTransactions, categories]);
+  }, [filteredTransactions, getCategoryName]);
 
   const totalIncome = useMemo(() => filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [filteredTransactions]);
   const totalExpense = useMemo(() => filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [filteredTransactions]);
   const netBalance = totalIncome - totalExpense;
 
-  const formatCurrency = (val: number) => formatSharedCurrency(val, currency, lang);
-  function getCategoryName(id: number) {
-    const cat = categories.find(c => c.id === id);
-    return cat ? t(lang, cat.name) : 'Unknown';
-  }
 
-  const exportCSV = () => {
+  const exportCSV = useCallback(() => {
     if (filteredTransactions.length === 0) return;
     const headers = ['Date', 'Description', 'Category', 'Type', 'Amount', 'Context'];
     const rows = filteredTransactions.map(tx => [
@@ -89,9 +90,9 @@ export default function Reports() {
     a.href = encodeURI(csv);
     a.download = `HisaibKitaib_Report_${selectedMonth}.csv`;
     a.click();
-  };
+  }, [filteredTransactions, selectedMonth, getCategoryName]);
 
-  const exportPDF = () => {
+  const exportPDF = useCallback(() => {
     if (filteredTransactions.length === 0) return;
     const doc = new jsPDF();
     const fMonth = format(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1), 'MMMM yyyy');
@@ -112,7 +113,7 @@ export default function Reports() {
       alternateRowStyles: { fillColor: [245, 247, 250] },
     });
     doc.save(`HisaibKitaib_Report_${selectedMonth}.pdf`);
-  };
+  }, [filteredTransactions, selectedMonth, getCategoryName, formatCurrency, totalIncome, totalExpense, netBalance]);
 
   return (
     <div className="space-y-6">

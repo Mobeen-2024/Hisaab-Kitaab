@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Customer } from '../models';
 import { CustomerService } from '../services/CustomerService';
 import { useCustomers } from '../hooks/useData';
@@ -143,9 +143,9 @@ export default function Customers() {
 
   const totalReceivable = React.useMemo(() => customersWithBalances.filter(c => c.type !== 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0), [customersWithBalances]);
   const totalPayable = React.useMemo(() => customersWithBalances.filter(c => c.type === 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0), [customersWithBalances]);
-  const settledCount = customersWithBalances.filter(c => c.balance === 0).length;
+  const settledCount = useMemo(() => customersWithBalances.filter(c => c.balance === 0).length, [customersWithBalances]);
 
-  const formatCurrency = (val: number) => formatSharedCurrency(val, currency, lang);
+  const formatCurrency = useCallback((val: number) => formatSharedCurrency(val, currency, lang), [currency, lang]);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
 

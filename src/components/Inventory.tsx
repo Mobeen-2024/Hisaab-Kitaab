@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Package, Plus, AlertCircle, Trash2, Edit2, TrendingUp, DollarSign, BarChart3, Minus, Loader2, X } from 'lucide-react';
 import { InventoryItem } from '../models';
 import { useInventory } from '../hooks/useData';
@@ -31,11 +31,11 @@ export default function Inventory() {
     );
   }
 
-  const formatCurrency = (val: number) => formatSharedCurrency(val, currency, lang);
-  const totalValue = items.reduce((s: number, i: EnrichedInventoryItem) => s + (i.quantity * (i.costPrice ?? i.unitPrice)), 0);
-  const totalItems = items.reduce((s: number, i: EnrichedInventoryItem) => s + i.quantity, 0);
+  const formatCurrency = useCallback((val: number) => formatSharedCurrency(val, currency, lang), [currency, lang]);
+  const totalValue = useMemo(() => items.reduce((s: number, i: EnrichedInventoryItem) => s + (i.quantity * (i.costPrice ?? i.unitPrice)), 0), [items]);
+  const totalItems = useMemo(() => items.reduce((s: number, i: EnrichedInventoryItem) => s + i.quantity, 0), [items]);
 
-  const handleRestock = async () => {
+  const handleRestock = useCallback(async () => {
     const qty = Number(restockQty);
     if (!restockId || isNaN(qty) || qty <= 0) {
       showToast('Please enter a valid quantity', 'error');
@@ -53,9 +53,9 @@ export default function Inventory() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [restockQty, restockId, activeContext, showToast]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!deleteId) return;
     setIsSubmitting(true);
     try {
@@ -67,7 +67,7 @@ export default function Inventory() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [deleteId, showToast]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { format, subMonths, isAfter } from 'date-fns';
 import { TrendingUp, Target, PieChart } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -22,9 +22,9 @@ export function FinancialOverview() {
     return currentMonthTransactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
   }, [currentMonthTransactions]);
 
-  const formatCompactCurrency = (valInPKR: number) => {
+  const formatCompactCurrency = useCallback((valInPKR: number) => {
     return formatSharedCurrency(valInPKR, currency, lang, true);
-  };
+  }, [currency, lang]);
 
   const chartData = useMemo(() => {
     const data = [];

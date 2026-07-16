@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { t, Lang, isRTL } from '../lib/i18n';
 import { useDateRangeTransactions, useCategories } from '../hooks/useData';
 import { ComposedChart, Bar, Line, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -13,12 +13,15 @@ import { useSettings } from '../contexts/SettingsContext';
 export default function Analytics() {
   const { lang, currency, activeContext } = useSettings();
   
-  const now = new Date();
-  const monthStart = startOfMonth(now);
-  const weekStart = startOfWeek(now);
-  const minDate = monthStart < weekStart ? monthStart : weekStart;
-  const maxDate = new Date();
-  maxDate.setMonth(maxDate.getMonth() + 1); // safe upper bound
+  const { minDate, maxDate } = useMemo(() => {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const weekStart = startOfWeek(now);
+    const minDate = monthStart < weekStart ? monthStart : weekStart;
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 1); // safe upper bound
+    return { minDate, maxDate };
+  }, []);
 
   const transactions = useDateRangeTransactions(
     activeContext,

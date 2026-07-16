@@ -2,13 +2,13 @@ import React, { lazy, Suspense } from 'react';
 import Dashboard from './Dashboard';
 import TransactionList from './TransactionList';
 import CustomersSummary from './CustomersSummary';
-import { useSettings } from '../contexts/SettingsContext';
+
 import { useInView } from 'react-intersection-observer';
 
 const Analytics = lazy(() => import('./Analytics'));
 
 export default function DashboardWrapper() {
-  const { lang, currency, activeContext } = useSettings();
+
   const { ref, inView } = useInView({ triggerOnce: true, rootMargin: '200px' });
   
   return (

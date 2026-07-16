@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect, useMemo, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AppSettings, db } from '../db';
 import { Lang, isRTL } from '../lib/i18n';
@@ -102,7 +102,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Cashier and employee might have different write access, cashier can add entries.
   const canAddEntries = activeRole !== 'employee';
 
-  const updateSetting = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
+  const updateSetting = useCallback(async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     if (key === 'activeContext') {
       const targetContext = value as 'personal' | 'business';
       if (targetContext === 'personal' && !canAccessPersonal) {
@@ -113,9 +113,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       }
     }
     await SettingsService.update({ [key]: value });
-  };
+  }, [canAccessPersonal, canAccessBusiness]);
 
-  const resetDatabase = async () => {
+  const resetDatabase = useCallback(async () => {
     try {
       await db.delete();
       window.location.reload();
@@ -127,9 +127,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         window.location.reload();
       }, 500);
     }
-  };
+  }, []);
 
-  const hasModule = (module: string) => activeModules.includes(module);
+  const hasModule = useCallback((module: string) => activeModules.includes(module), [activeModules]);
 
   const value = useMemo(() => ({
     lang,
@@ -163,7 +163,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     activeRole, activeUser?.id, activeUser?.contextAccess,
     canAccessPersonal, canAccessBusiness, canViewReports, canViewPlanner,
     canViewSmart, canManageUsers, canAddEntries, isLoading, dbError,
-    geminiApiKey, settingsObj
+    geminiApiKey, settingsObj, updateSetting, resetDatabase, hasModule
   ]);
 
   return (

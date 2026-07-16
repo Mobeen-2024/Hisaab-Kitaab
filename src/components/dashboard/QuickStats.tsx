@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
 import { TiltCard } from '../ui/TiltCard';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -14,28 +14,30 @@ export function QuickStats() {
 
   const categories = useCategories();
 
-  const incomeCategories = categories.filter(c => c.type === 'income' && c.context === 'business');
-  const defaultCategory = incomeCategories.length > 0 ? incomeCategories[0] : null;
-  const milkCategoryIndex = categories.findIndex(c => c.name === 'Daily Milk Sales');
-
-  const highlightedCategoryId = settingsObj?.highlightedCategoryId ?? (milkCategoryIndex !== -1 ? categories[milkCategoryIndex].id : defaultCategory?.id);
-  const highlightedCategory = categories.find(c => c.id === highlightedCategoryId);
+  const { incomeCategories, defaultCategory, milkCategoryIndex, highlightedCategoryId, highlightedCategory } = useMemo(() => {
+    const incomeCategories = categories.filter(c => c.type === 'income' && c.context === 'business');
+    const defaultCategory = incomeCategories.length > 0 ? incomeCategories[0] : null;
+    const milkCategoryIndex = categories.findIndex(c => c.name === 'Daily Milk Sales');
+    const highlightedCategoryId = settingsObj?.highlightedCategoryId ?? (milkCategoryIndex !== -1 ? categories[milkCategoryIndex].id : defaultCategory?.id);
+    const highlightedCategory = categories.find(c => c.id === highlightedCategoryId);
+    return { incomeCategories, defaultCategory, milkCategoryIndex, highlightedCategoryId, highlightedCategory };
+  }, [categories, settingsObj?.highlightedCategoryId]);
 
   const { totalIncomePKR, totalExpensePKR } = useMonthTransactionTotals(activeContext);
   const totalBalancePKR = totalIncomePKR - totalExpensePKR;
 
   const { todayExpensePKR, todayHighlightedSalesPKR } = useTodayTransactionTotals(activeContext, highlightedCategoryId);
 
-  const formatCompactCurrency = (valInPKR: number) => {
+  const formatCompactCurrency = useCallback((valInPKR: number) => {
     return formatSharedCurrency(valInPKR, currency, lang, true);
-  };
+  }, [currency, lang]);
 
-  const updateHighlightedCategory = async (id: number) => {
+  const updateHighlightedCategory = useCallback(async (id: number) => {
     if (settingsObj?.id) {
       await SettingsService.update(settingsObj.id, { highlightedCategoryId: id });
     }
     setIsDropdownOpen(false);
-  };
+  }, [settingsObj?.id]);
 
   return (
     <div className="grid grid-cols-3 gap-2 sm:gap-6 md:gap-4 lg:gap-8 relative z-10" style={{ perspective: '1200px' }}>

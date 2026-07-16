@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Goal } from '../db';
 import { PlannerService } from '../services/PlannerService';
 import { Lang, t } from '../lib/i18n';
@@ -34,27 +34,27 @@ export default function Planner() {
   const [addFundsGoal, setAddFundsGoal] = useState<Goal | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formatCurrency = (val: number) => {
+  const formatCurrency = useCallback((val: number) => {
     return formatSharedCurrency(val, currency, lang);
-  };
+  }, [currency, lang]);
 
-  const getBudgetStatusColor = (percentage: number) => {
+  const getBudgetStatusColor = useCallback((percentage: number) => {
     if (percentage < 50) return 'text-emerald-400';
     if (percentage < 80) return 'text-amber-400';
     return 'text-rose-400';
-  };
+  }, []);
   
-  const getBudgetStatusBgColor = (percentage: number) => {
+  const getBudgetStatusBgColor = useCallback((percentage: number) => {
     if (percentage < 50) return 'bg-emerald-400';
     if (percentage < 80) return 'bg-amber-400';
     return 'bg-rose-400';
-  };
+  }, []);
 
   const budgetUsedPct = useMemo(() => currentBudget && currentBudget.amount > 0 
     ? Math.min(100, Math.round((currentMonthExpenses / currentBudget.amount) * 100))
     : 0, [currentBudget, currentMonthExpenses]);
 
-  const handleDeleteGoal = async () => {
+  const handleDeleteGoal = useCallback(async () => {
     if (!deletingGoalId) return;
     setIsSubmitting(true);
     try {
@@ -66,7 +66,7 @@ export default function Planner() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [deletingGoalId, showToast]);
 
   return (
     <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
