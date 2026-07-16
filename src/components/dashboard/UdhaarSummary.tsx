@@ -2,7 +2,7 @@ import React from 'react';
 import { HandCoins } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useCustomers } from '../../hooks/useData';
+import { useCustomerBalances } from '../../hooks/useData';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 
 export function UdhaarSummary() {
@@ -10,21 +10,7 @@ export function UdhaarSummary() {
   const navigate = useNavigate();
   const isUrdu = lang === 'ur';
 
-  const customers = useCustomers();
-
-  const { toReceive, toPay } = React.useMemo(() => {
-    let tr = 0; let tp = 0;
-    customers.forEach(c => {
-      if (!c.type || c.type === 'customer') {
-        if (c.balance > 0) tr += c.balance;
-        else if (c.balance < 0) tp += Math.abs(c.balance);
-      } else if (c.type === 'supplier') {
-        if (c.balance > 0) tp += c.balance;
-        else if (c.balance < 0) tr += Math.abs(c.balance);
-      }
-    });
-    return { toReceive: tr, toPay: tp };
-  }, [customers]);
+  const { toReceive, toPay } = useCustomerBalances();
 
   const formatCompactCurrency = (valInPKR: number) => {
     return formatSharedCurrency(valInPKR, currency, lang, true);

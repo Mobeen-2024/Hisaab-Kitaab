@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
 import { TiltCard } from '../ui/TiltCard';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useAppSettings, useCategories, useTodayTransactions, useCurrentMonthTransactions } from '../../hooks/useData';
+import { useAppSettings, useCategories, useMonthTransactionTotals, useTodayTransactionTotals } from '../../hooks/useData';
 import { SettingsService } from '../../services/SettingsService';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 import { t } from '../../lib/i18n';
@@ -12,29 +12,8 @@ export function QuickStats() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const isUrdu = lang === 'ur';
 
-  const currentMonthTransactions = useCurrentMonthTransactions(activeContext);
-  const todayTransactions = useTodayTransactions(activeContext);
   const settingsObj = useAppSettings();
   const categories = useCategories();
-
-  const { totalIncomePKR, totalExpensePKR } = React.useMemo(() => {
-    let inc = 0; let exp = 0;
-    for (let i = 0; i < currentMonthTransactions.length; i++) {
-      if (currentMonthTransactions[i].type === 'income') inc += currentMonthTransactions[i].amount;
-      else if (currentMonthTransactions[i].type === 'expense') exp += currentMonthTransactions[i].amount;
-    }
-    return { totalIncomePKR: inc, totalExpensePKR: exp };
-  }, [currentMonthTransactions]);
-
-  const totalBalancePKR = totalIncomePKR - totalExpensePKR;
-
-  const todayExpensePKR = React.useMemo(() => {
-    let exp = 0;
-    for (let i = 0; i < todayTransactions.length; i++) {
-      if (todayTransactions[i].type === 'expense') exp += todayTransactions[i].amount;
-    }
-    return exp;
-  }, [todayTransactions]);
 
   const incomeCategories = categories.filter(c => c.type === 'income' && c.context === 'business');
   const defaultCategory = incomeCategories.length > 0 ? incomeCategories[0] : null;
@@ -43,11 +22,10 @@ export function QuickStats() {
   const highlightedCategoryId = settingsObj?.highlightedCategoryId ?? (milkCategoryIndex !== -1 ? categories[milkCategoryIndex].id : defaultCategory?.id);
   const highlightedCategory = categories.find(c => c.id === highlightedCategoryId);
 
-  const todayHighlightedSalesPKR = highlightedCategoryId
-    ? todayTransactions
-      .filter(t => t.type === 'income' && t.categoryId === highlightedCategoryId)
-      .reduce((acc, curr) => acc + curr.amount, 0)
-    : 0;
+  const { totalIncomePKR, totalExpensePKR } = useMonthTransactionTotals(activeContext);
+  const totalBalancePKR = totalIncomePKR - totalExpensePKR;
+
+  const { todayExpensePKR, todayHighlightedSalesPKR } = useTodayTransactionTotals(activeContext, highlightedCategoryId);
 
   const formatCompactCurrency = (valInPKR: number) => {
     return formatSharedCurrency(valInPKR, currency, lang, true);

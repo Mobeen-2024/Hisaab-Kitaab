@@ -162,11 +162,76 @@ export function useTodayTransactions(context: 'personal' | 'business') {
   );
 }
 
+export function useMonthTransactionTotals(context: 'personal' | 'business') {
+  const currentMonth = new Date().toISOString().substring(0, 7); // 'yyyy-MM'
+  return useLiveQuery(
+    async () => {
+      let income = 0;
+      let expense = 0;
+      await db.transactions.where('context').equals(context).each(t => {
+        if (t.date.startsWith(currentMonth)) {
+          if (t.type === 'income') income += t.amount;
+          else if (t.type === 'expense') expense += t.amount;
+        }
+      });
+      return { totalIncomePKR: income, totalExpensePKR: expense };
+    },
+    [context],
+    { totalIncomePKR: 0, totalExpensePKR: 0 }
+  );
+}
+
+export function useTodayTransactionTotals(context: 'personal' | 'business', highlightedCategoryId?: number) {
+  const today = new Date().toLocaleDateString('en-CA');
+  return useLiveQuery(
+    async () => {
+      let expense = 0;
+      let income = 0;
+      let highlightedSales = 0;
+      await db.transactions.where('context').equals(context).each(t => {
+        if (t.date.startsWith(today)) {
+          if (t.type === 'expense') expense += t.amount;
+          else if (t.type === 'income') {
+            income += t.amount;
+            if (highlightedCategoryId && t.categoryId === highlightedCategoryId) {
+              highlightedSales += t.amount;
+            }
+          }
+        }
+      });
+      return { todayExpensePKR: expense, todayIncomePKR: income, todayHighlightedSalesPKR: highlightedSales };
+    },
+    [context, highlightedCategoryId],
+    { todayExpensePKR: 0, todayIncomePKR: 0, todayHighlightedSalesPKR: 0 }
+  );
+}
+
 export function useCustomers() {
   return useLiveQuery(
     () => CustomerService.getAll(),
     [],
     [] as Customer[]
+  );
+}
+
+export function useCustomerBalances() {
+  return useLiveQuery(
+    async () => {
+      let toReceive = 0;
+      let toPay = 0;
+      await db.customers.each(c => {
+        if (!c.type || c.type === 'customer') {
+          if (c.balance > 0) toReceive += c.balance;
+          else if (c.balance < 0) toPay += Math.abs(c.balance);
+        } else if (c.type === 'supplier') {
+          if (c.balance > 0) toPay += c.balance;
+          else if (c.balance < 0) toReceive += Math.abs(c.balance);
+        }
+      });
+      return { toReceive, toPay };
+    },
+    [],
+    { toReceive: 0, toPay: 0 }
   );
 }
 
