@@ -9,6 +9,12 @@ vi.mock('firebase/app', () => ({
   initializeApp: vi.fn(() => ({})),
 }));
 
+const { mockBatchSet, mockBatchDelete, mockBatchCommit } = vi.hoisted(() => ({
+  mockBatchSet: vi.fn(),
+  mockBatchDelete: vi.fn(),
+  mockBatchCommit: vi.fn().mockResolvedValue(undefined)
+}));
+
 import { setDoc, deleteDoc } from 'firebase/firestore';
 
 vi.mock('firebase/firestore', () => ({
@@ -20,9 +26,9 @@ vi.mock('firebase/firestore', () => ({
   onSnapshot: vi.fn(() => () => {}),
   getDocs: vi.fn().mockResolvedValue({ docs: [], empty: true }),
   writeBatch: vi.fn(() => ({
-    set: vi.fn(),
-    delete: vi.fn(),
-    commit: vi.fn().mockResolvedValue(undefined),
+    set: mockBatchSet,
+    delete: mockBatchDelete,
+    commit: mockBatchCommit,
   })),
   enableNetwork: vi.fn(),
   disableNetwork: vi.fn(),
@@ -211,8 +217,9 @@ describe('FirebaseSyncService Tests', () => {
     await FirebaseSyncService.processQueue();
 
     // Verify mock Firestore interactions
-    expect(setDoc).toHaveBeenCalled();
-    expect(deleteDoc).toHaveBeenCalled();
+    expect(mockBatchCommit).toHaveBeenCalled();
+    expect(mockBatchSet).toHaveBeenCalled();
+    expect(mockBatchDelete).toHaveBeenCalled();
 
     // Local sync queue must now be empty
     const count = await db.syncQueue.count();
@@ -239,9 +246,10 @@ describe('FirebaseSyncService Tests', () => {
 
     await FirebaseSyncService.processQueue();
 
-    // Verify setDoc was called
-    expect(setDoc).toHaveBeenCalled();
-    const callArgs = vi.mocked(setDoc).mock.calls[0];
+    // Verify batch was set and committed
+    expect(mockBatchCommit).toHaveBeenCalled();
+    expect(mockBatchSet).toHaveBeenCalled();
+    const callArgs = mockBatchSet.mock.calls[0];
     const syncedPayload = callArgs[1] as any;
 
     // Assert API key is stripped from synchronized payload
@@ -254,9 +262,9 @@ describe('FirebaseSyncService Tests', () => {
     localStorage.setItem('firebase_sync_enabled', 'true');
     Object.defineProperty(navigator, 'onLine', { value: true });
 
-    let resolveSetDoc: (value: any) => void;
-    const slowSetDocPromise = new Promise(resolve => { resolveSetDoc = resolve; });
-    vi.mocked(setDoc).mockReturnValueOnce(slowSetDocPromise as Promise<void>);
+    let resolveBatchCommit: (value: any) => void;
+    const slowBatchCommitPromise = new Promise(resolve => { resolveBatchCommit = resolve; });
+    mockBatchCommit.mockReturnValueOnce(slowBatchCommitPromise as Promise<void>);
 
     await db.syncQueue.add({
       action: 'UPSERT',
@@ -271,11 +279,11 @@ describe('FirebaseSyncService Tests', () => {
     const p2 = FirebaseSyncService.processQueue();
     
     // Release the first one
-    resolveSetDoc!(undefined);
+    resolveBatchCommit!(undefined);
     await Promise.all([p1, p2]);
 
     // setDoc should only be called once because the second skipped
-    expect(setDoc).toHaveBeenCalledTimes(1);
+    expect(mockBatchCommit).toHaveBeenCalledTimes(1);
     
     const count = await db.syncQueue.count();
     expect(count).toBe(0);
@@ -287,7 +295,7 @@ describe('FirebaseSyncService Tests', () => {
     Object.defineProperty(navigator, 'onLine', { value: true });
 
     // Mock upload failure
-    vi.mocked(setDoc).mockRejectedValueOnce(new Error('Network error'));
+    mockBatchCommit.mockRejectedValueOnce(new Error('Network error'));
 
     await db.syncQueue.add({
       action: 'UPSERT',
@@ -300,7 +308,7 @@ describe('FirebaseSyncService Tests', () => {
     await FirebaseSyncService.processQueue();
 
     // Verify setDoc was attempted
-    expect(setDoc).toHaveBeenCalledTimes(1);
+    expect(mockBatchCommit).toHaveBeenCalledTimes(1);
 
     // Sync queue must still have 1 item
     const count = await db.syncQueue.count();

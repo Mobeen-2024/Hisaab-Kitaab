@@ -115,13 +115,21 @@ export const InventoryService = {
   },
 
   async hasLowStock(context: 'personal' | 'business') {
-    const items = await this.getByContext(context);
-    return items.some(i => i.quantity <= i.minQuantity);
+    const count = await db.inventory
+      .where('context')
+      .equals(context)
+      .filter(i => i.quantity <= i.minQuantity)
+      .count();
+    return count > 0;
   },
 
   async search(query: string, context: 'personal' | 'business') {
     const q = query.toLowerCase();
-    const items = await this.getByContext(context);
-    return items.filter(i => i.name.toLowerCase().includes(q)).slice(0, 200);
+    return await db.inventory
+      .where('context')
+      .equals(context)
+      .filter(i => i.name.toLowerCase().includes(q))
+      .limit(200)
+      .toArray();
   }
 };

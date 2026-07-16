@@ -2,11 +2,12 @@ import React, { useMemo } from 'react';
 import { Flame, Trophy, TrendingUp, Calendar, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 import { format, subDays, isSameDay } from 'date-fns';
-import { useTransactionDates, useAppSettings } from '../hooks/useData';
+import { useTransactionDates, useAppSettings, useLast7DaysTransactions } from '../hooks/useData';
 
 export default function RetentionCards({ lang, currency }: { lang: any, currency: string }) {
   const transactionDates = useTransactionDates();
   const settingsObj = useAppSettings();
+  const txInLast7Days = useLast7DaysTransactions(settingsObj.activeContext);
 
   // Compute streaks
   const { currentStreak, longestStreak } = useMemo(() => {
@@ -57,12 +58,12 @@ export default function RetentionCards({ lang, currency }: { lang: any, currency
     longest = Math.max(longest, current);
 
     return { currentStreak: current, longestStreak: longest };
-  }, [allTransactions]);
+  }, [transactionDates]);
 
   // Compute Achievements
   const achievements = useMemo(() => {
     const list = [];
-    const transactionCount = allTransactions.length;
+    const transactionCount = transactionDates.length;
     
     if (transactionCount >= 1) list.push({ icon: <Zap size={16} className="text-amber-400" />, title: 'First Entry', desc: 'Started tracking!' });
     if (transactionCount >= 10) list.push({ icon: <Trophy size={16} className="text-emerald-400" />, title: 'Tracker', desc: '10 transactions recorded' });
@@ -70,28 +71,24 @@ export default function RetentionCards({ lang, currency }: { lang: any, currency
     if (currentStreak >= 7) list.push({ icon: <Flame size={16} className="text-rose-500 font-bold" />, title: 'Habit Builder', desc: '7 days of tracking completed' });
     
     return list;
-  }, [allTransactions.length, currentStreak]);
+  }, [transactionDates.length, currentStreak]);
 
   // Weekly Progress Summary
   const weeklySummary = useMemo(() => {
-    const today = new Date();
-    const last7Days = Array.from({length: 7}).map((_, i) => format(subDays(today, i), 'yyyy-MM-dd'));
-    const txInLast7Days = allTransactions.filter(t => last7Days.includes(t.date.split('T')[0]));
-    
     const income = txInLast7Days.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amount, 0);
     const expense = txInLast7Days.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amount, 0);
     return { count: txInLast7Days.length, income, expense };
-  }, [allTransactions]);
+  }, [txInLast7Days]);
 
   // Personalized insight
   const insight = useMemo(() => {
-    if (allTransactions.length === 0) return "Start tracking to uncover insights.";
+    if (transactionDates.length === 0) return "Start tracking to uncover insights.";
     if (currentStreak === 0) return "Log today's transactions to build your streak!";
     if (weeklySummary.expense > weeklySummary.income && weeklySummary.income > 0) return "You spent more than you earned this week. Let's monitor the budget.";
     if (weeklySummary.income > weeklySummary.expense) return "Great job! You saved more than you spent this week.";
     if (currentStreak >= 7) return "You're building an amazing tracking habit. Keep it up!";
     return "Consistent tracking helps you understand your money.";
-  }, [allTransactions.length, currentStreak, weeklySummary]);
+  }, [transactionDates.length, currentStreak, weeklySummary]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full mb-6 relative z-10">

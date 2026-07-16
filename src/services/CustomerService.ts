@@ -52,16 +52,14 @@ export const CustomerService = {
     // Get all transactionIds that are linked to these Udhaar entries
     const linkedTxIds = new Set(entries.map(e => e.transactionId).filter(Boolean));
 
-    // Sum from Transactions (Payments), excluding those linked to Udhaar entries to prevent double-counting
-    const transactions = await db.transactions.where('customerId').equals(customerId).toArray();
-    const manualTransactions = transactions.filter(tx => !linkedTxIds.has(tx.id));
-
-    balance += manualTransactions.reduce((sum, tx) => {
-      // For both customer and supplier:
-      // - Expense (cash going out to them) increases our net balance with them (e.g. paying supplier or giving customer a refund/loan).
-      // - Income (cash coming in from them) decreases our net balance with them (e.g. customer paying us back or supplier refunding us).
-      return sum + (tx.type === 'expense' ? tx.amount : -tx.amount);
-    }, 0);
+    await db.transactions.where('customerId').equals(customerId).each(tx => {
+      if (!linkedTxIds.has(tx.id)) {
+        // For both customer and supplier:
+        // - Expense (cash going out to them) increases our net balance with them (e.g. paying supplier or giving customer a refund/loan).
+        // - Income (cash coming in from them) decreases our net balance with them (e.g. customer paying us back or supplier refunding us).
+        balance += (tx.type === 'expense' ? tx.amount : -tx.amount);
+      }
+    });
 
     await db.customers.update(customerId, { 
       balance,
