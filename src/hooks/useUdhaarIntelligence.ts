@@ -22,12 +22,9 @@ const defaultIntelligence: UdhaarIntelligence = {
   whatsappTemplate: ''
 };
 
-export async function calculateUdhaarIntelligence(customerId: number, customerName: string): Promise<UdhaarIntelligence> {
+export async function calculateUdhaarIntelligenceSync(customer: any, entries: any[], customerName: string): Promise<UdhaarIntelligence> {
   const now = new Date();
-  const customer = await db.customers.get(customerId);
   if (!customer) return defaultIntelligence;
-
-  const entries = await db.udhaarEntries.where('customerId').equals(customerId).toArray();
   // sort entries by date (oldest first)
   entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -126,10 +123,23 @@ export async function calculateUdhaarIntelligence(customerId: number, customerNa
   };
 }
 
+import { useState, useEffect } from 'react';
+
 export function useUdhaarIntelligence(customerId: number, customerName: string): UdhaarIntelligence {
-  return useLiveQuery(
-    () => calculateUdhaarIntelligence(customerId, customerName),
-    [customerId, customerName],
-    defaultIntelligence
-  );
+  const customer = useLiveQuery(() => db.customers.get(customerId), [customerId], null);
+  const entries = useLiveQuery(() => db.udhaarEntries.where('customerId').equals(customerId).toArray(), [customerId], null);
+
+  const [intelligence, setIntelligence] = useState<UdhaarIntelligence>(defaultIntelligence);
+
+  useEffect(() => {
+    if (customer === null || entries === null) return;
+    
+    const handler = setTimeout(() => {
+      calculateUdhaarIntelligenceSync(customer, entries, customerName).then(setIntelligence);
+    }, 150);
+
+    return () => clearTimeout(handler);
+  }, [customer, entries, customerName]);
+
+  return intelligence;
 }

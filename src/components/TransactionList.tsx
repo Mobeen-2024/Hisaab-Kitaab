@@ -4,6 +4,7 @@ import { useCategories, useAppSettings, useAppUsers, useRecentTransactionsByCont
 import { TransactionService } from '../services/TransactionService';
 import { format } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, Trash2, Search, Edit2 } from 'lucide-react';
+import { Virtuoso } from 'react-virtuoso';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import EditTransactionModal from './EditTransactionModal';
@@ -159,14 +160,19 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
         </div>
       )}
 
-      <div className="divide-y divide-white/5">
+      <div className="divide-y divide-white/5 flex-1 min-h-[400px]">
         {transactions.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
             {'No transactions found'}
           </div>
         ) : (
-          transactions.map(tx => (
-            <div key={tx.id} className={`${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-6'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-white/5 transition-colors group`}>
+          <Virtuoso
+            useWindowScroll={!hideTitle}
+            style={hideTitle ? { height: '400px' } : undefined}
+            data={transactions}
+            endReached={handleLoadMore}
+            itemContent={(index, tx) => (
+              <div className={`border-b border-white/5 ${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-6'} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-white/5 transition-colors group`}>
               <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto overflow-hidden">
                 <div className={`${compact ? 'h-8 w-8 sm:h-10 sm:w-10' : 'h-10 w-10 sm:h-12 sm:w-12'} shrink-0 rounded-xl flex items-center justify-center border ${tx.type === 'income'
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -215,21 +221,10 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
                   </div>
                 )}
               </div>
-            </div>
-          ))
+            )}
+          />
         )}
       </div>
-
-      {hasMore && debouncedSearchQuery.trim().length < 2 && (
-        <div className="p-4 border-t border-white/10 text-center">
-          <button
-            onClick={handleLoadMore}
-            className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-semibold transition-all border border-white/10 cursor-pointer disabled:opacity-50"
-          >
-            {t(lang, 'loadMore') || 'Load More'}
-          </button>
-        </div>
-      )}
 
       <EditTransactionModal
         isOpen={editingTransactionId !== null}

@@ -418,51 +418,80 @@ export const FirebaseSyncService = {
         try {
           await db.transaction('rw', col.dbTable, async () => {
             (Dexie.currentTransaction as any)._isRemoteSync = true;
-            for (const change of snapshot.docChanges()) {
+            
+            const changes = snapshot.docChanges();
+            if (changes.length === 0) return;
+
+            const remoteIds = changes.map(c => c.doc.id);
+            const localRecords = await col.dbTable.where('remoteId').anyOf(remoteIds).toArray();
+            const localRecordMap = new Map(localRecords.map(r => [(r as any).remoteId, r]));
+
+            const toPut: any[] = [];
+            const toAdd: any[] = [];
+            const idsToDelete: any[] = [];
+            const auditLogsToAdd: any[] = [];
+            let conflictOccurred = false;
+
+            for (const change of changes) {
               const docData = change.doc.data();
               const remoteId = change.doc.id;
               
-              // Map Firestore doc ID to remoteId field
-              const localRecord = await col.dbTable.where('remoteId').equals(remoteId).first();
+              const localRecord = localRecordMap.get(remoteId);
 
               if (change.type === 'added' || change.type === 'modified') {
                 const fullRecord = { ...docData, remoteId } as any;
 
                 if (localRecord) {
                   // Keep local autoincrement id
-                  fullRecord.id = localRecord.id;
+                  fullRecord.id = (localRecord as any).id;
                   
                   const remoteUpdatedAt = docData.updatedAt ?? '';
                   const localUpdatedAt = (localRecord as any).updatedAt ?? '';
 
                   if (remoteUpdatedAt > localUpdatedAt) {
-                    await col.dbTable.put(fullRecord);
-                    db.auditLogs.add({
+                    toPut.push(fullRecord);
+                    auditLogsToAdd.push({
                       entityType: col.name as any,
-                      entityId: localRecord.id!,
+                      entityId: (localRecord as any).id!,
                       action: 'update',
                       timestamp: new Date().toISOString(),
                       details: `Conflict resolved: remote (${remoteUpdatedAt}) > local (${localUpdatedAt})`,
                       context: (localRecord as any).context
-                    }).catch(() => {});
-                    window.dispatchEvent(new CustomEvent('hk:sync-conflict', { detail: { col: col.name } }));
+                    });
+                    conflictOccurred = true;
                   } else if (remoteUpdatedAt === '' && localUpdatedAt === '') {
                     const isDifferent = Object.keys(docData).some(
                       key => JSON.stringify(docData[key]) !== JSON.stringify((localRecord as any)[key])
                     );
                     if (isDifferent) {
-                      await col.dbTable.put(fullRecord);
+                      toPut.push(fullRecord);
                     }
                   }
                 } else {
                   // New record from another device - add to Dexie, letting Dexie generate local ID
-                  await col.dbTable.add(fullRecord);
+                  toAdd.push(fullRecord);
                 }
               } else if (change.type === 'removed') {
                 if (localRecord) {
-                  await col.dbTable.delete(localRecord.id!);
+                  idsToDelete.push((localRecord as any).id!);
                 }
               }
+            }
+
+            if (toPut.length > 0) {
+              await col.dbTable.bulkPut(toPut);
+            }
+            if (toAdd.length > 0) {
+              await col.dbTable.bulkAdd(toAdd);
+            }
+            if (idsToDelete.length > 0) {
+              await col.dbTable.bulkDelete(idsToDelete);
+            }
+            if (auditLogsToAdd.length > 0) {
+              db.auditLogs.bulkAdd(auditLogsToAdd).catch(() => {});
+            }
+            if (conflictOccurred) {
+              window.dispatchEvent(new CustomEvent('hk:sync-conflict', { detail: { col: col.name } }));
             }
           });
         } catch (e) {
@@ -595,7 +624,7 @@ export const FirebaseSyncService = {
       const user = auth.currentUser;
       if (!user) return;
 
-      const queueItems = await db.syncQueue.orderBy('timestamp').toArray();
+      const queueItems = await db.syncQueue.orderBy('timestamp').limit(100).toArray();
       if (queueItems.length === 0) {
         return;
       }

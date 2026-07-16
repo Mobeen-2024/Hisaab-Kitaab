@@ -13,16 +13,7 @@ export interface StockIntelligence {
 
 export type EnrichedInventoryItem = InventoryItem & { intelligence: StockIntelligence };
 
-export async function calculateGlobalStockIntelligence(context: 'business' | 'personal'): Promise<EnrichedInventoryItem[]> {
-  const items = await db.inventory.where('context').equals(context).toArray();
-  
-  const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
-  
-  const invoices = await db.invoices
-    .where('context').equals(context)
-    .filter(inv => inv.createdAt >= thirtyDaysAgo)
-    .toArray();
-      
+export async function calculateGlobalStockIntelligence(context: 'business' | 'personal', items: InventoryItem[], invoices: any[]): Promise<EnrichedInventoryItem[]> {
   const salesMap = new Map<number, number>();
   for (const inv of invoices) {
     if (inv.items) {
@@ -73,6 +64,29 @@ export async function calculateGlobalStockIntelligence(context: 'business' | 'pe
   return enriched;
 }
 
+import { useState, useEffect } from 'react';
+
 export function useGlobalStockIntelligence(context: 'business' | 'personal') {
-  return useLiveQuery(() => calculateGlobalStockIntelligence(context), [context], []);
+  const items = useLiveQuery(() => db.inventory.where('context').equals(context).toArray(), [context], []);
+  const invoices = useLiveQuery(() => {
+    const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
+    return db.invoices
+      .where('context').equals(context)
+      .filter(inv => inv.createdAt >= thirtyDaysAgo)
+      .toArray();
+  }, [context], []);
+
+  const [data, setData] = useState<EnrichedInventoryItem[]>([]);
+
+  useEffect(() => {
+    if (!items || !invoices) return;
+    
+    const handler = setTimeout(() => {
+      calculateGlobalStockIntelligence(context, items, invoices).then(setData);
+    }, 250);
+
+    return () => clearTimeout(handler);
+  }, [context, items, invoices]);
+
+  return data;
 }

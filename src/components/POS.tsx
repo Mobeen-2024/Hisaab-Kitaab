@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, Minus, Trash2, ShoppingCart, User, ArrowRight, Printer } from 'lucide-react';
+import { VirtuosoGrid } from 'react-virtuoso';
 import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { InventoryService } from '../services/InventoryService';
@@ -137,37 +138,46 @@ export default function POS() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredItems.map(item => (
-              <div 
-                key={item.id} 
-                onClick={() => addToCart(item)}
-                className="bg-slate-700/30 hover:bg-slate-700/60 border border-white/5 rounded-2xl p-4 cursor-pointer transition-colors group flex flex-col h-full"
-              >
-                <div className="flex-1">
-                  <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2">
-                    {item.name}
-                  </h3>
-                </div>
-                <div className="mt-4 flex items-end justify-between">
-                  <div>
-                    <p className="text-xs text-slate-400">Stock: {item.quantity}</p>
-                    <p className="font-bold text-white">{currency} {item.unitPrice.toLocaleString()}</p>
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {filteredItems.length === 0 ? (
+            <div className="p-12 text-center text-slate-500">
+              No items found. Make sure you have items in stock.
+            </div>
+          ) : (
+            <VirtuosoGrid
+              style={{ height: '100%' }}
+              data={filteredItems}
+              components={{
+                List: React.forwardRef((props, ref) => (
+                  <div {...props} ref={ref} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 p-4" />
+                )),
+                Item: React.forwardRef((props, ref) => (
+                  <div {...props} ref={ref} className="h-full" />
+                ))
+              }}
+              itemContent={(index, item) => (
+                <div 
+                  onClick={() => addToCart(item)}
+                  className="bg-slate-700/30 hover:bg-slate-700/60 border border-white/5 rounded-2xl p-4 cursor-pointer transition-colors group flex flex-col h-full"
+                >
+                  <div className="flex-1">
+                    <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2">
+                      {item.name}
+                    </h3>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                    <Plus size={16} />
+                  <div className="mt-4 flex items-end justify-between">
+                    <div>
+                      <p className="text-xs text-slate-400">Stock: {item.quantity}</p>
+                      <p className="font-bold text-white">{currency} {item.unitPrice.toLocaleString()}</p>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                      <Plus size={16} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            
-            {filteredItems.length === 0 && (
-              <div className="col-span-full py-12 text-center text-slate-500">
-                No items found. Make sure you have items in stock.
-              </div>
-            )}
-          </div>
+              )}
+            />
+          )}
         </div>
       </div>
 
