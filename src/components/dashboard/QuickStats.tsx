@@ -2,17 +2,16 @@ import React, { useState } from 'react';
 import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronDown } from 'lucide-react';
 import { TiltCard } from '../ui/TiltCard';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useAppSettings, useCategories, useMonthTransactionTotals, useTodayTransactionTotals } from '../../hooks/useData';
+import { useCategories, useMonthTransactionTotals, useTodayTransactionTotals } from '../../hooks/useData';
 import { SettingsService } from '../../services/SettingsService';
 import { formatCurrency as formatSharedCurrency } from '../../lib/currency';
 import { t } from '../../lib/i18n';
 
 export function QuickStats() {
-  const { lang, currency, activeContext, rtl } = useSettings();
+  const { lang, currency, activeContext, rtl, settingsObj } = useSettings();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const isUrdu = lang === 'ur';
 
-  const settingsObj = useAppSettings();
   const categories = useCategories();
 
   const incomeCategories = categories.filter(c => c.type === 'income' && c.context === 'business');

@@ -3,7 +3,8 @@ import { AppUser } from '../db';
 import { AppUserService } from '../services/AppUserService';
 import { SettingsService } from '../services/SettingsService';
 import { Shield, UserPlus, Users, X, Key, Trash2, Edit2, AlertCircle } from 'lucide-react';
-import { useAppUsers, useAppSettings } from '../hooks/useData';
+import { useAppUsers } from '../hooks/useData';
+import { useSettings } from '../contexts/SettingsContext';
 import { useCloudAuth } from '../contexts/CloudAuthContext';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 
@@ -14,7 +15,7 @@ interface ManageUsersProps {
 
 export default function ManageUsers({ onClose, activeContext }: ManageUsersProps) {
   const users = useAppUsers();
-  const settingsObj = useAppSettings();
+  const { settingsObj } = useSettings();
   const { user: cloudUser, isSyncEnabled } = useCloudAuth();
 
   const [showAdd, setShowAdd] = useState(false);

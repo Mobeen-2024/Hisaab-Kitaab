@@ -264,7 +264,7 @@ export const FirebaseSyncService = {
         await setDoc(docRef, sanitizedSettings, { merge: true });
       }
 
-      console.log("Initial local database sync upload complete.");
+      if (import.meta.env.DEV) console.log("Initial local database sync upload complete.");
     } catch (e) {
       console.error("Error during initial data upload:", e);
     }
@@ -378,7 +378,7 @@ export const FirebaseSyncService = {
 
     this.startQueueTimer();
 
-    console.log("Starting Firebase real-time listeners for user:", userId);
+    if (import.meta.env.DEV) console.log("Starting Firebase real-time listeners for user:", userId);
 
     const collectionsToSync = [
       { name: 'transactions', dbTable: db.transactions },
@@ -528,7 +528,7 @@ export const FirebaseSyncService = {
   stopSync(): void {
     this.stopQueueTimer();
     if (activeListeners.length > 0) {
-      console.log("Stopping active Firebase sync listeners.");
+      if (import.meta.env.DEV) console.log("Stopping active Firebase sync listeners.");
       activeListeners.forEach(unsub => unsub());
       activeListeners = [];
     }
@@ -559,7 +559,7 @@ export const FirebaseSyncService = {
     if (this._isProcessingFullSync) return false;
     this._isProcessingFullSync = true;
 
-    console.log("[Sync] Offline restore detected. Performing full sync now.");
+    if (import.meta.env.DEV) console.log("[Sync] Offline restore detected. Performing full sync now.");
     // Ensure listeners are stopped before wipe
     this.stopSync();
 

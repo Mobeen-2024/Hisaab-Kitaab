@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Goal } from '../db';
 import { PlannerService } from '../services/PlannerService';
-import { useMemo } from 'react';
 import { Lang, t } from '../lib/i18n';
 import { Target, PieChart, TrendingUp, AlertCircle, Plus, X, Pencil, PiggyBank, Calendar, Trash2, Wallet, Loader2 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format } from 'date-fns';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
 import ConfirmDialog from './ConfirmDialog';
 import DatePicker from './DatePicker';
@@ -18,8 +17,6 @@ export default function Planner() {
   const { lang, currency, activeContext } = useSettings();
   const { showToast } = useToast();
   const currentMonth = format(new Date(), 'yyyy-MM');
-  const monthStart = startOfMonth(new Date());
-  const monthEnd = endOfMonth(new Date());
 
   const goals = useGoals(activeContext);
   const budgets = useBudgets(activeContext, currentMonth);
@@ -28,9 +25,8 @@ export default function Planner() {
   const currentBudget = budgets.length > 0 ? budgets[0] : null;
 
   const currentMonthExpenses = useMemo(() => transactions.filter(t => 
-    t.type === 'expense' && 
-    isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd })
-  ).reduce((sum, t) => sum + t.amount, 0), [transactions, monthStart, monthEnd]);
+    t.type === 'expense'
+  ).reduce((sum, t) => sum + t.amount, 0), [transactions]);
 
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);

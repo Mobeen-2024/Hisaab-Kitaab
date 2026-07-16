@@ -4,7 +4,6 @@ import { Settings as SettingsIcon, Users, Smartphone, Upload } from 'lucide-reac
 import ManageUsers from './ManageUsers';
 import { useSettings } from '../contexts/SettingsContext';
 import { useUIStore } from '../lib/store';
-import { useAppSettings } from '../hooks/useData';
 
 // Sub-components
 import GeneralSettings from './Settings/GeneralSettings';
@@ -12,9 +11,8 @@ import AISettings from './Settings/AISettings';
 import DataManagement from './Settings/DataManagement';
 
 export default function Settings() {
-  const { lang, currency } = useSettings();
+  const { lang, currency, activeContext, rtl, settingsObj } = useSettings();
   const { setImportModalOpen } = useUIStore();
-  const settingsObj = useAppSettings();
   
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('20:00');

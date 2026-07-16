@@ -38,7 +38,7 @@ export class LiveVoiceService {
     try {
       // We don't actually open a websocket, just mark as connected.
       this.connected = true;
-      console.log('[LiveVoice] "Connected" to HTTP standard generateContent');
+      if (import.meta.env.DEV) console.log('[LiveVoice] "Connected" to HTTP standard generateContent');
       if (this.callbacks.onConnect) {
         this.callbacks.onConnect();
       }
@@ -64,7 +64,7 @@ export class LiveVoiceService {
 
     // Interruption logic: Abort any active streaming response immediately
     if (this.currentAbortController) {
-      console.log('[LiveVoice] Interruption detected! Aborting previous stream.');
+      if (import.meta.env.DEV) console.log('[LiveVoice] Interruption detected! Aborting previous stream.');
       this.currentAbortController.abort();
     }
     this.currentAbortController = new AbortController();
@@ -80,7 +80,7 @@ export class LiveVoiceService {
       const ai = new GoogleGenAI({ apiKey });
       const sdkTools = this.tools.length > 0 ? [{ functionDeclarations: this.tools }] : undefined;
 
-      console.log(`[LiveVoice] Sending HTTP request to ${AI_MODELS.live}...`);
+      if (import.meta.env.DEV) console.log(`[LiveVoice] Sending HTTP request to ${AI_MODELS.live}...`);
       const responseStream = await ai.models.generateContentStream({
         model: AI_MODELS.live,
         contents: this.history,
@@ -97,7 +97,7 @@ export class LiveVoiceService {
       for await (const chunk of responseStream) {
         // Interruption check: Stop processing chunks immediately if aborted
         if (abortSignal.aborted) {
-          console.log('[LiveVoice] Stream execution terminated via AbortController.');
+          if (import.meta.env.DEV) console.log('[LiveVoice] Stream execution terminated via AbortController.');
           return;
         }
 
@@ -164,7 +164,7 @@ export class LiveVoiceService {
 
     } catch (err: any) {
       if (err.name === 'AbortError' || abortSignal.aborted) {
-        console.log('[LiveVoice] Request was aborted safely.');
+        if (import.meta.env.DEV) console.log('[LiveVoice] Request was aborted safely.');
         return;
       }
       console.error('[LiveVoice] Error sending text:', err);
@@ -186,7 +186,7 @@ export class LiveVoiceService {
     this.connected = false;
     this.callbacks = {};
     this.history = [];
-    console.log('[LiveVoice] Disconnected');
+    if (import.meta.env.DEV) console.log('[LiveVoice] Disconnected');
   }
 }
 

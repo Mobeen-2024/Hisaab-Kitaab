@@ -305,13 +305,7 @@ export function useBudgets(context?: 'personal' | 'business', month?: string) {
   );
 }
 
-export function useAppSettings() {
-  return useLiveQuery(
-    () => SettingsService.get(),
-    [],
-    null as AppSettings | null
-  );
-}
+
 
 export function useAppUsers() {
   return useLiveQuery(

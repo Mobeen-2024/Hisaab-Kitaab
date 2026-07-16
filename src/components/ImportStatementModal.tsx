@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, Loader2, AlertCircle } from 'lucide-react';
 import { Transaction } from '../db';
 import { TransactionService } from '../services/TransactionService';
-import { useCategories, useAppSettings } from '../hooks/useData';
+import { useCategories } from '../hooks/useData';
 import { useSettings } from '../contexts/SettingsContext';
 import { AIService } from '../services/AIService';
 import { parseJazzCashCSV, parseEasypaisaCSV, parseGenericCSV, ParsedTransaction, generateDeterministicId, extractTextFromPDF } from '../utils/statementParsers';
@@ -30,10 +30,8 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicatesSkipped, setDuplicatesSkipped] = useState(0);
   const [activeTab, setActiveTab] = useState<'import' | 'scan'>('import');
-  const { activeContext } = useSettings();
-
+  const { activeContext, settingsObj } = useSettings();
   const categories = useCategories();
-  const settingsObj = useAppSettings();
 
   // Reset state when modal opens
   React.useEffect(() => {

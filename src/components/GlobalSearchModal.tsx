@@ -72,7 +72,7 @@ export default function GlobalSearchModal({
       }
     };
 
-    const timer = setTimeout(search, 300);
+    const timer = setTimeout(search, 500);
     return () => clearTimeout(timer);
   }, [query, activeContext, lang]);
 

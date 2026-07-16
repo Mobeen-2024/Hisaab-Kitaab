@@ -3,6 +3,7 @@ import { useSettings } from './SettingsContext';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { LiveVoiceService } from '../services/LiveVoiceService';
 import { TransactionService } from '../services/TransactionService';
+import { db } from '../db';
 
 export type VoiceState = 'idle' | 'connecting' | 'listening' | 'processing' | 'speaking' | 'error';
 
@@ -183,7 +184,7 @@ Always execute the corresponding tool as soon as you have the required parameter
           // Start actual mic recording
           startRecording((text) => {
             if (window.speechSynthesis && window.speechSynthesis.speaking) {
-              console.log('[LiveVoice] Ignoring transcript while AI is speaking (Echo cancellation)');
+              if (import.meta.env.DEV) console.log('[LiveVoice] Ignoring transcript while AI is speaking (Echo cancellation)');
               return;
             }
             if (text && text.trim().length > 0) {
@@ -243,7 +244,7 @@ Always execute the corresponding tool as soon as you have the required parameter
                 const ctx: 'personal' | 'business' = (activeContext === 'personal' || activeContext === 'business') ? activeContext : 'business';
                 let catId = 0;
                 
-                const { db } = await import('../db');
+
                 const catName = 'Voice Entry';
                 let cat = await db.categories.where('context').equals(ctx).and(c => c.type === txType && c.name === catName).first();
                 if (!cat) {

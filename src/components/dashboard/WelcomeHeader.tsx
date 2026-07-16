@@ -2,11 +2,9 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Sparkles } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useAppSettings } from '../../hooks/useData';
 
 export function WelcomeHeader() {
-  const { lang, rtl, activeContext } = useSettings();
-  const settingsObj = useAppSettings();
+  const { lang, rtl, activeContext, settingsObj } = useSettings();
   const isUrdu = lang === 'ur';
 
   return (

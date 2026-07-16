@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+
 import { Customer } from '../db';
 import { CustomerService } from '../services/CustomerService';
 import { UdhaarService } from '../services/UdhaarService';

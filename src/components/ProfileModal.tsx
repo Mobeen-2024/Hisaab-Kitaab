@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { SettingsService } from '../services/SettingsService';
 import { Lang, t, isRTL } from '../lib/i18n';
 import { X, Camera, Save, Download, Upload, Shield, Users, Settings, ChevronRight, Phone } from 'lucide-react';
-import { useAppSettings } from '../hooks/useData';
+import { useSettings } from '../contexts/SettingsContext';
 import DatePicker from './DatePicker';
 import ManageUsers from './ManageUsers';
 
@@ -13,7 +13,7 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ isOpen, onClose, lang }: ProfileModalProps) {
-  const settingsObj = useAppSettings();
+  const { settingsObj } = useSettings();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

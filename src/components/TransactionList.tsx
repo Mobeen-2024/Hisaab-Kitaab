@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { t, Lang, isRTL } from '../lib/i18n';
-import { useCategories, useAppSettings, useAppUsers, useRecentTransactionsByContext } from '../hooks/useData';
+import { useCategories, useAppUsers, useRecentTransactionsByContext } from '../hooks/useData';
 import { TransactionService } from '../services/TransactionService';
 import { format } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, Trash2, Search, Edit2 } from 'lucide-react';
@@ -13,9 +13,8 @@ import { Transaction } from '../models';
 import { useSettings } from '../contexts/SettingsContext';
 
 export default function TransactionList({ hideTitle = false, compact = false }: { hideTitle?: boolean, compact?: boolean }) {
-  const { lang, currency, activeContext } = useSettings();
+  const { lang, currency, activeContext, settingsObj } = useSettings();
   const categories = useCategories();
-  const settingsObj = useAppSettings();
   const users = useAppUsers();
 
   const activeUser = users.find(u => u.id === settingsObj?.activeUserId);

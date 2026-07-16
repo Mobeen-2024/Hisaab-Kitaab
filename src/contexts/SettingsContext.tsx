@@ -31,6 +31,7 @@ interface SettingsContextType {
   dbError: Error | null;
   resetDatabase: () => Promise<void>;
   geminiApiKey: string | undefined;
+  settingsObj: AppSettings | null | undefined;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -154,14 +155,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     isLoading,
     dbError,
     resetDatabase,
-    geminiApiKey
+    geminiApiKey,
+    settingsObj
   }), [
     lang, currency, activeContext, rtl, businessMode,
     activeModules.join(','), isOnboarded, ownerName, ownerAvatar,
     activeRole, activeUser?.id, activeUser?.contextAccess,
     canAccessPersonal, canAccessBusiness, canViewReports, canViewPlanner,
     canViewSmart, canManageUsers, canAddEntries, isLoading, dbError,
-    geminiApiKey
+    geminiApiKey, settingsObj
   ]);
 
   return (

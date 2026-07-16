@@ -31,7 +31,7 @@ import { TransactionService } from '../services/TransactionService';
 import { Lang, t } from '../lib/i18n';
 import { parsePaymentData, ParsedPayment } from '../lib/parsePaymentData';
 import { AIService } from '../services/AIService';
-import { useCategories, useAppSettings } from '../hooks/useData';
+import { useCategories } from '../hooks/useData';
 import DatePicker from './DatePicker';
 
 interface QrScanModalProps {

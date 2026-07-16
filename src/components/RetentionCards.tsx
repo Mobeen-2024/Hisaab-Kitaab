@@ -2,11 +2,12 @@ import React, { useMemo } from 'react';
 import { Flame, Trophy, TrendingUp, Calendar, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 import { format, subDays, isSameDay } from 'date-fns';
-import { useTransactionDates, useAppSettings, useLast7DaysTransactions } from '../hooks/useData';
+import { useTransactionDates, useLast7DaysTransactions } from '../hooks/useData';
+import { useSettings } from '../contexts/SettingsContext';
 
 export default function RetentionCards({ lang, currency }: { lang: any, currency: string }) {
   const transactionDates = useTransactionDates();
-  const settingsObj = useAppSettings();
+  const { settingsObj } = useSettings();
   const txInLast7Days = useLast7DaysTransactions(settingsObj.activeContext);
 
   // Compute streaks
