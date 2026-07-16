@@ -43,8 +43,10 @@ describe('Customer and Supplier Balance Calculations', () => {
   });
 
   afterAll(async () => {
-    // Ensure detached promises have fully settled before the test environment tears down
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Wait 1700ms: db.ts schedules a legacy backfill at 1500ms and an updatedAt backfill
+    // at 2000ms on db.open(). We need the first one to fully complete before closing so
+    // no DatabaseClosedError unhandled rejection escapes and breaks Vitest exit code.
+    await new Promise(resolve => setTimeout(resolve, 1700));
     db.close();
     console.error = originalConsoleError;
   });
