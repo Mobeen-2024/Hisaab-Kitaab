@@ -96,29 +96,7 @@ export function sanitizeForFirestore(value: any): any {
   return value;
 }
 
-// Development helper to find undefined paths for debugging
-export function findUndefinedPaths(obj: any, path: string = ''): string[] {
-  let paths: string[] = [];
-  if (obj === undefined) {
-    paths.push(path);
-    return paths;
-  }
-  if (obj === null || typeof obj !== 'object' || obj instanceof Date) {
-    return paths;
-  }
-  
-  if (Array.isArray(obj)) {
-    obj.forEach((item, index) => {
-      paths = paths.concat(findUndefinedPaths(item, `${path}[${index}]`));
-    });
-  } else {
-    for (const [key, value] of Object.entries(obj)) {
-      const currentPath = path ? `${path}.${key}` : key;
-      paths = paths.concat(findUndefinedPaths(value, currentPath));
-    }
-  }
-  return paths;
-}
+
 
 // Flags and interval for background queue processing
 let queueIntervalId: any = null;

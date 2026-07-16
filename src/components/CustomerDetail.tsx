@@ -405,8 +405,6 @@ function AddUdhaarEntryModal({
       await InventoryService.updateQuantity(Number(inventoryItemId), delta);
     }
 
-    onClose();
-
     setAmount('');
     setDescription('');
     setDueDate('');

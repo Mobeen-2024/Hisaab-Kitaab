@@ -257,6 +257,29 @@ describe('FirebaseSyncService Tests', () => {
     expect(syncedPayload.currency).toBe('PKR');
   });
 
+  it('uploadAllLocalData removes geminiApiKey from settings payload before syncing', async () => {
+    // Add local settings with geminiApiKey
+    await db.settings.add({
+      currency: 'PKR',
+      activeContext: 'business',
+      geminiApiKey: 'another-super-secret-key-67890'
+    } as any);
+
+    await FirebaseSyncService.uploadAllLocalData('test-user-123');
+
+    // Verify setDoc was called correctly
+    expect(setDoc).toHaveBeenCalled();
+    
+    // Find the call for settings
+    const callArgs = vi.mocked(setDoc).mock.calls.find(call => call[0].path === 'users/test-user-123/settings/profile');
+    expect(callArgs).toBeDefined();
+    const syncedPayload = callArgs![1] as any;
+
+    // Assert API key is stripped from synchronized payload
+    expect(syncedPayload.geminiApiKey).toBeUndefined();
+    expect(syncedPayload.currency).toBe('PKR');
+  });
+
   it('calling triggerQueueProcessing multiple times only runs one processQueue at a time', async () => {
     await db.syncQueue.clear();
     localStorage.setItem('firebase_sync_enabled', 'true');

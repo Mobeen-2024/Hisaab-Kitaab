@@ -204,4 +204,48 @@ describe('Customer and Supplier Balance Calculations', () => {
     const customer = await db.customers.get(customerId);
     expect(customer?.balance).toBe(1000);
   });
+  it('calculates balance for a customer with only udhaar entries', async () => {
+    const customerId = await CustomerService.add({
+      name: 'Udhaar Only Customer',
+      phone: '111',
+      balance: 0,
+      createdAt: new Date().toISOString(),
+      type: 'customer'
+    });
+
+    await UdhaarService.add({
+      customerId,
+      type: 'give',
+      amount: 500,
+      date: new Date().toISOString().split('T')[0],
+      description: 'First udhaar',
+      context: 'business'
+    });
+
+    const customer = await db.customers.get(customerId);
+    expect(customer?.balance).toBe(500);
+  });
+
+  it('calculates balance for a customer with only manual transactions', async () => {
+    const customerId = await CustomerService.add({
+      name: 'Transaction Only Customer',
+      phone: '222',
+      balance: 0,
+      createdAt: new Date().toISOString(),
+      type: 'customer'
+    });
+
+    await TransactionService.add({
+      amount: 1000,
+      type: 'expense', // giving cash to customer increases their balance
+      categoryId: 1,
+      context: 'business',
+      date: new Date().toISOString().split('T')[0],
+      description: 'Given cash',
+      customerId
+    });
+
+    const customer = await db.customers.get(customerId);
+    expect(customer?.balance).toBe(1000);
+  });
 });
