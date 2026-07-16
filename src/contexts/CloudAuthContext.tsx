@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { FirebaseSyncService } from '../services/FirebaseSyncService';
 
@@ -58,16 +58,18 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
     setIsSyncEnabled(false);
   };
 
+  const value = useMemo(() => ({
+    user,
+    isAuthenticated: !!user,
+    isSyncEnabled,
+    loading,
+    login,
+    register,
+    logout
+  }), [user, isSyncEnabled, loading]);
+
   return (
-    <CloudAuthContext.Provider value={{
-      user,
-      isAuthenticated: !!user,
-      isSyncEnabled,
-      loading,
-      login,
-      register,
-      logout
-    }}>
+    <CloudAuthContext.Provider value={value}>
       {children}
     </CloudAuthContext.Provider>
   );

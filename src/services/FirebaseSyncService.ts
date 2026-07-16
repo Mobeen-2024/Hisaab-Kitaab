@@ -122,6 +122,7 @@ export function findUndefinedPaths(obj: any, path: string = ''): string[] {
 
 // Flags and interval for background queue processing
 let queueIntervalId: any = null;
+let debounceTimerId: any = null;
 
 export const FirebaseSyncService = {
   isProcessingQueue: false,
@@ -620,7 +621,12 @@ export const FirebaseSyncService = {
   },
 
   triggerQueueProcessing(): void {
-    this.processQueue().catch(console.error);
+    if (debounceTimerId) {
+      clearTimeout(debounceTimerId);
+    }
+    debounceTimerId = setTimeout(() => {
+      this.processQueue().catch(console.error);
+    }, 1000);
   },
 
   async processQueue(): Promise<void> {
@@ -733,7 +739,7 @@ export const FirebaseSyncService = {
         if (batchCount === 400) {
             try {
                 await batch.commit();
-                await db.syncQueue.bulkDelete(batchItems.map(i => i.id!));
+                await db.syncQueue.bulkDelete(batchItems.filter(i => i.id !== undefined).map(i => i.id!));
             } catch (err: any) {
                 console.warn('[Sync] Batch upload failed', err);
                 itemsToUpdateRetry.push(...batchItems);
@@ -747,7 +753,7 @@ export const FirebaseSyncService = {
       if (batchCount > 0) {
           try {
               await batch.commit();
-              await db.syncQueue.bulkDelete(batchItems.map(i => i.id!));
+              await db.syncQueue.bulkDelete(batchItems.filter(i => i.id !== undefined).map(i => i.id!));
           } catch (err: any) {
               console.warn('[Sync] Batch upload failed', err);
               itemsToUpdateRetry.push(...batchItems);

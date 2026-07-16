@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useSettings } from './SettingsContext';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { LiveVoiceService } from '../services/LiveVoiceService';
@@ -301,21 +301,21 @@ Always execute the corresponding tool as soon as you have the required parameter
     };
   }, [stopSession]);
 
+  const value = useMemo(() => ({
+    state,
+    isRecording,
+    audioLevel,
+    messages,
+    error,
+    startSession,
+    stopSession,
+    sendTextMessage,
+    registerFormCallbacks,
+    deregisterFormCallbacks,
+  }), [state, isRecording, audioLevel, messages, error, startSession, stopSession, sendTextMessage, registerFormCallbacks, deregisterFormCallbacks]);
+
   return (
-    <VoiceAssistantContext.Provider
-      value={{
-        state,
-        isRecording,
-        audioLevel,
-        messages,
-        error,
-        startSession,
-        stopSession,
-        sendTextMessage,
-        registerFormCallbacks,
-        deregisterFormCallbacks,
-      }}
-    >
+    <VoiceAssistantContext.Provider value={value}>
       {children}
     </VoiceAssistantContext.Provider>
   );

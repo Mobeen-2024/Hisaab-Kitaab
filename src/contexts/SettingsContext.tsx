@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { AppSettings, db } from '../db';
 import { Lang, isRTL } from '../lib/i18n';
@@ -130,7 +130,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const hasModule = (module: string) => activeModules.includes(module);
 
-  const value = {
+  const value = useMemo(() => ({
     lang,
     currency,
     activeContext,
@@ -155,7 +155,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     dbError,
     resetDatabase,
     geminiApiKey
-  };
+  }), [
+    lang, currency, activeContext, rtl, businessMode,
+    JSON.stringify(activeModules), isOnboarded, ownerName, ownerAvatar,
+    activeRole, activeUser?.id, activeUser?.contextAccess,
+    canAccessPersonal, canAccessBusiness, canViewReports, canViewPlanner,
+    canViewSmart, canManageUsers, canAddEntries, isLoading, dbError,
+    geminiApiKey
+  ]);
 
   return (
     <SettingsContext.Provider value={value}>

@@ -76,9 +76,18 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 3000,
       rollupOptions: {
         output: {
-          // Simplified chunking to prevent React from being split away from its consumers
-          // which often causes "Cannot read properties of undefined (reading 'useLayoutEffect')"
-          manualChunks: undefined,
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('firebase')) return 'vendor-firebase';
+              if (id.includes('@google/genai')) return 'vendor-ai';
+              if (id.includes('three') || id.includes('@react-three')) return 'vendor-three';
+              if (id.includes('jspdf') || id.includes('pdfjs-dist')) return 'vendor-pdf';
+              if (id.includes('recharts')) return 'vendor-charts';
+              if (id.includes('tesseract.js')) return 'vendor-ocr';
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              // Allow Vite to handle the rest automatically
+            }
+          },
         },
       },
     },
