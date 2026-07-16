@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateDailyClosingData } from '../hooks/useDailyClosingData';
-import { Invoice, Transaction, UdhaarEntry, InventoryItem, RepairJob, Warranty } from '../models/schemas';
+import { Invoice, Transaction, UdhaarEntry, InventoryItem, RepairJob, Warranty } from '../models';
 
 describe('calculateDailyClosingData', () => {
   it('correctly aggregates daily totals from all modules', () => {
@@ -13,6 +13,8 @@ describe('calculateDailyClosingData', () => {
         customerId: 1,
         type: 'invoice',
         subtotal: 30,
+        tax: 0,
+        discount: 0,
         total: 30,
         createdAt: '2026-07-16T10:00:00Z',
         context: 'business',
@@ -26,6 +28,8 @@ describe('calculateDailyClosingData', () => {
         customerId: 1,
         type: 'invoice',
         subtotal: 100,
+        tax: 0,
+        discount: 0,
         total: 100,
         createdAt: '2026-07-15T10:00:00Z',
         context: 'business'
@@ -36,6 +40,7 @@ describe('calculateDailyClosingData', () => {
       {
         id: 101,
         name: 'Product A',
+        category: 'Test',
         quantity: 5,
         minQuantity: 10, // low stock
         costPrice: 10,
@@ -45,6 +50,7 @@ describe('calculateDailyClosingData', () => {
       {
         id: 102,
         name: 'Product B',
+        category: 'Test',
         quantity: 20,
         minQuantity: 5, // normal
         unitPrice: 50,
@@ -58,6 +64,7 @@ describe('calculateDailyClosingData', () => {
         type: 'income',
         amount: 30,
         date: '2026-07-16T10:00:00Z',
+        description: 'Test income',
         context: 'business',
         categoryId: 1
       },
@@ -66,6 +73,7 @@ describe('calculateDailyClosingData', () => {
         type: 'expense',
         amount: 5,
         date: '2026-07-16T12:00:00Z',
+        description: 'Test expense',
         context: 'business',
         categoryId: 2
       }
@@ -79,15 +87,19 @@ describe('calculateDailyClosingData', () => {
         amount: 50,
         date: '2026-07-16T11:00:00Z',
         dueDate: '2026-08-01',
+        description: 'Test give',
+        context: 'business',
         isCompleted: false
       },
       {
         id: 2,
         customerId: 2,
-        type: 'take',
+        type: 'receive',
         amount: 20,
         date: '2026-07-16T13:00:00Z',
         dueDate: '',
+        description: 'Test receive',
+        context: 'business',
         isCompleted: true
       }
     ];

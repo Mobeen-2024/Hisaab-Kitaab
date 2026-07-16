@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { startOfDay } from 'date-fns';
-import { Invoice, Transaction, UdhaarEntry, InventoryItem, RepairJob, Warranty } from '../models/schemas';
+import { Invoice, Transaction, UdhaarEntry, InventoryItem, RepairJob, Warranty } from '../models';
 
 export interface DailyClosingData {
   todaySales: number;
@@ -70,7 +70,7 @@ export function calculateDailyClosingData(
     if (uTs >= todayStartMs) {
       if (u.type === 'give') {
         udhaarGiven += u.amount;
-      } else if (u.type === 'take') {
+      } else if (u.type === 'receive') {
         udhaarReceived += u.amount;
       }
     }

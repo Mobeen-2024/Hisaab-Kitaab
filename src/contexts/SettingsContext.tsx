@@ -30,6 +30,7 @@ interface SettingsContextType {
   isLoading: boolean;
   dbError: Error | null;
   resetDatabase: () => Promise<void>;
+  geminiApiKey: string | undefined;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -75,6 +76,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const rtl = isRTL(lang);
   const ownerName = settingsObj?.ownerName || 'Mobeen';
   const ownerAvatar = settingsObj?.ownerAvatar || null;
+  const geminiApiKey = settingsObj?.geminiApiKey;
   
   const activeUser = users.find(u => u.id === settingsObj?.activeUserId) || null;
   // If no user exists yet, default to owner role
@@ -151,7 +153,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     updateSetting,
     isLoading,
     dbError,
-    resetDatabase
+    resetDatabase,
+    geminiApiKey
   };
 
   return (
