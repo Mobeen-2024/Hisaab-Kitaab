@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Customer } from '../models';
 import { CustomerService } from '../services/CustomerService';
-import { useCustomers, useUdhaarEntries } from '../hooks/useData';
+import { useCustomers } from '../hooks/useData';
+import { VirtuosoGrid } from 'react-virtuoso';
 import { t } from '../lib/i18n';
 import { Plus, Users, Search, Phone, ChevronRight, Trash2, UserRound, Truck, ArrowDownLeft, ArrowUpRight, Pencil } from 'lucide-react';
 import { formatCurrency as formatSharedCurrency } from '../lib/currency';
@@ -117,7 +118,6 @@ export default function Customers() {
   const { lang, currency, activeContext } = useSettings();
   const { setAddCustomerModalOpen } = useUIStore();
   const customers = useCustomers();
-  const allUdhaarEntries = useUdhaarEntries();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
@@ -269,26 +269,29 @@ export default function Customers() {
           ))}
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-          {filteredCustomers.length === 0 ? (
-            <div className="col-span-full py-16 text-center">
-              <Users size={40} className="mx-auto mb-4 text-slate-600" />
-              <p className="text-slate-500 font-medium">No contacts found.</p>
-              <Button
-                variant="emerald"
-                onClick={() => setAddCustomerModalOpen(true)}
-                className="mt-4"
-              >
-                Add First Contact
-              </Button>
-            </div>
-          ) : (
-            filteredCustomers.map(customer => {
+        {filteredCustomers.length === 0 ? (
+          <div className="py-16 text-center mt-4">
+            <Users size={40} className="mx-auto mb-4 text-slate-600" />
+            <p className="text-slate-500 font-medium">No contacts found.</p>
+            <Button
+              variant="emerald"
+              onClick={() => setAddCustomerModalOpen(true)}
+              className="mt-4"
+            >
+              Add First Contact
+            </Button>
+          </div>
+        ) : (
+          <VirtuosoGrid
+            useWindowScroll
+            totalCount={filteredCustomers.length}
+            listClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"
+            itemContent={(index) => {
+              const customer = filteredCustomers[index];
               const isSupplier = customer.type === 'supplier';
               return (
                 <div key={customer.id} onClick={() => setSelectedCustomerId(customer.id!)}
-                  className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-all cursor-pointer group hover:-translate-y-0.5 relative">
+                  className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-all cursor-pointer group hover:-translate-y-0.5 relative h-full">
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="font-bold text-white text-base flex items-center gap-2 truncate">
                       {isSupplier ? <Truck size={14} className="text-blue-400 shrink-0" /> : <UserRound size={14} className="text-emerald-400 shrink-0" />}
@@ -326,9 +329,9 @@ export default function Customers() {
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
+            }}
+          />
+        )}
       </div>
     </div>
   );

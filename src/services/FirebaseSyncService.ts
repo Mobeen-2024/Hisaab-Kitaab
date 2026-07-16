@@ -17,7 +17,9 @@ import {
   getDocs,
   writeBatch,
   enableNetwork,
-  disableNetwork
+  disableNetwork,
+  query,
+  where
 } from 'firebase/firestore';
 import Dexie from 'dexie';
 import { db } from '../db';
@@ -412,8 +414,18 @@ export const FirebaseSyncService = {
       { name: 'auditLogs', dbTable: db.auditLogs }
     ];
 
+    const lastSyncKey = `firebase_last_sync_${userId}`;
+    const lastSyncTime = localStorage.getItem(lastSyncKey) || '';
+    
+    // We update the last sync time to now, so next startup we only fetch newer docs
+    localStorage.setItem(lastSyncKey, new Date().toISOString());
+
     for (const col of collectionsToSync) {
-      const colRef = collection(firestore, `users/${userId}/${col.name}`);
+      let colRef: any = collection(firestore, `users/${userId}/${col.name}`);
+      if (lastSyncTime) {
+        colRef = query(colRef, where('updatedAt', '>=', lastSyncTime));
+      }
+
       const unsub = onSnapshot(colRef, async (snapshot) => {
         try {
           await db.transaction('rw', col.dbTable, async () => {
@@ -673,6 +685,11 @@ export const FirebaseSyncService = {
       const nowStr = new Date().toISOString();
       const nowMs = Date.now();
 
+      let batch = writeBatch(firestore);
+      let batchCount = 0;
+      let batchItems: typeof deduplicatedItems = [];
+      let itemsToUpdateRetry: typeof deduplicatedItems = [];
+
       for (const item of deduplicatedItems) {
         if (item.orphaned) continue;
 
@@ -689,12 +706,11 @@ export const FirebaseSyncService = {
           }
         }
 
-        try {
-          const docRef = item.entityType === 'settings'
+        const docRef = item.entityType === 'settings'
             ? doc(firestore, `users/${user.uid}/settings/profile`)
             : doc(firestore, `users/${user.uid}/${item.entityType}/${item.remoteId}`);
 
-          if (item.action === 'UPSERT') {
+        if (item.action === 'UPSERT') {
             const { id, _isRemoteSync, ...cleanPayload } = item.payload || {};
             let dataToSet = cleanPayload;
             if (item.entityType === 'settings') {
@@ -706,28 +722,45 @@ export const FirebaseSyncService = {
             }
 
             const sanitizedDataToSet = sanitizeForFirestore(dataToSet);
-
-            await setDoc(docRef, sanitizedDataToSet, { merge: true });
-          } else if (item.action === 'DELETE') {
-            await deleteDoc(docRef);
-          }
-
-          if (item.id !== undefined) {
-            await db.syncQueue.delete(item.id);
-          }
-        } catch (err: any) {
-          console.warn('[Sync] Upload failed', {
-            entityType: item.entityType,
-            remoteId: item.remoteId,
-            errorCode: err?.code,
-            errorMessage: err?.message,
-          });
-
-          await db.syncQueue.update(item.id!, {
-            retryCount: (item.retryCount || 0) + 1,
-            lastAttemptAt: nowStr
-          });
+            batch.set(docRef, sanitizedDataToSet, { merge: true });
+        } else if (item.action === 'DELETE') {
+            batch.delete(docRef);
         }
+
+        batchItems.push(item);
+        batchCount++;
+
+        if (batchCount === 400) {
+            try {
+                await batch.commit();
+                await db.syncQueue.bulkDelete(batchItems.map(i => i.id!));
+            } catch (err: any) {
+                console.warn('[Sync] Batch upload failed', err);
+                itemsToUpdateRetry.push(...batchItems);
+            }
+            batch = writeBatch(firestore);
+            batchCount = 0;
+            batchItems = [];
+        }
+      }
+
+      if (batchCount > 0) {
+          try {
+              await batch.commit();
+              await db.syncQueue.bulkDelete(batchItems.map(i => i.id!));
+          } catch (err: any) {
+              console.warn('[Sync] Batch upload failed', err);
+              itemsToUpdateRetry.push(...batchItems);
+          }
+      }
+
+      if (itemsToUpdateRetry.length > 0) {
+          for (const item of itemsToUpdateRetry) {
+              await db.syncQueue.update(item.id!, {
+                  retryCount: (item.retryCount || 0) + 1,
+                  lastAttemptAt: nowStr
+              });
+          }
       }
     } finally {
       this.isProcessingQueue = false;

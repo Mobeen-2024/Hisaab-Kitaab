@@ -9,6 +9,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useToast } from '../contexts/ToastContext';
 import { InventoryItemSchema } from '../models/schemas';
 import { useGlobalStockIntelligence, EnrichedInventoryItem } from '../hooks/useStockIntelligence';
+import { VirtuosoGrid } from 'react-virtuoso';
 
 export default function Inventory() {
   const { lang, currency, activeContext } = useSettings();
@@ -165,146 +166,152 @@ export default function Inventory() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="group bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 hover:bg-white/10 transition-all duration-300 relative overflow-hidden"
-          >
-            {item.quantity <= item.minQuantity && (
-              <div className="absolute top-4 right-4 text-rose-400 animate-pulse" title="Low Stock">
-                <AlertCircle size={20} />
-              </div>
-            )}
-            
-            <div className="mb-6 pr-8">
-              <h3 className="text-xl font-bold text-white mb-1 group-hover:text-orange-400 transition-colors">{item.name}</h3>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm text-slate-400">{item.category}</p>
-                {item.intelligence?.velocity === 'dead_stock' && (
-                  <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-bold uppercase tracking-wider border border-rose-500/20">
-                    Dead Stock
-                  </span>
-                )}
-                {item.intelligence?.velocity === 'fast_moving' && (
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
-                    Fast Moving
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 mb-6 text-center">
-              <div className="bg-black/20 rounded-2xl p-2 flex flex-col justify-center">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Selling Price</p>
-                <p className="text-xs font-bold text-slate-300">{formatCurrency(item.unitPrice)}</p>
-              </div>
-              <div className="bg-black/20 rounded-2xl p-2 flex flex-col justify-center">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Purchase Cost</p>
-                <p className="text-xs font-bold text-slate-300">{formatCurrency(item.costPrice ?? item.unitPrice)}</p>
-              </div>
-              <div className="bg-black/20 rounded-2xl p-2 flex flex-col justify-center">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Stock Value</p>
-                <p className="text-xs font-bold text-orange-400">{formatCurrency(item.quantity * (item.costPrice ?? item.unitPrice))}</p>
-              </div>
-            </div>
-
-            <div className="mb-8">
-              <div className="flex justify-between items-end mb-2">
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Stock Level</p>
-                <span className={`text-sm font-bold ${item.quantity <= item.minQuantity ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {item.quantity} / {item.minQuantity}
-                </span>
-              </div>
-              <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden p-0.5 border border-white/5">
-                <div
-                  className={`h-full rounded-full transition-all duration-1000 ${
-                    item.quantity <= item.minQuantity ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
-                  }`}
-                  style={{ width: `${Math.min(100, (item.quantity / (Math.max(1, item.minQuantity) * 2)) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Business Brain Insights */}
-            {item.intelligence && (
-              <div className="mb-8 p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                    <TrendingUp size={12} />
+      {items.length === 0 ? (
+        <div className="py-20 flex flex-col items-center justify-center text-slate-500 bg-white/5 rounded-[3rem] border border-dashed border-white/10">
+          <Package size={48} className="mb-4 opacity-20" />
+          <p className="text-lg font-medium">No items in inventory</p>
+          <p className="text-sm">Click "Add Item" to start tracking your stock.</p>
+        </div>
+      ) : (
+        <VirtuosoGrid
+          useWindowScroll
+          totalCount={items.length}
+          listClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24"
+          itemContent={(index) => {
+            const item = items[index];
+            return (
+              <div
+                key={item.id}
+                className="group bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-6 hover:bg-white/10 transition-all duration-300 relative overflow-hidden h-full"
+              >
+                {item.quantity <= item.minQuantity && (
+                  <div className="absolute top-4 right-4 text-rose-400 animate-pulse" title="Low Stock">
+                    <AlertCircle size={20} />
                   </div>
-                  <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Business Brain</h4>
-                </div>
+                )}
                 
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">30-Day Sales:</span>
-                    <span className="font-bold text-white">{item.intelligence.salesLast30Days} units</span>
+                <div className="mb-6 pr-8">
+                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-orange-400 transition-colors">{item.name}</h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm text-slate-400">{item.category}</p>
+                    {item.intelligence?.velocity === 'dead_stock' && (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-bold uppercase tracking-wider border border-rose-500/20">
+                        Dead Stock
+                      </span>
+                    )}
+                    {item.intelligence?.velocity === 'fast_moving' && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
+                        Fast Moving
+                      </span>
+                    )}
                   </div>
-                  
-                  {item.intelligence.marginWarning && (
-                    <div className="flex items-start gap-2 text-rose-400 bg-rose-500/10 p-2 rounded-lg">
-                      <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                      <span className="text-xs">Low margin warning ({item.intelligence.currentMarginPercent.toFixed(1)}%). Consider raising price.</span>
-                    </div>
-                  )}
+                </div>
 
-                  {item.intelligence.suggestedPrice > item.unitPrice && (
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
-                      <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider">Suggested Price</p>
-                        <p className="font-bold text-emerald-400">{formatCurrency(item.intelligence.suggestedPrice)}</p>
+                <div className="grid grid-cols-3 gap-2 mb-6 text-center">
+                  <div className="bg-black/20 rounded-2xl p-2 flex flex-col justify-center">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Selling Price</p>
+                    <p className="text-xs font-bold text-slate-300">{formatCurrency(item.unitPrice)}</p>
+                  </div>
+                  <div className="bg-black/20 rounded-2xl p-2 flex flex-col justify-center">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Purchase Cost</p>
+                    <p className="text-xs font-bold text-slate-300">{formatCurrency(item.costPrice ?? item.unitPrice)}</p>
+                  </div>
+                  <div className="bg-black/20 rounded-2xl p-2 flex flex-col justify-center">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Stock Value</p>
+                    <p className="text-xs font-bold text-orange-400">{formatCurrency(item.quantity * (item.costPrice ?? item.unitPrice))}</p>
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <div className="flex justify-between items-end mb-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Stock Level</p>
+                    <span className={`text-sm font-bold ${item.quantity <= item.minQuantity ? 'text-rose-400' : 'text-emerald-400'}`}>
+                      {item.quantity} / {item.minQuantity}
+                    </span>
+                  </div>
+                  <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden p-0.5 border border-white/5">
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ${
+                        item.quantity <= item.minQuantity ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+                      }`}
+                      style={{ width: `${Math.min(100, (item.quantity / (Math.max(1, item.minQuantity) * 2)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Business Brain Insights */}
+                {item.intelligence && (
+                  <div className="mb-8 p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                        <TrendingUp size={12} />
                       </div>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Update price to ${formatCurrency(item.intelligence.suggestedPrice)}?`)) {
-                            InventoryService.upsert({ ...item, unitPrice: item.intelligence.suggestedPrice }, item.id)
-                              .then(() => showToast('Price optimized', 'success'))
-                              .catch(e => showToast(e.message, 'error'));
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-bold rounded-lg transition-colors"
-                      >
-                        Apply
-                      </button>
+                      <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Business Brain</h4>
                     </div>
-                  )}
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-400">30-Day Sales:</span>
+                        <span className="font-bold text-white">{item.intelligence.salesLast30Days} units</span>
+                      </div>
+                      
+                      {item.intelligence.marginWarning && (
+                        <div className="flex items-start gap-2 text-rose-400 bg-rose-500/10 p-2 rounded-lg">
+                          <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                          <span className="text-xs">Low margin warning ({item.intelligence.currentMarginPercent.toFixed(1)}%). Consider raising price.</span>
+                        </div>
+                      )}
+
+                      {item.intelligence.suggestedPrice > item.unitPrice && (
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/5">
+                          <div>
+                            <p className="text-[10px] text-slate-400 uppercase tracking-wider">Suggested Price</p>
+                            <p className="font-bold text-emerald-400">{formatCurrency(item.intelligence.suggestedPrice)}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Update price to ${formatCurrency(item.intelligence.suggestedPrice)}?`)) {
+                                InventoryService.upsert({ ...item, unitPrice: item.intelligence.suggestedPrice }, item.id)
+                                  .then(() => showToast('Price optimized', 'success'))
+                                  .catch(e => showToast(e.message, 'error'));
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-bold rounded-lg transition-colors"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setRestockId(item.id!)}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold transition-colors border border-white/5"
+                  >
+                    <Plus size={14} />
+                    <span>Restock</span>
+                  </button>
+                  <button
+                    onClick={() => { setEditingItem(item); setIsModalOpen(true); }}
+                    className="p-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-colors border border-white/5"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteId(item.id!)}
+                    className="p-3 bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-xl transition-colors border border-white/5"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
               </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setRestockId(item.id!)}
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold transition-colors border border-white/5"
-              >
-                <Plus size={14} />
-                <span>Restock</span>
-              </button>
-              <button
-                onClick={() => { setEditingItem(item); setIsModalOpen(true); }}
-                className="p-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl transition-colors border border-white/5"
-              >
-                <Edit2 size={18} />
-              </button>
-              <button
-                onClick={() => setDeleteId(item.id!)}
-                className="p-3 bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-xl transition-colors border border-white/5"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          </div>
-        ))}
-
-        {items.length === 0 && (
-          <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-500 bg-white/5 rounded-[3rem] border border-dashed border-white/10">
-            <Package size={48} className="mb-4 opacity-20" />
-            <p className="text-lg font-medium">No items in inventory</p>
-            <p className="text-sm">Click "Add Item" to start tracking your stock.</p>
-          </div>
-        )}
-      </div>
+            );
+          }}
+        />
+      )}
 
       <InventoryModal
         isOpen={isModalOpen}

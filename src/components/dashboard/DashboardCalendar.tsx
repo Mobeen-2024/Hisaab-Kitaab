@@ -2,14 +2,15 @@ import React, { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, startOfMonth, endOfMonth, endOfWeek, isSameMonth, addMonths, subMonths, isToday, isSameDay } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
-import { useTransactions } from '../../hooks/useData';
+import { useMonthTransactions } from '../../hooks/useData';
 
 export function DashboardCalendar() {
   const { lang, rtl, activeContext } = useSettings();
   const [currentDisplayMonth, setCurrentDisplayMonth] = useState(startOfMonth(new Date()));
   const isUrdu = lang === 'ur';
 
-  const transactions = useTransactions(activeContext);
+  const monthStr = format(currentDisplayMonth, 'yyyy-MM');
+  const transactions = useMonthTransactions(activeContext, monthStr);
 
   const calendarStart = startOfWeek(startOfMonth(currentDisplayMonth));
   const calendarEnd = endOfWeek(endOfMonth(currentDisplayMonth));

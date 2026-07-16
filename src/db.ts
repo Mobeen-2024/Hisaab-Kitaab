@@ -46,6 +46,19 @@ export interface SyncQueueItem {
   orphaned?: boolean;
 }
 
+let queueTriggerTimeout: any = null;
+const debouncedTriggerQueue = () => {
+  if (queueTriggerTimeout) clearTimeout(queueTriggerTimeout);
+  queueTriggerTimeout = setTimeout(async () => {
+    try {
+      const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
+      FirebaseSyncService?.triggerQueueProcessing?.();
+    } catch (error) {
+      console.error(error);
+    }
+  }, 250);
+};
+
 export class HisaibKItaibDB extends Dexie {
   isImporting = false;
   transactions!: Table<Transaction, number>;
@@ -200,8 +213,7 @@ export class HisaibKItaibDB extends Dexie {
         setTimeout(async () => {
           try {
             await db.syncQueue.add(queueItem);
-            const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
-            FirebaseSyncService?.triggerQueueProcessing?.();
+            debouncedTriggerQueue();
           } catch (error) {
             console.error(error);
           }
@@ -228,8 +240,7 @@ export class HisaibKItaibDB extends Dexie {
           setTimeout(async () => {
             try {
               await dbInstance.syncQueue.add(queueItem);
-              const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
-              FirebaseSyncService?.triggerQueueProcessing?.();
+              debouncedTriggerQueue();
             } catch (error) {
               console.error(error);
             }
@@ -255,8 +266,7 @@ export class HisaibKItaibDB extends Dexie {
           setTimeout(async () => {
             try {
               await dbInstance.syncQueue.add(queueItem);
-              const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
-              FirebaseSyncService?.triggerQueueProcessing?.();
+              debouncedTriggerQueue();
             } catch (error) {
               console.error(error);
             }
@@ -292,8 +302,7 @@ export class HisaibKItaibDB extends Dexie {
           setTimeout(async () => {
             try {
               await dbInstance.syncQueue.add(queueItem);
-              const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
-              FirebaseSyncService?.triggerQueueProcessing?.();
+              debouncedTriggerQueue();
             } catch (error) {
               console.error(error);
             }
@@ -333,8 +342,7 @@ export class HisaibKItaibDB extends Dexie {
             setTimeout(async () => {
               try {
                 await dbInstance.syncQueue.add(queueItem);
-                const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
-                FirebaseSyncService?.triggerQueueProcessing?.();
+                debouncedTriggerQueue();
               } catch (error) {
                 console.error(error);
               }
@@ -371,8 +379,7 @@ export class HisaibKItaibDB extends Dexie {
             setTimeout(async () => {
               try {
                 await dbInstance.syncQueue.add(queueItem);
-                const { FirebaseSyncService } = await import('./services/FirebaseSyncService');
-                FirebaseSyncService?.triggerQueueProcessing?.();
+                debouncedTriggerQueue();
               } catch (error) {
                 console.error(error);
               }
@@ -393,7 +400,7 @@ export class HisaibKItaibDB extends Dexie {
     }
 
     this.on('ready', () => {
-      // Non-blocking background legacy backfill
+      // Non-blocking background legacy backfill chunking
       setTimeout(async () => {
         try {
           const settings = await this.settings.toCollection().first();
@@ -402,86 +409,101 @@ export class HisaibKItaibDB extends Dexie {
           }
 
           const entries = await this.udhaarEntries.toArray();
-          for (const entry of entries) {
-            let changed = false;
-            let context = entry.context;
-            if (!context) {
-              context = 'business';
-              changed = true;
+          let currentIndex = 0;
+          const chunkSize = 50;
+
+          const processNextChunk = async () => {
+            const chunk = entries.slice(currentIndex, currentIndex + chunkSize);
+            if (chunk.length === 0) {
+              if (settings) {
+                await Dexie.ignoreTransaction(async () => {
+                  await dbInstance.transaction('rw', dbInstance.settings, async (tx) => {
+                    (tx as any)._isRemoteSync = true;
+                    await dbInstance.settings.update(settings.id!, { backfillVersion: 1 } as any);
+                  });
+                });
+              }
+              return;
             }
 
-            if (!entry.transactionId) {
-              const existingTx = await this.transactions
-                .where('source')
-                .equals('legacy_backfill')
-                .and(tx => tx.sourceId === entry.id)
-                .first();
-
-              if (existingTx) {
-                entry.transactionId = existingTx.id;
-                entry.context = existingTx.context;
+            for (const entry of chunk) {
+              let changed = false;
+              let context = entry.context;
+              if (!context) {
+                context = 'business';
                 changed = true;
-              } else {
-                const txType = entry.type === 'give' ? 'expense' : 'income';
-                const catName = txType === 'income' ? 'Udhaar Received' : 'Udhaar Given';
-                let cat = await this.categories
-                  .where('context')
-                  .equals(context)
-                  .and(c => c.type === txType && c.name === catName)
+              }
+
+              if (!entry.transactionId) {
+                const existingTx = await this.transactions
+                  .where('source')
+                  .equals('legacy_backfill')
+                  .and(tx => tx.sourceId === entry.id)
                   .first();
 
-                if (!cat) {
-                  const newCatId = await this.categories.add({ name: catName, type: txType, context });
-                  cat = { id: newCatId, name: catName, type: txType, context };
+                if (existingTx) {
+                  entry.transactionId = existingTx.id;
+                  entry.context = existingTx.context;
+                  changed = true;
+                } else {
+                  const txType = entry.type === 'give' ? 'expense' : 'income';
+                  const catName = txType === 'income' ? 'Udhaar Received' : 'Udhaar Given';
+                  let cat = await this.categories
+                    .where('context')
+                    .equals(context)
+                    .and(c => c.type === txType && c.name === catName)
+                    .first();
+
+                  if (!cat) {
+                    const newCatId = await this.categories.add({ name: catName, type: txType, context });
+                    cat = { id: newCatId, name: catName, type: txType, context };
+                  }
+
+                  const customer = await this.customers.get(entry.customerId);
+                  const customerName = customer ? customer.name : 'Unknown';
+                  const txDesc = entry.description
+                    ? `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName}): ${entry.description}`
+                    : `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName})`;
+
+                  const txId = await this.transactions.add({
+                    amount: entry.amount,
+                    type: txType,
+                    categoryId: cat.id!,
+                    context: context,
+                    date: entry.date,
+                    description: txDesc,
+                    customerId: entry.customerId,
+                    paymentMethod: 'cash',
+                    originalCurrency: entry.originalCurrency || 'PKR',
+                    originalAmount: entry.originalAmount || entry.amount,
+                    exchangeRate: entry.exchangeRate || 1,
+                    source: 'legacy_backfill',
+                    sourceId: entry.id
+                  });
+
+                  entry.transactionId = txId;
+                  entry.context = context;
+                  changed = true;
                 }
+              }
 
-                const customer = await this.customers.get(entry.customerId);
-                const customerName = customer ? customer.name : 'Unknown';
-                const txDesc = entry.description
-                  ? `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName}): ${entry.description}`
-                  : `Udhaar (${entry.type === 'give' ? 'Given to' : 'Received from'} ${customerName})`;
-
-                const txId = await this.transactions.add({
-                  amount: entry.amount,
-                  type: txType,
-                  categoryId: cat.id!,
-                  context: context,
-                  date: entry.date,
-                  description: txDesc,
-                  customerId: entry.customerId,
-                  paymentMethod: 'cash',
-                  originalCurrency: entry.originalCurrency || 'PKR',
-                  originalAmount: entry.originalAmount || entry.amount,
-                  exchangeRate: entry.exchangeRate || 1,
-                  source: 'legacy_backfill',
-                  sourceId: entry.id
-                });
-
-                entry.transactionId = txId;
-                entry.context = context;
-                changed = true;
+              if (changed) {
+                await this.udhaarEntries.put(entry);
               }
             }
 
-            if (changed) {
-              await this.udhaarEntries.put(entry);
-            }
-          }
+            currentIndex += chunkSize;
+            setTimeout(processNextChunk, 50); // Yield to main thread
+          };
 
-          if (settings) {
-            await Dexie.ignoreTransaction(async () => {
-              await dbInstance.transaction('rw', dbInstance.settings, async (tx) => {
-                (tx as any)._isRemoteSync = true;
-                await dbInstance.settings.update(settings.id!, { backfillVersion: 1 } as any);
-              });
-            });
-          }
+          processNextChunk();
+
         } catch (error) {
           console.warn("Background legacy backfill encountered an issue:", error);
         }
       }, 1500);
 
-      // Non-blocking background updatedAt backfill (Decision #4)
+      // Non-blocking background updatedAt backfill (Decision #4) chunked
       setTimeout(async () => {
         try {
           const settings = await this.settings.toCollection().first();
@@ -489,29 +511,55 @@ export class HisaibKItaibDB extends Dexie {
             return;
           }
 
-          await dbInstance.transaction('rw', tablesToAudit.map(t => this.table(t)), async (tx) => {
-            (tx as any)._isRemoteSync = true;
-            for (const tableName of tablesToAudit) {
-              const table = this.table(tableName);
-              const items = await table.toArray();
-              for (const item of items) {
-                if (!(item as any).updatedAt) {
-                  const now = new Date().toISOString();
-                  const fallbackVal = (item as any).createdAt ?? (item as any).date ?? (item as any).timestamp ?? now;
-                  await table.update(item.id!, { updatedAt: fallbackVal });
-                }
-              }
-            }
-          });
+          let tableIndex = 0;
 
-          if (settings) {
-            await Dexie.ignoreTransaction(async () => {
-              await dbInstance.transaction('rw', dbInstance.settings, async (tx) => {
+          const processNextTable = async () => {
+            if (tableIndex >= tablesToAudit.length) {
+              if (settings) {
+                await Dexie.ignoreTransaction(async () => {
+                  await dbInstance.transaction('rw', dbInstance.settings, async (tx) => {
+                    (tx as any)._isRemoteSync = true;
+                    await dbInstance.settings.update(settings.id!, { backfillUpdatedAtVersion: 1 } as any);
+                  });
+                });
+              }
+              return;
+            }
+
+            const tableName = tablesToAudit[tableIndex];
+            const table = this.table(tableName);
+            const items = await table.toArray();
+            let currentIndex = 0;
+            const chunkSize = 50;
+
+            const processNextChunk = async () => {
+              const chunk = items.slice(currentIndex, currentIndex + chunkSize);
+              if (chunk.length === 0) {
+                tableIndex++;
+                setTimeout(processNextTable, 50);
+                return;
+              }
+
+              await dbInstance.transaction('rw', table, async (tx) => {
                 (tx as any)._isRemoteSync = true;
-                await dbInstance.settings.update(settings.id!, { backfillUpdatedAtVersion: 1 } as any);
+                for (const item of chunk) {
+                  if (!(item as any).updatedAt) {
+                    const now = new Date().toISOString();
+                    const fallbackVal = (item as any).createdAt ?? (item as any).date ?? (item as any).timestamp ?? now;
+                    await table.update(item.id!, { updatedAt: fallbackVal });
+                  }
+                }
               });
-            });
-          }
+
+              currentIndex += chunkSize;
+              setTimeout(processNextChunk, 50);
+            };
+
+            processNextChunk();
+          };
+
+          processNextTable();
+
         } catch (error) {
           console.warn("Background updatedAt backfill encountered an issue:", error);
         }
