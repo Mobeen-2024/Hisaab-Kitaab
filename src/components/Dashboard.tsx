@@ -4,9 +4,10 @@ import { InventoryAlert } from './dashboard/InventoryAlert';
 import { QuickStats } from './dashboard/QuickStats';
 import { UdhaarSummary } from './dashboard/UdhaarSummary';
 import { DashboardCalendar } from './dashboard/DashboardCalendar';
-import { FinancialOverview } from './dashboard/FinancialOverview';
 import TransactionList from './TransactionList';
 import { useSettings } from '../contexts/SettingsContext';
+
+const FinancialOverview = React.lazy(() => import('./dashboard/FinancialOverview').then(module => ({ default: module.FinancialOverview })));
 
 export default function Dashboard() {
   const { lang, rtl } = useSettings();
@@ -50,7 +51,9 @@ export default function Dashboard() {
       </div>
       
       {/* Financial Overview Row - Cash Flow, Goals, Budget */}
-      <FinancialOverview />
+      <React.Suspense fallback={<div className="h-64 animate-pulse bg-white/5 rounded-[2.5rem]" />}>
+        <FinancialOverview />
+      </React.Suspense>
     </div>
   );
 }

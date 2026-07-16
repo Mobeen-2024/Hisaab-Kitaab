@@ -1,20 +1,21 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useUIStore } from '../lib/store';
 import Sidebar from '../components/Sidebar';
 import TopHeader from '../components/TopHeader';
 import BottomNav from '../components/BottomNav';
-import QuickEntryModal from '../components/QuickEntryModal';
-import AddCustomerModal from '../components/AddCustomerModal';
-import ProfileModal from '../components/ProfileModal';
-import NotificationsModal from '../components/NotificationsModal';
-import MessagesModal from '../components/MessagesModal';
-import GlobalSearchModal from '../components/GlobalSearchModal';
-import ImportStatementModal from '../components/ImportStatementModal';
 import ReminderSystem from '../components/ReminderSystem';
 import { useLocation } from 'react-router-dom';
 import { useHasLowStock } from '../hooks/useData';
 import { Plus } from 'lucide-react';
+
+const QuickEntryModal = lazy(() => import('../components/QuickEntryModal'));
+const AddCustomerModal = lazy(() => import('../components/AddCustomerModal'));
+const ProfileModal = lazy(() => import('../components/ProfileModal'));
+const NotificationsModal = lazy(() => import('../components/NotificationsModal'));
+const MessagesModal = lazy(() => import('../components/MessagesModal'));
+const GlobalSearchModal = lazy(() => import('../components/GlobalSearchModal'));
+const ImportStatementModal = lazy(() => import('../components/ImportStatementModal'));
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { rtl, lang, currency, activeContext, businessMode, activeModules } = useSettings();
@@ -110,16 +111,16 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </button>
       </div>
 
-      {/* Modals - Always mounted for robust animations */}
-      <QuickEntryModal isOpen={isQuickEntryOpen} onClose={() => setQuickEntryOpen(false)} lang={lang} activeContext={activeContext} />
-      <AddCustomerModal isOpen={isAddCustomerModalOpen} onClose={() => setAddCustomerModalOpen(false)} lang={lang} />
-      <ProfileModal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} lang={lang} />
-      <NotificationsModal isOpen={isNotificationsOpen} onClose={() => setNotificationsOpen(false)} lang={lang} currency={currency} />
-      <MessagesModal isOpen={isMessagesOpen} onClose={() => setMessagesOpen(false)} lang={lang} currency={currency} />
-      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} lang={lang} currency={currency} activeContext={activeContext} />
-      {isImportModalOpen && (
-        <ImportStatementModal isOpen={isImportModalOpen} onClose={() => setImportModalOpen(false)} />
-      )}
+      {/* Modals - Lazy loaded on first open */}
+      <Suspense fallback={null}>
+        {isQuickEntryOpen && <QuickEntryModal isOpen={isQuickEntryOpen} onClose={() => setQuickEntryOpen(false)} lang={lang} activeContext={activeContext} />}
+        {isAddCustomerModalOpen && <AddCustomerModal isOpen={isAddCustomerModalOpen} onClose={() => setAddCustomerModalOpen(false)} lang={lang} />}
+        {isProfileModalOpen && <ProfileModal isOpen={isProfileModalOpen} onClose={() => setProfileModalOpen(false)} lang={lang} />}
+        {isNotificationsOpen && <NotificationsModal isOpen={isNotificationsOpen} onClose={() => setNotificationsOpen(false)} lang={lang} currency={currency} />}
+        {isMessagesOpen && <MessagesModal isOpen={isMessagesOpen} onClose={() => setMessagesOpen(false)} lang={lang} currency={currency} />}
+        {isSearchOpen && <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} lang={lang} currency={currency} activeContext={activeContext} />}
+        {isImportModalOpen && <ImportStatementModal isOpen={isImportModalOpen} onClose={() => setImportModalOpen(false)} />}
+      </Suspense>
       
       {/* Systems */}
       <ReminderSystem settingsObj={{ language: lang, currency, activeContext, businessMode: businessMode as any, activeModules }} />
