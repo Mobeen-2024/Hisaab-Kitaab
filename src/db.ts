@@ -400,6 +400,9 @@ export class HisaibKItaibDB extends Dexie {
     }
 
     this.on('ready', () => {
+      // Avoid unhandled promise rejections and slow background updates in tests
+      if (import.meta.env.MODE === 'test') return;
+
       // Non-blocking background legacy backfill chunking
       setTimeout(async () => {
         try {
@@ -675,12 +678,20 @@ export class HisaibKItaibDB extends Dexie {
         entityType,
         entityId,
         action,
-        timestamp: new Date().toISOString(),
         details,
+        timestamp: new Date().toISOString(),
         context
       });
+      
+      // Prune to keep only the latest 1000 logs
+      const count = await this.auditLogs.count();
+      if (count > 1000) {
+        const excess = count - 1000;
+        const oldLogs = await this.auditLogs.orderBy('timestamp').limit(excess).primaryKeys();
+        await this.auditLogs.bulkDelete(oldLogs);
+      }
     } catch (e) {
-      console.error("Failed to log audit", e);
+      console.warn("Failed to log audit", e);
     }
   }
 }

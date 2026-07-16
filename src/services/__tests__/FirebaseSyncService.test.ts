@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { db } from '../../db';
 import { FirebaseSyncService, sanitizeForFirestore } from '../FirebaseSyncService';
+import { delay } from '../../__tests__/test-utils';
 
 // Mock Firebase Modules
 vi.mock('firebase/app', () => ({
@@ -25,6 +26,8 @@ vi.mock('firebase/firestore', () => ({
   deleteDoc: vi.fn().mockResolvedValue(undefined),
   onSnapshot: vi.fn(() => () => {}),
   getDocs: vi.fn().mockResolvedValue({ docs: [], empty: true }),
+  query: vi.fn((ref) => ref),
+  limit: vi.fn((val) => val),
   writeBatch: vi.fn(() => ({
     set: mockBatchSet,
     delete: mockBatchDelete,
@@ -129,7 +132,7 @@ describe('FirebaseSyncService Tests', () => {
     await db.open();
     db.isImporting = false;
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await delay(50);
     db.isImporting = true;
     await db.syncQueue.clear();
     await db.settings.clear();
@@ -145,7 +148,7 @@ describe('FirebaseSyncService Tests', () => {
   });
 
   afterAll(async () => {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await delay(50);
     db.close();
     console.error = originalConsoleError;
   });
@@ -385,5 +388,28 @@ describe('FirebaseSyncService Tests', () => {
       expect(uploadAllLocalDataSpy).not.toHaveBeenCalled();
       expect(localStorage.getItem('firebase_needs_full_sync')).toBe('true');
     });
+  });
+
+  it('clearCloudData handles pagination correctly by fetching batches', async () => {
+    const { getDocs } = await import('firebase/firestore');
+    
+    // Simulate pagination: batch of 400, then batch of 20, then empty
+    let callsPerCollection = 0;
+    vi.mocked(getDocs).mockImplementation(async () => {
+      callsPerCollection++;
+      if (callsPerCollection === 1) return { empty: false, docs: new Array(400) } as any;
+      if (callsPerCollection === 2) return { empty: false, docs: new Array(20) } as any;
+      
+      // Reset for next collection
+      callsPerCollection = 0; 
+      return { empty: true, docs: [] } as any;
+    });
+
+    vi.mocked(getDocs).mockClear();
+    
+    await FirebaseSyncService.clearCloudData('test-user-123');
+
+    // 10 collections mapped. Each needs 3 queries (400, 20, empty)
+    expect(getDocs).toHaveBeenCalledTimes(30);
   });
 });

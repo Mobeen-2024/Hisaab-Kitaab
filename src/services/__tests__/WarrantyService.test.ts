@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vites
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { db } from '../../db';
+import { delay } from '../../__tests__/test-utils';
 import { WarrantyService } from '../WarrantyService';
 import { InventoryService } from '../InventoryService';
 import { CustomerService } from '../CustomerService';
@@ -36,11 +37,11 @@ describe('WarrantyService regression tests', () => {
   });
 
   afterEach(async () => {
-    await new Promise(resolve => setTimeout(resolve, 150));
+    await delay(150);
   });
 
   afterAll(async () => {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await delay(300);
     db.close();
     console.error = originalConsoleError;
   });

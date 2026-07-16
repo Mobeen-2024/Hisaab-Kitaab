@@ -60,11 +60,23 @@ describe('Offline Restore Sync and PIN logic', () => {
     });
 
     const exportDataStr = await db.exportData('password');
-    // Since exportData generates encrypted string, we mock import to check behavior
-    // The export logic strips secrets inside `exportData`, we can check it by decrypting 
-    // or just checking the actual source code logic in another test.
-    // Let's directly test the import behavior below.
-    expect(exportDataStr).toBeDefined();
+    expect(typeof exportDataStr).toBe('string');
+    expect(exportDataStr.length).toBeGreaterThan(0);
+  });
+
+  it('fails safely when an incorrect backup password is provided', async () => {
+    await db.appUsers.add({
+      name: 'Owner',
+      role: 'owner',
+      contextAccess: 'both',
+      updatedAt: new Date().toISOString()
+    });
+
+    const backupBase64 = await db.exportData('correct-password');
+    
+    // Attempt import with wrong password
+    await expect(db.importData(backupBase64, 'wrong-password'))
+      .rejects.toThrow('Incorrect password or corrupted backup file.');
   });
 
   it('import marks Owner PIN setup required and sets pending full sync flag if user exists', async () => {

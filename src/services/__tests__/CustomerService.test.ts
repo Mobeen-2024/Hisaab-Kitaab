@@ -5,6 +5,7 @@ import { db } from '../../db';
 import { CustomerService } from '../CustomerService';
 import { UdhaarService } from '../UdhaarService';
 import { TransactionService } from '../TransactionService';
+import { delay } from '../../__tests__/test-utils';
 
 describe('Customer and Supplier Balance Calculations', () => {
   const originalConsoleError = console.error;
@@ -39,14 +40,12 @@ describe('Customer and Supplier Balance Calculations', () => {
 
   afterEach(async () => {
     // Wait for any detached Dexie promises (like auditLogs.add from hooks) to complete
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await delay(200);
   });
 
   afterAll(async () => {
-    // Wait 1700ms: db.ts schedules a legacy backfill at 1500ms and an updatedAt backfill
-    // at 2000ms on db.open(). We need the first one to fully complete before closing so
-    // no DatabaseClosedError unhandled rejection escapes and breaks Vitest exit code.
-    await new Promise(resolve => setTimeout(resolve, 1700));
+    // Since we disabled the legacy backfill in test mode, we just do a quick flush wait.
+    await delay(50);
     db.close();
     console.error = originalConsoleError;
   });

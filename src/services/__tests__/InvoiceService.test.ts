@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vites
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { db } from '../../db';
+import { delay } from '../../__tests__/test-utils';
 import { InvoiceService } from '../InvoiceService';
 import { CustomerService } from '../CustomerService';
 
@@ -48,19 +49,19 @@ describe('InvoiceService (POS) regression tests', () => {
     await db.open();
     db.isImporting = false;
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await delay(50);
     vi.clearAllMocks();
     vi.mocked(TransactionService.add).mockResolvedValue(99);
     vi.mocked(InventoryService.updateQuantity).mockResolvedValue(undefined);
   });
 
   afterEach(async () => {
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await delay(200);
     console.error = originalConsoleError;
   });
 
   afterAll(async () => {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await delay(300);
     try { db.close(); } catch { /* ignore */ }
   });
 

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { db } from '../../db';
+import { delay } from '../../__tests__/test-utils';
 import { TransactionService } from '../TransactionService';
 import { CustomerService } from '../CustomerService';
 
@@ -41,7 +42,7 @@ describe('TransactionService Tests', () => {
   });
 
   afterAll(async () => {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await delay(100);
     db.close();
     console.error = originalConsoleError;
   });
@@ -167,7 +168,7 @@ describe('TransactionService Tests', () => {
     });
 
     // Wait for async hooks to execute
-    await new Promise(r => setTimeout(r, 100));
+    await delay(100);
 
     // Verify it created a syncQueue item with correct shape
     expect(syncSpy).toHaveBeenCalled();
@@ -199,7 +200,7 @@ describe('TransactionService Tests', () => {
     });
     db.isImporting = false;
     
-    await new Promise(r => setTimeout(r, 100));
+    await delay(100);
     
     const importCalls = syncSpy.mock.calls.filter(call => call[0] && call[0].entityType === 'transactions');
     expect(importCalls.length).toBe(0);
@@ -222,7 +223,7 @@ describe('TransactionService Tests', () => {
       });
     });
 
-    await new Promise(r => setTimeout(r, 100));
+    await delay(100);
 
     const remoteCalls = syncSpy.mock.calls.filter(call => call[0] && call[0].entityType === 'transactions');
     expect(remoteCalls.length).toBe(0);
