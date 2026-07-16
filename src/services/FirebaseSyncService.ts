@@ -19,7 +19,8 @@ import {
   enableNetwork,
   disableNetwork,
   query,
-  where
+  where,
+  limit
 } from 'firebase/firestore';
 import Dexie from 'dexie';
 import { db } from '../db';
@@ -73,18 +74,22 @@ export function sanitizeForFirestore(value: any): any {
   if (value instanceof Date) return value.toISOString();
 
   if (Array.isArray(value)) {
-    return value.map((item) => {
-      const sanitized = sanitizeForFirestore(item);
-      return sanitized === undefined ? null : sanitized;
-    });
+    const arr = new Array(value.length);
+    for (let i = 0; i < value.length; i++) {
+      const sanitized = sanitizeForFirestore(value[i]);
+      arr[i] = sanitized === undefined ? null : sanitized;
+    }
+    return arr;
   }
 
   if (typeof value === 'object') {
     const output: Record<string, any> = {};
-    for (const [key, val] of Object.entries(value)) {
-      const sanitized = sanitizeForFirestore(val);
-      if (sanitized !== undefined) {
-        output[key] = sanitized;
+    for (const key in value) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        const sanitized = sanitizeForFirestore(value[key]);
+        if (sanitized !== undefined) {
+          output[key] = sanitized;
+        }
       }
     }
     return output;
@@ -227,13 +232,13 @@ export const FirebaseSyncService = {
       ];
 
       for (const table of tables) {
-        const items = await table.dbTable.toArray();
-        if (items.length === 0) continue;
+        const count = await table.dbTable.count();
+        if (count === 0) continue;
 
-        // Batch writes in chunks of 500 documents (Firestore limit)
+        // Batch writes in chunks of 400 documents (Firestore limit is 500)
         const chunkSize = 400;
-        for (let i = 0; i < items.length; i += chunkSize) {
-          const chunk = items.slice(i, i + chunkSize);
+        for (let i = 0; i < count; i += chunkSize) {
+          const chunk = await table.dbTable.offset(i).limit(chunkSize).toArray();
           const batch = writeBatch(firestore);
 
           for (const item of chunk) {
@@ -287,6 +292,9 @@ export const FirebaseSyncService = {
       if (collectionName === 'settings') {
         const { geminiApiKey, ...rest } = cleanData;
         dataToSet = rest;
+      } else if (collectionName === 'appUsers') {
+        const { passcodeHash, passcodeSalt, passcode, ...rest } = cleanData;
+        dataToSet = rest;
       }
       const sanitizedDataToSet = sanitizeForFirestore(dataToSet);
       await setDoc(docRef, sanitizedDataToSet, { merge: true });
@@ -321,14 +329,17 @@ export const FirebaseSyncService = {
     for (const colName of collectionsToClear) {
       try {
         const colRef = collection(firestore, `users/${userId}/${colName}`);
-        const snapshot = await getDocs(colRef);
-        if (snapshot.empty) continue;
-        
-        const chunkSize = 400;
-        for (let i = 0; i < snapshot.docs.length; i += chunkSize) {
-          const chunk = snapshot.docs.slice(i, i + chunkSize);
+        let hasDocs = true;
+        while (hasDocs) {
+          const q = query(colRef, limit(400));
+          const snapshot = await getDocs(q);
+          if (snapshot.empty) {
+            hasDocs = false;
+            break;
+          }
+          
           const batch = writeBatch(firestore);
-          chunk.forEach(docSnap => batch.delete(docSnap.ref));
+          snapshot.docs.forEach(docSnap => batch.delete(docSnap.ref));
           await batch.commit();
         }
       } catch (e) {
@@ -614,8 +625,7 @@ export const FirebaseSyncService = {
     this.isProcessingQueue = true;
 
     try {
-      if (!this.isEnabled()) return;
-      if (!navigator.onLine) return;
+      if (!this.isEnabled() || !navigator.onLine) return;
       
       const user = auth.currentUser;
       if (!user) return;
@@ -625,110 +635,113 @@ export const FirebaseSyncService = {
         return;
       }
 
-      // Group by key (entityType + ':' + remoteId)
-      const grouped = new Map<string, typeof queueItems>();
-      for (const item of queueItems) {
-        const key = `${item.entityType}:${item.remoteId}`;
-        if (!grouped.has(key)) {
-          grouped.set(key, []);
-        }
-        grouped.get(key)!.push(item);
-      }
-
-      const deduplicatedItems: typeof queueItems = [];
-      const idsToDelete: number[] = [];
-
-      for (const [key, items] of grouped.entries()) {
-        const latestItem = items[items.length - 1];
-        const hasDelete = items.some(i => i.action === 'DELETE');
-        
-        if (hasDelete) {
-          const deleteItem = items.find(i => i.action === 'DELETE');
-          if (deleteItem) {
-            deduplicatedItems.push(deleteItem);
-            items.forEach(i => {
-              if (i.id !== deleteItem.id && i.id !== undefined) {
-                idsToDelete.push(i.id);
-              }
-            });
-          }
-        } else {
-          deduplicatedItems.push(latestItem);
-          items.forEach(i => {
-            if (i.id !== latestItem.id && i.id !== undefined) {
-              idsToDelete.push(i.id);
-            }
-          });
-        }
-      }
+      const { deduplicatedItems, idsToDelete } = this._deduplicateQueueItems(queueItems);
 
       if (idsToDelete.length > 0) {
         await db.syncQueue.bulkDelete(idsToDelete);
       }
 
-      const nowStr = new Date().toISOString();
-      const nowMs = Date.now();
+      await this._processBatch(deduplicatedItems, user);
+    } catch (error) {
+      console.error("[Sync] Error processing queue:", error);
+    } finally {
+      this.isProcessingQueue = false;
+    }
+  },
 
-      let batch = writeBatch(firestore);
-      let batchCount = 0;
-      let batchItems: typeof deduplicatedItems = [];
-      let itemsToUpdateRetry: typeof deduplicatedItems = [];
+  _deduplicateQueueItems(queueItems: any[]) {
+    // Group by key (entityType + ':' + remoteId)
+    const grouped = new Map<string, typeof queueItems>();
+    for (const item of queueItems) {
+      const key = `${item.entityType}:${item.remoteId}`;
+      let group = grouped.get(key);
+      if (!group) {
+        group = [];
+        grouped.set(key, group);
+      }
+      group.push(item);
+    }
 
-      for (const item of deduplicatedItems) {
-        if (item.orphaned) continue;
+    const deduplicatedItems: typeof queueItems = [];
+    const idsToDelete: number[] = [];
 
-        if (item.retryCount !== undefined && item.retryCount >= 10) {
-          await db.syncQueue.update(item.id!, { orphaned: true });
-          continue;
+    for (const items of grouped.values()) {
+      const latestItem = items[items.length - 1];
+      const hasDelete = items.some(i => i.action === 'DELETE');
+      
+      if (hasDelete) {
+        const deleteItem = items.find(i => i.action === 'DELETE');
+        if (deleteItem) {
+          deduplicatedItems.push(deleteItem);
+          items.forEach(i => {
+            if (i.id !== deleteItem.id && i.id !== undefined) {
+              idsToDelete.push(i.id);
+            }
+          });
         }
-
-        if (item.lastAttemptAt && item.retryCount !== undefined) {
-          const backoffTime = Math.min(Math.pow(2, item.retryCount) * 5000, 3600000);
-          const lastAttempt = new Date(item.lastAttemptAt).getTime();
-          if (nowMs - lastAttempt < backoffTime) {
-            continue;
+      } else {
+        deduplicatedItems.push(latestItem);
+        items.forEach(i => {
+          if (i.id !== latestItem.id && i.id !== undefined) {
+            idsToDelete.push(i.id);
           }
-        }
+        });
+      }
+    }
+    
+    return { deduplicatedItems, idsToDelete };
+  },
 
-        const docRef = item.entityType === 'settings'
-            ? doc(firestore, `users/${user.uid}/settings/profile`)
-            : doc(firestore, `users/${user.uid}/${item.entityType}/${item.remoteId}`);
+  async _processBatch(items: any[], user: User) {
+    const nowStr = new Date().toISOString();
+    const nowMs = Date.now();
 
-        if (item.action === 'UPSERT') {
-            const { id, _isRemoteSync, ...cleanPayload } = item.payload || {};
-            let dataToSet = cleanPayload;
-            if (item.entityType === 'settings') {
-              const { geminiApiKey, ...rest } = cleanPayload;
-              dataToSet = rest;
-            } else if (item.entityType === 'appUsers') {
-              const { passcodeHash, passcodeSalt, passcode, ...rest } = cleanPayload;
-              dataToSet = rest;
-            }
+    let batch = writeBatch(firestore);
+    let batchCount = 0;
+    let batchItems: typeof items = [];
+    const itemsToUpdateRetry: typeof items = [];
 
-            const sanitizedDataToSet = sanitizeForFirestore(dataToSet);
-            batch.set(docRef, sanitizedDataToSet, { merge: true });
-        } else if (item.action === 'DELETE') {
-            batch.delete(docRef);
-        }
+    for (const item of items) {
+      if (item.orphaned) continue;
 
-        batchItems.push(item);
-        batchCount++;
+      if (item.retryCount !== undefined && item.retryCount >= 10) {
+        await db.syncQueue.update(item.id!, { orphaned: true });
+        continue;
+      }
 
-        if (batchCount === 400) {
-            try {
-                await batch.commit();
-                await db.syncQueue.bulkDelete(batchItems.filter(i => i.id !== undefined).map(i => i.id!));
-            } catch (err: any) {
-                console.warn('[Sync] Batch upload failed', err);
-                itemsToUpdateRetry.push(...batchItems);
-            }
-            batch = writeBatch(firestore);
-            batchCount = 0;
-            batchItems = [];
+      if (item.lastAttemptAt && item.retryCount !== undefined) {
+        const backoffTime = Math.min(Math.pow(2, item.retryCount) * 5000, 3600000);
+        const lastAttempt = new Date(item.lastAttemptAt).getTime();
+        if (nowMs - lastAttempt < backoffTime) {
+          continue;
         }
       }
 
-      if (batchCount > 0) {
+      const docRef = item.entityType === 'settings'
+          ? doc(firestore, `users/${user.uid}/settings/profile`)
+          : doc(firestore, `users/${user.uid}/${item.entityType}/${item.remoteId}`);
+
+      if (item.action === 'UPSERT') {
+          const { id, _isRemoteSync, ...cleanPayload } = item.payload || {};
+          let dataToSet = cleanPayload;
+          if (item.entityType === 'settings') {
+            const { geminiApiKey, ...rest } = cleanPayload;
+            dataToSet = rest;
+          } else if (item.entityType === 'appUsers') {
+            const { passcodeHash, passcodeSalt, passcode, ...rest } = cleanPayload;
+            dataToSet = rest;
+          }
+
+          const sanitizedDataToSet = sanitizeForFirestore(dataToSet);
+          batch.set(docRef, sanitizedDataToSet, { merge: true });
+      } else if (item.action === 'DELETE') {
+          batch.delete(docRef);
+      }
+
+      batchItems.push(item);
+      batchCount++;
+
+      if (batchCount === 400) {
           try {
               await batch.commit();
               await db.syncQueue.bulkDelete(batchItems.filter(i => i.id !== undefined).map(i => i.id!));
@@ -736,18 +749,29 @@ export const FirebaseSyncService = {
               console.warn('[Sync] Batch upload failed', err);
               itemsToUpdateRetry.push(...batchItems);
           }
+          batch = writeBatch(firestore);
+          batchCount = 0;
+          batchItems = [];
       }
+    }
 
-      if (itemsToUpdateRetry.length > 0) {
-          for (const item of itemsToUpdateRetry) {
-              await db.syncQueue.update(item.id!, {
-                  retryCount: (item.retryCount || 0) + 1,
-                  lastAttemptAt: nowStr
-              });
-          }
-      }
-    } finally {
-      this.isProcessingQueue = false;
+    if (batchCount > 0) {
+        try {
+            await batch.commit();
+            await db.syncQueue.bulkDelete(batchItems.filter(i => i.id !== undefined).map(i => i.id!));
+        } catch (err: any) {
+            console.warn('[Sync] Batch upload failed', err);
+            itemsToUpdateRetry.push(...batchItems);
+        }
+    }
+
+    if (itemsToUpdateRetry.length > 0) {
+        for (const item of itemsToUpdateRetry) {
+            await db.syncQueue.update(item.id!, {
+                retryCount: (item.retryCount || 0) + 1,
+                lastAttemptAt: nowStr
+            });
+        }
     }
   }
 };
