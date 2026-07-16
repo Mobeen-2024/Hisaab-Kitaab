@@ -40,7 +40,7 @@ describe('calculateGlobalStockIntelligence', () => {
     (db.inventory.toArray as any).mockResolvedValue(mockItems);
     (db.invoices.toArray as any).mockResolvedValue(mockInvoices);
 
-    const result = await calculateGlobalStockIntelligence('business');
+    const result = await calculateGlobalStockIntelligence('business', mockItems as any, mockInvoices as any);
 
     expect(result).toHaveLength(4);
 
@@ -71,7 +71,7 @@ describe('calculateGlobalStockIntelligence', () => {
     (db.inventory.toArray as any).mockResolvedValue(mockItems);
     (db.invoices.toArray as any).mockResolvedValue([]);
 
-    const result = await calculateGlobalStockIntelligence('business');
+    const result = await calculateGlobalStockIntelligence('business', mockItems as any, []);
 
     expect(result[0].intelligence.marginWarning).toBe(false);
     expect(result[0].intelligence.currentMarginPercent).toBe(100);

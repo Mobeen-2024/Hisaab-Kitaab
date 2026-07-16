@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import { db } from '../db';
-import { calculateUdhaarIntelligence } from '../hooks/useUdhaarIntelligence';
+import { calculateUdhaarIntelligenceSync } from '../hooks/useUdhaarIntelligence';
 import { subDays, addDays } from 'date-fns';
 
 describe('useUdhaarIntelligence logic', () => {
@@ -15,7 +15,7 @@ describe('useUdhaarIntelligence logic', () => {
   });
 
   it('should return default intelligence if no customer found', async () => {
-    const result = await calculateUdhaarIntelligence(999, 'Test');
+    const result = await calculateUdhaarIntelligenceSync(null, [], 'Test');
     expect(result.riskLevel).toBe('low');
     expect(result.recommendedCreditLimit).toBe(5000);
   });
@@ -33,7 +33,9 @@ describe('useUdhaarIntelligence logic', () => {
       updatedAt: new Date().toISOString()
     });
 
-    const result = await calculateUdhaarIntelligence(customerId, 'Ali');
+    const customer = await db.customers.get(customerId);
+    const entries = await db.udhaarEntries.where('customerId').equals(customerId).toArray();
+    const result = await calculateUdhaarIntelligenceSync(customer, entries, 'Ali');
     expect(result.overdueAmount).toBe(0);
     expect(result.riskLevel).toBe('low');
     expect(result.recommendedCreditLimit).toBe(5000);
@@ -54,7 +56,9 @@ describe('useUdhaarIntelligence logic', () => {
       updatedAt: new Date().toISOString()
     });
 
-    const result = await calculateUdhaarIntelligence(customerId, 'Zaid');
+    const customer = await db.customers.get(customerId);
+    const entries = await db.udhaarEntries.where('customerId').equals(customerId).toArray();
+    const result = await calculateUdhaarIntelligenceSync(customer, entries, 'Zaid');
     expect(result.overdueAmount).toBe(5000); 
     expect(result.maxOverdueDays).toBe(15);
     expect(result.riskLevel).toBe('high');
@@ -75,7 +79,9 @@ describe('useUdhaarIntelligence logic', () => {
        updatedAt: new Date().toISOString() 
      });
      
-     const result = await calculateUdhaarIntelligence(customerId, 'Sara');
+     const customer = await db.customers.get(customerId);
+     const entries = await db.udhaarEntries.where('customerId').equals(customerId).toArray();
+     const result = await calculateUdhaarIntelligenceSync(customer, entries, 'Sara');
      expect(result.recommendedCreditLimit).toBe(6000);
   });
 });

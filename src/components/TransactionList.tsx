@@ -221,6 +221,7 @@ export default function TransactionList({ hideTitle = false, compact = false }: 
                   </div>
                 )}
               </div>
+            </div>
             )}
           />
         )}

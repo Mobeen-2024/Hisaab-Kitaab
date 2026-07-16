@@ -424,7 +424,7 @@ export const FirebaseSyncService = {
 
             const remoteIds = changes.map(c => c.doc.id);
             const localRecords = await col.dbTable.where('remoteId').anyOf(remoteIds).toArray();
-            const localRecordMap = new Map(localRecords.map(r => [(r as any).remoteId, r]));
+            const localRecordMap = new Map<string, any>(localRecords.map(r => [(r as any).remoteId as string, r] as [string, any]));
 
             const toPut: any[] = [];
             const toAdd: any[] = [];
@@ -479,13 +479,13 @@ export const FirebaseSyncService = {
             }
 
             if (toPut.length > 0) {
-              await col.dbTable.bulkPut(toPut);
+              await (col.dbTable as any).bulkPut(toPut);
             }
             if (toAdd.length > 0) {
-              await col.dbTable.bulkAdd(toAdd);
+              await (col.dbTable as any).bulkAdd(toAdd);
             }
             if (idsToDelete.length > 0) {
-              await col.dbTable.bulkDelete(idsToDelete);
+              await (col.dbTable as any).bulkDelete(idsToDelete);
             }
             if (auditLogsToAdd.length > 0) {
               db.auditLogs.bulkAdd(auditLogsToAdd).catch(() => {});
