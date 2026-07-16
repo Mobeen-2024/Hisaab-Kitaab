@@ -17,6 +17,7 @@ export default function Warranties() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   
   // New Warranty State
   const [customerId, setCustomerId] = useState<number>(0);
@@ -28,6 +29,13 @@ export default function Warranties() {
   useEffect(() => {
     loadData();
   }, [activeContext]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadData = async () => {
     try {
@@ -46,7 +54,7 @@ export default function Warranties() {
   };
 
   const filteredWarranties = warranties.filter(w => 
-    w.serialNumber.toLowerCase().includes(searchQuery.toLowerCase())
+    w.serialNumber.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
   );
 
   const getCustomerName = (id: number) => {

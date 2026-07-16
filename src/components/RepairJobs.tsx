@@ -14,6 +14,7 @@ export default function RepairJobs() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   
   // New Job State
   const [customerId, setCustomerId] = useState<number>(0);
@@ -24,6 +25,13 @@ export default function RepairJobs() {
   useEffect(() => {
     loadData();
   }, [activeContext]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadData = async () => {
     try {
@@ -39,8 +47,8 @@ export default function RepairJobs() {
   };
 
   const filteredJobs = jobs.filter(j => 
-    j.deviceModel.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    j.issueDescription.toLowerCase().includes(searchQuery.toLowerCase())
+    j.deviceModel.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+    j.issueDescription.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
   );
 
   const getCustomerName = (id: number) => {

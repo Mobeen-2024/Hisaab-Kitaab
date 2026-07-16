@@ -22,6 +22,7 @@ export default function POS() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number>(0); // 0 = Walk-in
@@ -33,6 +34,13 @@ export default function POS() {
   useEffect(() => {
     loadData();
   }, [activeContext]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const loadData = async () => {
     try {
@@ -49,9 +57,9 @@ export default function POS() {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      item.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     );
-  }, [items, searchQuery]);
+  }, [items, debouncedSearchQuery]);
 
   const addToCart = (item: InventoryItem) => {
     setCart(prev => {

@@ -22,6 +22,14 @@ export default function Reports() {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [activeView, setActiveView] = useState<'summary' | 'calendar'>('summary');
   const [tableSearch, setTableSearch] = useState('');
+  const [debouncedTableSearch, setDebouncedTableSearch] = useState('');
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTableSearch(tableSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [tableSearch]);
 
   // Scoped transactions for selected month
   const filteredTransactions = useMonthTransactions(activeContext, selectedMonth);
@@ -35,13 +43,13 @@ export default function Reports() {
   const ytdTransactionsFiltered = useDateRangeTransactions(activeContext, yearStart, nextYearStart, false);
 
   const searchedTransactions = useMemo(() => {
-    if (!tableSearch.trim()) return filteredTransactions;
-    const q = tableSearch.toLowerCase();
+    if (!debouncedTableSearch.trim()) return filteredTransactions;
+    const q = debouncedTableSearch.toLowerCase();
     return filteredTransactions.filter(t =>
       t.description.toLowerCase().includes(q) ||
       getCategoryName(t.categoryId).toLowerCase().includes(q)
     );
-  }, [filteredTransactions, tableSearch]);
+  }, [filteredTransactions, debouncedTableSearch]);
 
   const ytdIncome = useMemo(() => ytdTransactionsFiltered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [ytdTransactionsFiltered]);
   const ytdExpense = useMemo(() => ytdTransactionsFiltered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [ytdTransactionsFiltered]);

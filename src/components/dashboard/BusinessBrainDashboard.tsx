@@ -26,22 +26,25 @@ export default function BusinessBrainDashboard() {
   const scoreBg = healthScore >= 80 ? 'from-emerald-500/20 to-emerald-500/5' : healthScore >= 50 ? 'from-orange-500/20 to-orange-500/5' : 'from-rose-500/20 to-rose-500/5';
   const scoreBorder = healthScore >= 80 ? 'border-emerald-500/30' : healthScore >= 50 ? 'border-orange-500/30' : 'border-rose-500/30';
 
-  const deadStockItems = stockData.filter(i => i.intelligence?.velocity === 'dead_stock');
-  const deadStockValue = deadStockItems.reduce((sum, item) => sum + (item.quantity * (item.costPrice ?? item.unitPrice)), 0);
+  const deadStockItems = React.useMemo(() => stockData.filter(i => i.intelligence?.velocity === 'dead_stock'), [stockData]);
+  const deadStockValue = React.useMemo(() => deadStockItems.reduce((sum, item) => sum + (item.quantity * (item.costPrice ?? item.unitPrice)), 0), [deadStockItems]);
 
-  const marginDropItems = stockData.filter(i => i.intelligence?.marginWarning);
+  const marginDropItems = React.useMemo(() => stockData.filter(i => i.intelligence?.marginWarning), [stockData]);
   
-  const combinedActionList = [...actionList];
-  marginDropItems.forEach(item => {
-    combinedActionList.push({
-      id: `margin_${item.id}`,
-      type: 'margin_drop' as any,
-      title: `Margin Drop: ${item.name}`,
-      description: `Margin dropped to ${item.intelligence!.currentMarginPercent.toFixed(1)}%. Consider raising price.`,
-      urgent: false,
-      referenceId: item.id
+  const combinedActionList = React.useMemo(() => {
+    const list = [...actionList];
+    marginDropItems.forEach(item => {
+      list.push({
+        id: `margin_${item.id}`,
+        type: 'margin_drop' as any,
+        title: `Margin Drop: ${item.name}`,
+        description: `Margin dropped to ${item.intelligence!.currentMarginPercent.toFixed(1)}%. Consider raising price.`,
+        urgent: false,
+        referenceId: item.id
+      });
     });
-  });
+    return list;
+  }, [actionList, marginDropItems]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-24">

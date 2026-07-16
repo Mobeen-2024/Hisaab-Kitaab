@@ -20,45 +20,50 @@ export default function Analytics() {
 
 
   
-  const now = new Date();
-  const weekStart = startOfWeek(now); // Sunday
-  const weeklyData = Array.from({ length: 7 }).map((_, i) => {
-    const d = addDays(weekStart, i);
-    const dayName = DAYS[getDay(d)];
-    
-    const dayTxs = transactions.filter(t => isSameDay(new Date(t.date), d));
-    const income = dayTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const expense = dayTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const net = income - expense;
-    
-    return { name: dayName, income, expense, net, date: d };
-  });
+  const weeklyData = React.useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfWeek(now); // Sunday
+    return Array.from({ length: 7 }).map((_, i) => {
+      const d = addDays(weekStart, i);
+      const dayName = DAYS[getDay(d)];
+      
+      const dayTxs = transactions.filter(t => isSameDay(new Date(t.date), d));
+      const income = dayTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const expense = dayTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const net = income - expense;
+      
+      return { name: dayName, income, expense, net, date: d };
+    });
+  }, [transactions]);
 
   // -- Monthly Expenses Data (PieChart) --
-  const currentMonthIdx = now.getMonth();
-  const currentYear = now.getFullYear();
+  const pieData = React.useMemo(() => {
+    const now = new Date();
+    const currentMonthIdx = now.getMonth();
+    const currentYear = now.getFullYear();
 
-  const expenseTransactions = transactions.filter(t => {
-    if (t.type !== 'expense') return false;
-    try {
-      const d = new Date(t.date);
-      return d.getMonth() === currentMonthIdx && d.getFullYear() === currentYear;
-    } catch(e) { return false; }
-  });
+    const expenseTransactions = transactions.filter(t => {
+      if (t.type !== 'expense') return false;
+      try {
+        const d = new Date(t.date);
+        return d.getMonth() === currentMonthIdx && d.getFullYear() === currentYear;
+      } catch(e) { return false; }
+    });
 
-  const expenseByCategory = expenseTransactions.reduce((acc, tx) => {
-    acc[tx.categoryId] = (acc[tx.categoryId] || 0) + tx.amount;
-    return acc;
-  }, {} as Record<number, number>);
+    const expenseByCategory = expenseTransactions.reduce((acc, tx) => {
+      acc[tx.categoryId] = (acc[tx.categoryId] || 0) + tx.amount;
+      return acc;
+    }, {} as Record<number, number>);
 
-  const pieData = Object.entries(expenseByCategory).map(([catId, amount]) => {
-    const defaultCatName = 'Unknown';
-    const cat = categories.find(c => c.id === Number(catId));
-    return {
-      name: cat ? t(lang, cat.name) : defaultCatName,
-      value: amount
-    };
-  }).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+    return Object.entries(expenseByCategory).map(([catId, amount]) => {
+      const defaultCatName = 'Unknown';
+      const cat = categories.find(c => c.id === Number(catId));
+      return {
+        name: cat ? t(lang, cat.name) : defaultCatName,
+        value: amount
+      };
+    }).filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+  }, [transactions, categories, lang]);
 
   const formatTooltipCurrency = (val: number) => {
     return new Intl.NumberFormat(lang === 'ur' ? 'ur-PK' : 'en-PK', {

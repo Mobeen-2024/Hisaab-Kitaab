@@ -10,6 +10,15 @@ interface PreviewTableProps {
 }
 
 export default function PreviewTable({ parsedData, setParsedData, categories, searchQuery }: PreviewTableProps) {
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = React.useState(searchQuery);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   return (
     <div className="border border-white/5 rounded-2xl overflow-hidden bg-slate-950/50">
       <div className="max-h-[40vh] overflow-y-auto scrollbar-hide">
@@ -32,9 +41,9 @@ export default function PreviewTable({ parsedData, setParsedData, categories, se
           <tbody className="divide-y divide-white/5">
             {parsedData
               .filter(d => 
-                d.description.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                d.date.includes(searchQuery) ||
-                d.amount.toString().includes(searchQuery)
+                d.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || 
+                d.date.includes(debouncedSearchQuery) ||
+                d.amount.toString().includes(debouncedSearchQuery)
               )
               .map((row, i) => {
                 const originalIndex = parsedData.findIndex(d => d.referenceId === row.referenceId);

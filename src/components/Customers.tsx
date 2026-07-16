@@ -119,19 +119,27 @@ export default function Customers() {
   const customers = useCustomers();
   const allUdhaarEntries = useUdhaarEntries();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [deletingCustomerId, setDeletingCustomerId] = useState<number | null>(null);
   const [forceDeleteCustomerId, setForceDeleteCustomerId] = useState<number | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'customer' | 'supplier'>('all');
 
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const customersWithBalances = customers;
 
   const filteredCustomers = React.useMemo(() => customersWithBalances.filter(c => {
     if (activeTab !== 'all' && (c.type || 'customer') !== activeTab) return false;
-    if (!searchQuery.trim()) return true;
-    return c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery);
-  }), [customersWithBalances, activeTab, searchQuery]);
+    if (!debouncedSearchQuery.trim()) return true;
+    return c.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || c.phone.includes(debouncedSearchQuery);
+  }), [customersWithBalances, activeTab, debouncedSearchQuery]);
 
   const totalReceivable = React.useMemo(() => customersWithBalances.filter(c => c.type !== 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0), [customersWithBalances]);
   const totalPayable = React.useMemo(() => customersWithBalances.filter(c => c.type === 'supplier' && c.balance > 0).reduce((s, c) => s + c.balance, 0), [customersWithBalances]);
