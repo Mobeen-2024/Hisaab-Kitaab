@@ -6,10 +6,12 @@ import { motion, AnimatePresence } from 'motion/react';
 
 import { Lang, t } from '../lib/i18n';
 import { formatCurrency } from '../lib/currency';
-import { useMessages, useCustomers, useTransactions, useInventory } from '../hooks/useData';
+import { useMessages, useCustomers, useDateRangeTransactions, useInventory } from '../hooks/useData';
 import { MessageService } from '../services/MessageService';
 import { AIService } from '../services/AIService';
 import { useToast } from '../contexts/ToastContext';
+import { useSettings } from '../contexts/SettingsContext';
+import { format, subMonths } from 'date-fns';
 
 interface MessagesModalProps {
   isOpen: boolean;
@@ -20,6 +22,7 @@ interface MessagesModalProps {
 
 export default function MessagesModal({ isOpen, onClose, lang, currency }: MessagesModalProps) {
   const { showToast } = useToast();
+  const { activeContext } = useSettings();
   const [activeChatId, setActiveChatId] = useState<string>('ai');
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -31,7 +34,12 @@ export default function MessagesModal({ isOpen, onClose, lang, currency }: Messa
   const messages = React.useMemo(() => (messagesRaw ? [...messagesRaw].reverse() : []), [messagesRaw]);
   
   const customers = useCustomers();
-  const transactions = useTransactions();
+  const transactions = useDateRangeTransactions(
+    activeContext,
+    format(subMonths(new Date(), 1), 'yyyy-MM-dd'),
+    format(new Date(), 'yyyy-MM-dd'),
+    true
+  ) || [];
   const inventory = useInventory();
   
   const activeCustomer = customers.find(c => `customer-${c.id}` === activeChatId);
