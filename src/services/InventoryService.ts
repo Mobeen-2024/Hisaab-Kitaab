@@ -1,6 +1,7 @@
 import { db, InventoryItem } from '../db';
 import { InventoryItemSchema } from '../models/schemas';
 import { TransactionService } from './TransactionService';
+import { CategoryService } from './CategoryService';
 
 export type InventoryItemInput = InventoryItem;
 
@@ -8,17 +9,7 @@ export const HisaibInventoryService = {
   async getOrCreateInventoryCategory(context: 'personal' | 'business') {
     const name = 'Inventory Restock';
     const type = 'expense';
-    let cat = await db.categories
-      .where('context')
-      .equals(context)
-      .and(c => c.type === type && c.name === name)
-      .first();
-
-    if (!cat) {
-      const id = await db.categories.add({ name, type, context });
-      cat = { id, name, type, context };
-    }
-    return cat;
+    return await CategoryService.getOrCreateSystemCategory(name, type, context);
   }
 };
 

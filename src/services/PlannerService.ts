@@ -12,12 +12,11 @@ export const PlannerService = {
   },
 
   async updateGoal(id: number, changes: Partial<Goal>): Promise<number> {
-    // For updates, we can use partial schema validation if needed, 
-    // but here we just pass it to Dexie after checking existence
+    const validated = GoalSchema.partial().parse(changes);
     const goal = await db.goals.get(id);
     if (!goal) throw new Error('Goal not found');
     return await db.goals.update(id, {
-      ...changes,
+      ...validated,
       updatedAt: new Date().toISOString()
     });
   },

@@ -20,9 +20,9 @@ export const CustomerService = {
   },
 
   async update(id: number, input: Partial<CustomerInput>) {
-    if (input.name === '') throw new Error('Name cannot be empty');
+    const validated = CustomerSchema.partial().parse(input);
     const result = await db.customers.update(id, {
-      ...input,
+      ...validated,
       updatedAt: new Date().toISOString()
     });
     if ('initialBalance' in input || 'balance' in input) {
@@ -52,14 +52,15 @@ export const CustomerService = {
     // Get all transactionIds that are linked to these Udhaar entries
     const linkedTxIds = new Set(entries.map(e => e.transactionId).filter(Boolean));
 
-    await db.transactions.where('customerId').equals(customerId).each(tx => {
+    const allTxs = await db.transactions.where('customerId').equals(customerId).toArray();
+    for (const tx of allTxs) {
       if (!linkedTxIds.has(tx.id)) {
         // For both customer and supplier:
         // - Expense (cash going out to them) increases our net balance with them (e.g. paying supplier or giving customer a refund/loan).
         // - Income (cash coming in from them) decreases our net balance with them (e.g. customer paying us back or supplier refunding us).
         balance += (tx.type === 'expense' ? tx.amount : -tx.amount);
       }
-    });
+    }
 
     await db.customers.update(customerId, { 
       balance,

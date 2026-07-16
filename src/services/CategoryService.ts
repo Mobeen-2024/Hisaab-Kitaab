@@ -32,5 +32,19 @@ export const CategoryService = {
       throw new Error('Cannot delete category: It is currently used in one or more transactions.');
     }
     return await db.categories.delete(id);
+  },
+
+  async getOrCreateSystemCategory(name: string, type: 'income' | 'expense', context: 'personal' | 'business') {
+    let cat = await db.categories
+      .where('context')
+      .equals(context)
+      .and(c => c.type === type && c.name === name)
+      .first();
+
+    if (!cat) {
+      const id = await db.categories.add({ name, type, context });
+      cat = { id, name, type, context };
+    }
+    return cat;
   }
 };
