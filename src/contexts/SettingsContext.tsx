@@ -157,7 +157,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     geminiApiKey
   }), [
     lang, currency, activeContext, rtl, businessMode,
-    JSON.stringify(activeModules), isOnboarded, ownerName, ownerAvatar,
+    activeModules.join(','), isOnboarded, ownerName, ownerAvatar,
     activeRole, activeUser?.id, activeUser?.contextAccess,
     canAccessPersonal, canAccessBusiness, canViewReports, canViewPlanner,
     canViewSmart, canManageUsers, canAddEntries, isLoading, dbError,

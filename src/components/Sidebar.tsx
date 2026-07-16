@@ -8,20 +8,10 @@ import CurrencySelector from './CurrencySelector';
 import LanguageSelector from './LanguageSelector';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
+import { useOrphanedSyncCount } from '../hooks/useData';
 
 export default function Sidebar() {
-  const orphanedCount = useLiveQuery(
-    async () => {
-      try {
-        if (!db.isOpen()) return 0;
-        const allItems = await db.syncQueue.toArray();
-        return allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1).length;
-      } catch (err: any) {
-        console.warn("Failed to query orphanedCount in Sidebar:", err);
-        return 0;
-      }
-    }
-  ) ?? 0;
+  const orphanedCount = useOrphanedSyncCount() ?? 0;
 
   const { 
     lang, 

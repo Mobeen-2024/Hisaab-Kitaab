@@ -121,10 +121,11 @@ export function useDailyClosingData(context: 'personal' | 'business'): DailyClos
     const todayStartMs = today.getTime();
     
     // We only need to fetch the relevant context
+    const todayStr = new Date().toLocaleDateString('en-CA');
     const [invoices, transactions, udhaarEntries, inventory, repairs, warranties] = await Promise.all([
-      db.invoices.where('context').equals(context).toArray(),
-      db.transactions.where('context').equals(context).toArray(),
-      db.udhaarEntries.where('context').equals(context).toArray().catch(() => db.udhaarEntries.toArray()),
+      db.invoices.where('context').equals(context).filter(inv => new Date(inv.createdAt).getTime() >= todayStartMs).toArray(),
+      db.transactions.where('[context+date]').between([context, todayStr], [context, "9999-99-99"]).toArray(),
+      db.udhaarEntries.where('context').equals(context).filter(u => new Date(u.date).getTime() >= todayStartMs).toArray().catch(() => db.udhaarEntries.filter(u => new Date(u.date).getTime() >= todayStartMs).toArray()),
       db.inventory.where('context').equals(context).toArray(),
       db.repairJobs.where('context').equals(context).toArray().catch(() => db.repairJobs.toArray()),
       db.warranties.where('context').equals(context).toArray().catch(() => db.warranties.toArray())

@@ -9,6 +9,7 @@ import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 vi.mock('../hooks/useData', () => ({
   useTransactions: vi.fn(),
+  useDateRangeTransactions: vi.fn(),
   useCustomers: vi.fn(),
   useUdhaarEntries: vi.fn(),
   useInventory: vi.fn(),
@@ -20,7 +21,7 @@ describe('useBusinessBrainData', () => {
   });
 
   it('should return default values when no data exists', () => {
-    (useData.useTransactions as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    (useData.useDateRangeTransactions as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (useData.useCustomers as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (useData.useUdhaarEntries as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (useData.useInventory as ReturnType<typeof vi.fn>).mockReturnValue([]);
@@ -40,7 +41,7 @@ describe('useBusinessBrainData', () => {
     const past2Weeks = subWeeks(now, 2); // 2 weeks ago
 
     // Mock transactions
-    (useData.useTransactions as ReturnType<typeof vi.fn>).mockReturnValue([
+    (useData.useDateRangeTransactions as ReturnType<typeof vi.fn>).mockReturnValue([
       // High expense this week in category 1
       { id: 1, type: 'expense', categoryId: 1, amount: 2000, date: now.toISOString(), context: 'business' },
       // Previous expenses in category 1
@@ -65,7 +66,7 @@ describe('useBusinessBrainData', () => {
     const overdueDate = subDays(now, 10).toISOString();
     const dueDateTomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
-    (useData.useTransactions as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    (useData.useDateRangeTransactions as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (useData.useCustomers as ReturnType<typeof vi.fn>).mockReturnValue([
       { id: 1, name: 'Customer A', balance: 1000, type: 'customer' }
     ]);
@@ -84,7 +85,7 @@ describe('useBusinessBrainData', () => {
   });
 
   it('should identify low stock items', () => {
-    (useData.useTransactions as ReturnType<typeof vi.fn>).mockReturnValue([]);
+    (useData.useDateRangeTransactions as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (useData.useCustomers as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (useData.useUdhaarEntries as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (useData.useInventory as ReturnType<typeof vi.fn>).mockReturnValue([

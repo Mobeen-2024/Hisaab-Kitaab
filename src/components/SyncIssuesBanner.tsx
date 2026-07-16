@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
+import { useOrphanedSyncCount } from '../hooks/useData';
 import { useToast } from '../contexts/ToastContext';
 import { AlertCircle, RotateCw, ShieldAlert, X } from 'lucide-react';
 
@@ -8,19 +9,7 @@ export default function SyncIssuesBanner() {
   const { showToast } = useToast();
   const [isDismissed, setIsDismissed] = useState(false);
 
-  // Query orphaned count reliably across platforms
-  const orphanedCount = useLiveQuery(
-    async () => {
-      try {
-        if (!db.isOpen()) return 0;
-        const allItems = await db.syncQueue.toArray();
-        return allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1).length;
-      } catch (err: any) {
-        console.warn("Failed to query orphanedCount in SyncIssuesBanner:", err);
-        return 0;
-      }
-    }
-  ) ?? 0;
+  const orphanedCount = useOrphanedSyncCount() ?? 0;
 
   // Listen for conflict events to display toast
   useEffect(() => {
@@ -39,9 +28,7 @@ export default function SyncIssuesBanner() {
 
   const handleRetry = async () => {
     try {
-      // Find both boolean true and numeric 1 orphaned items using memory filter
-      const allItems = await db.syncQueue.toArray();
-      const allOrphaned = allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1);
+      const allOrphaned = await db.syncQueue.where('orphaned').equals(1).toArray();
       
       await db.transaction('rw', db.syncQueue, async () => {
         for (const item of allOrphaned) {
@@ -64,8 +51,7 @@ export default function SyncIssuesBanner() {
 
   const handleKeepOffline = async () => {
     try {
-      const allItems = await db.syncQueue.toArray();
-      const allOrphaned = allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1);
+      const allOrphaned = await db.syncQueue.where('orphaned').equals(1).toArray();
       const ids = allOrphaned.map(i => i.id).filter((id): id is number => id !== undefined);
 
       if (ids.length > 0) {

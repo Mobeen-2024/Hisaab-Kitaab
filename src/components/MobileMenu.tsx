@@ -10,20 +10,10 @@ import { useUIStore } from '../lib/store';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import BusinessOnboarding from './BusinessOnboarding';
+import { useOrphanedSyncCount } from '../hooks/useData';
 
 export default function MobileMenu() {
-  const orphanedCount = useLiveQuery(
-    async () => {
-      try {
-        if (!db.isOpen()) return 0;
-        const allItems = await db.syncQueue.toArray();
-        return allItems.filter(item => item.orphaned === true || (item.orphaned as any) === 1).length;
-      } catch (err: any) {
-        console.warn("Failed to query orphanedCount in MobileMenu:", err);
-        return 0;
-      }
-    }
-  ) ?? 0;
+  const orphanedCount = useOrphanedSyncCount() ?? 0;
 
   const { 
     lang, 

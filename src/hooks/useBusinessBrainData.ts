@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useTransactions, useCustomers, useUdhaarEntries, useInventory } from './useData';
+import { useDateRangeTransactions, useCustomers, useUdhaarEntries, useInventory } from './useData';
 import { subDays, subWeeks, isAfter, isBefore, startOfWeek, endOfWeek } from 'date-fns';
 
 export interface ActionItem {
@@ -38,7 +38,8 @@ export interface BusinessBrainInsights {
 }
 
 export function useBusinessBrainData(context: 'personal' | 'business'): BusinessBrainInsights {
-  const transactions = useTransactions(context) || [];
+  const startDate = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const transactions = useDateRangeTransactions(context, startDate, '9999-12-31', true) || [];
   const customers = useCustomers() || [];
   const udhaarEntries = useUdhaarEntries() || [];
   const inventory = useInventory(context) || [];

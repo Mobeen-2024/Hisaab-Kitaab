@@ -94,24 +94,26 @@ export function useTransactionDates() {
 }
 
 export function useContextStats() {
-  const currentMonth = new Date().toISOString().slice(0, 7);
   return useLiveQuery(
     async () => {
+      const currentMonth = new Date().toISOString().slice(0, 7);
       let bRev = 0, bCost = 0, pInc = 0, pExp = 0, pMonInc = 0, pMonExp = 0;
-      await db.transactions.each(t => {
-        if (t.context === 'business') {
-          if (t.type === 'income') bRev += t.amount;
-          else if (t.type === 'expense') bCost += t.amount;
-        } else if (t.context === 'personal') {
-          if (t.type === 'income') {
-            pInc += t.amount;
-            if (t.date.startsWith(currentMonth)) pMonInc += t.amount;
-          } else if (t.type === 'expense') {
-            pExp += t.amount;
-            if (t.date.startsWith(currentMonth)) pMonExp += t.amount;
-          }
+
+      await db.transactions.where('context').equals('business').each(t => {
+        if (t.type === 'income') bRev += t.amount;
+        else if (t.type === 'expense') bCost += t.amount;
+      });
+
+      await db.transactions.where('context').equals('personal').each(t => {
+        if (t.type === 'income') {
+          pInc += t.amount;
+          if (t.date.startsWith(currentMonth)) pMonInc += t.amount;
+        } else if (t.type === 'expense') {
+          pExp += t.amount;
+          if (t.date.startsWith(currentMonth)) pMonExp += t.amount;
         }
       });
+
       return { businessRevenue: bRev, businessCost: bCost, personalIncome: pInc, personalExpense: pExp, personalMonthlyIncome: pMonInc, personalMonthlyExpense: pMonExp };
     },
     [],
@@ -163,17 +165,22 @@ export function useTodayTransactions(context: 'personal' | 'business') {
 }
 
 export function useMonthTransactionTotals(context: 'personal' | 'business') {
-  const currentMonth = new Date().toISOString().substring(0, 7); // 'yyyy-MM'
   return useLiveQuery(
     async () => {
+      const currentMonth = new Date().toISOString().substring(0, 7); // 'yyyy-MM'
+      const startDate = `${currentMonth}-01`;
+      const date = new Date(startDate);
+      date.setMonth(date.getMonth() + 1);
+      const endDate = date.toISOString().split('T')[0];
+
+      const transactions = await TransactionService.getByDateRange(context, startDate, endDate, false);
       let income = 0;
       let expense = 0;
-      await db.transactions.where('context').equals(context).each(t => {
-        if (t.date.startsWith(currentMonth)) {
-          if (t.type === 'income') income += t.amount;
-          else if (t.type === 'expense') expense += t.amount;
-        }
-      });
+      
+      for (const t of transactions) {
+        if (t.type === 'income') income += t.amount;
+        else if (t.type === 'expense') expense += t.amount;
+      }
       return { totalIncomePKR: income, totalExpensePKR: expense };
     },
     [context],
@@ -332,5 +339,13 @@ export function useAuditLogs(context?: 'personal' | 'business') {
     () => AuditService.getAll(context),
     [context],
     [] as AuditLog[]
+  );
+}
+
+export function useOrphanedSyncCount() {
+  return useLiveQuery(
+    () => db.syncQueue.where('orphaned').equals(1).count(),
+    [],
+    0
   );
 }

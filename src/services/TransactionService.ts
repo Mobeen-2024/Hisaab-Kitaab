@@ -159,9 +159,7 @@ export const TransactionService = {
     const result = await db.transactions.bulkAdd(validated as Transaction[]);
     // Sync balances for all affected customers
     const customerIds = [...new Set(validated.map(t => t.customerId).filter(Boolean))];
-    for (const id of customerIds) {
-      await CustomerService.syncBalance(id as number);
-    }
+    await Promise.all(customerIds.map(id => CustomerService.syncBalance(id as number)));
     return result;
   }
 };
