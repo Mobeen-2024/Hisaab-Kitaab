@@ -160,7 +160,10 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       if (newTransactions.length > 0) {
         const { inserted, failed } = await TransactionService.bulkImport(newTransactions);
         setImportSavedIds(inserted.map(t => t.id as number));
-        setImportErrors(failed.map((f, i) => ({ index: i, reason: f.reason })));
+        setImportErrors(failed.map((f, i) => {
+          const pt = selectedData.find(d => d.referenceId === f.transaction.importReferenceId);
+          return { index: pt?.sourceRowIndex !== undefined ? pt.sourceRowIndex : i, reason: f.reason };
+        }));
       } else {
         setImportSavedIds([]);
         setImportErrors([]);
