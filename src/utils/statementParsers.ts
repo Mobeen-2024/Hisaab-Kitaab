@@ -16,6 +16,7 @@ export interface ParsedTransaction {
   originalAmount?: number;
   originalType?: 'income' | 'expense';
   fileFingerprint?: string;
+  confidence?: 'High' | 'Medium' | 'Low';
 }
 
 export async function extractTextFromPDF(file: File): Promise<string> {
@@ -91,31 +92,31 @@ function simpleCSVParse(text: string): string[][] {
 }
 
 // Flexible date parser to handle formats like DD-MM-YYYY, MM/DD/YYYY, MMM DD, etc.
-function parseDateRobust(dateStr: string): Date | null {
+export function parseDateRobust(dateStr: string): Date | null {
   if (!dateStr) return null;
   const cleanStr = dateStr.trim();
-  const d = new Date(cleanStr);
-  if (!isNaN(d.getTime())) return d;
   
-  // Try DD-MM-YYYY or DD/MM/YYYY
+  // Explicitly prefer DD-MM-YYYY (Pakistani format) before generic Date parsing
   const parts = cleanStr.split(/[-/.\s]+/);
   if (parts.length >= 3) {
-    // Determine which is year
-    const p0 = parts[0];
-    const p1 = parts[1];
-    const p2 = parts[2].substring(0, 4); // Handle potential time appended
+    const num0 = parseInt(parts[0], 10);
+    const num1 = parseInt(parts[1], 10);
+    const num2 = parseInt(parts[2].substring(0, 4), 10); // Handle potential time appended
     
-    // Check if it might be DD-MM-YYYY (if first part > 12)
-    const num0 = parseInt(p0, 10);
-    const num1 = parseInt(p1, 10);
-    const num2 = parseInt(p2, 10);
-    
-    if (num0 > 12 && num1 <= 12 && num2 > 1900) {
-      // It's DD-MM-YYYY
-      const d2 = new Date(num2, num1 - 1, num0);
+    if (num2 > 1900 && num0 >= 1 && num0 <= 31 && num1 >= 1 && num1 <= 12) {
+      // Assume DD-MM-YYYY, use UTC to avoid timezone shift on toISOString()
+      const d2 = new Date(Date.UTC(num2, num1 - 1, num0));
       if (!isNaN(d2.getTime())) return d2;
     }
   }
+
+  const d = new Date(cleanStr);
+  if (!isNaN(d.getTime())) {
+     // If created from generic string, ensure we adjust to UTC if it created a local midnight
+     const utcDate = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+     return utcDate;
+  }
+  
   return null;
 }
 
@@ -143,7 +144,8 @@ export const parseJazzCashCSV = (csvText: string, fileFingerprint?: string): Par
           originalAmount: amount,
           originalType: typeStr as 'income' | 'expense',
           originalDescription: desc,
-          fileFingerprint
+          fileFingerprint,
+          confidence: 'High'
         } as ParsedTransaction;
       } catch (e) { return null; }
     })
@@ -175,7 +177,86 @@ export const parseEasypaisaCSV = (csvText: string, fileFingerprint?: string): Pa
           originalAmount: amount,
           originalType: finalType as 'income' | 'expense',
           originalDescription: desc,
-          fileFingerprint
+          fileFingerprint,
+          confidence: 'High'
+        } as ParsedTransaction;
+      } catch (e) { return null; }
+    })
+    .filter((t): t is ParsedTransaction => t !== null);
+};
+
+export const parseSadapayCSV = (csvText: string, fileFingerprint?: string): ParsedTransaction[] => {
+  const rows = simpleCSVParse(csvText);
+  return rows.slice(1)
+    .filter(row => row.length >= 3 && row[0])
+    .map((row, i) => {
+      try {
+        const d = parseDateRobust(row[0]);
+        if (!d) return null;
+        
+        const desc = row[1] || 'Sadapay Transaction';
+        const rawAmount = parseFloat(row[2].replace(/[^0-9.-]+/g, "")) || 0;
+        
+        let typeStr: 'income' | 'expense' = rawAmount >= 0 ? 'income' : 'expense';
+        const rawTypeStr = (row[1] || '').toLowerCase();
+        if (rawTypeStr.includes('send') || rawTypeStr.includes('spend') || rawTypeStr.includes('paid')) typeStr = 'expense';
+        else if (rawTypeStr.includes('load') || rawTypeStr.includes('receive') || rawTypeStr.includes('add')) typeStr = 'income';
+        
+        if (row.length > 3 && row[3] && row[3].toLowerCase().includes('in')) typeStr = 'income';
+        const absAmount = Math.abs(rawAmount);
+        
+        const dateStr = d.toISOString().split('T')[0];
+        return {
+          date: dateStr,
+          amount: absAmount,
+          type: typeStr,
+          description: `Sadapay: ${desc}`,
+          referenceId: generateDeterministicId(dateStr, absAmount, desc, i, fileFingerprint, 'sadapay'),
+          sourceRowIndex: i,
+          originalDate: row[0],
+          originalAmount: rawAmount,
+          originalType: typeStr,
+          originalDescription: desc,
+          fileFingerprint,
+          confidence: 'High'
+        } as ParsedTransaction;
+      } catch (e) { return null; }
+    })
+    .filter((t): t is ParsedTransaction => t !== null);
+};
+
+export const parseNayapayCSV = (csvText: string, fileFingerprint?: string): ParsedTransaction[] => {
+  const rows = simpleCSVParse(csvText);
+  return rows.slice(1)
+    .filter(row => row.length >= 3 && row[0])
+    .map((row, i) => {
+      try {
+        const d = parseDateRobust(row[0]);
+        if (!d) return null;
+        
+        const desc = row[1] || 'Nayapay Transaction';
+        const rawAmount = parseFloat(row[2].replace(/[^0-9.-]+/g, "")) || 0;
+        
+        let typeStr: 'income' | 'expense' = rawAmount >= 0 ? 'income' : 'expense';
+        const rawTypeStr = (row[1] || '').toLowerCase();
+        if (rawTypeStr.includes('debit') || rawTypeStr.includes('dr')) typeStr = 'expense';
+        else if (rawTypeStr.includes('credit') || rawTypeStr.includes('cr')) typeStr = 'income';
+        const absAmount = Math.abs(rawAmount);
+        
+        const dateStr = d.toISOString().split('T')[0];
+        return {
+          date: dateStr,
+          amount: absAmount,
+          type: typeStr,
+          description: `Nayapay: ${desc}`,
+          referenceId: generateDeterministicId(dateStr, absAmount, desc, i, fileFingerprint, 'nayapay'),
+          sourceRowIndex: i,
+          originalDate: row[0],
+          originalAmount: rawAmount,
+          originalType: typeStr,
+          originalDescription: desc,
+          fileFingerprint,
+          confidence: 'High'
         } as ParsedTransaction;
       } catch (e) { return null; }
     })
@@ -192,22 +273,29 @@ export const parseGenericCSV = (csvText: string, fileFingerprint?: string): Pars
   let amountCol = -1;
   let debitCol = -1;
   let creditCol = -1;
+  let typeCol = -1;
+  let headerRowIndex = -1;
 
   // Scan headers
   for (let i = 0; i < Math.min(5, rows.length); i++) {
     const row = rows[i];
     row.forEach((cell, index) => {
       const lower = cell.toLowerCase().trim();
-      if (lower.includes('date') || lower === 'txn date') dateCol = index;
-      else if (lower.includes('description') || lower.includes('details') || lower.includes('particulars')) descCol = index;
+      if (lower === 'date' || lower === 'transaction date' || lower === 'txn date') dateCol = index;
+      else if (lower === 'description' || lower === 'details' || lower === 'narration' || lower === 'merchant' || lower === 'particulars') descCol = index;
       else if (lower === 'amount') amountCol = index;
-      else if (lower.includes('debit') || lower === 'dr') debitCol = index;
-      else if (lower.includes('credit') || lower === 'cr') creditCol = index;
+      else if (lower === 'debit' || lower === 'withdraw' || lower === 'withdrawal' || lower === 'paid out' || lower === 'dr') debitCol = index;
+      else if (lower === 'credit' || lower === 'deposit' || lower === 'received' || lower === 'paid in' || lower === 'cr') creditCol = index;
+      else if (lower === 'type') typeCol = index;
     });
     if (dateCol !== -1 && descCol !== -1 && (amountCol !== -1 || (debitCol !== -1 && creditCol !== -1))) {
+      headerRowIndex = i;
       break; // Found headers
     }
   }
+
+  const hasGoodHeaders = headerRowIndex !== -1;
+  const confidence = hasGoodHeaders ? 'Medium' : 'Low';
 
   // Fallback if headers not found
   if (dateCol === -1) dateCol = 0;
@@ -219,6 +307,7 @@ export const parseGenericCSV = (csvText: string, fileFingerprint?: string): Pars
   // Start from row 1 to skip headers ideally, but we'll parse and skip invalid dates anyway
   rows.forEach((row, i) => {
     if (row.length < 3) return;
+    if (i === headerRowIndex) return; // skip header row if we identified it
     
     const d = parseDateRobust(row[dateCol]);
     if (!d) return; // Skip rows without valid dates (e.g. headers)
@@ -230,6 +319,14 @@ export const parseGenericCSV = (csvText: string, fileFingerprint?: string): Pars
       amount = parseFloat(row[amountCol].replace(/[^0-9.-]+/g, ""));
       type = amount >= 0 ? 'income' : 'expense';
       amount = Math.abs(amount);
+      if (typeCol !== -1 && row[typeCol]) {
+         const typeStr = row[typeCol].toLowerCase();
+         if (typeStr.includes('inc') || typeStr.includes('cr') || typeStr.includes('deposit') || typeStr.includes('credit')) {
+             type = 'income';
+         } else if (typeStr.includes('exp') || typeStr.includes('dr') || typeStr.includes('withdraw') || typeStr.includes('debit')) {
+             type = 'expense';
+         }
+      }
     } else if (debitCol !== -1 && row[debitCol] && row[debitCol].trim() !== '') {
       amount = parseFloat(row[debitCol].replace(/[^0-9.-]+/g, ""));
       type = 'expense';
@@ -259,7 +356,8 @@ export const parseGenericCSV = (csvText: string, fileFingerprint?: string): Pars
       originalAmount: amount,
       originalType: type,
       originalDescription: desc,
-      fileFingerprint
+      fileFingerprint,
+      confidence
     });
   });
 

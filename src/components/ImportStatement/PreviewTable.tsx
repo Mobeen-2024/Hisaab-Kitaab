@@ -61,7 +61,18 @@ export default function PreviewTable({ parsedData, setParsedData, categories, se
                         className="rounded border-white/10 bg-white/5 text-blue-500 focus:ring-0"
                       />
                     </td>
-                    <td className="p-3 text-[10px] whitespace-nowrap">{row.date}</td>
+                    <td className="p-3 text-[10px] whitespace-nowrap">
+                      <div>{row.date}</div>
+                      {row.confidence && (
+                        <div className={`mt-1 inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
+                          row.confidence === 'High' ? 'bg-emerald-500/20 text-emerald-400' :
+                          row.confidence === 'Medium' ? 'bg-amber-500/20 text-amber-400' :
+                          'bg-rose-500/20 text-rose-400'
+                        }`}>
+                          {row.confidence} Match
+                        </div>
+                      )}
+                    </td>
                     <td className="p-3">
                       <div className="space-y-1">
                         <input

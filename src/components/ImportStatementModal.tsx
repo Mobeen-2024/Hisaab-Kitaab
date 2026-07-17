@@ -52,32 +52,38 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
     const currentCategories = categories;
     const currentContext = activeContext || 'business';
 
-    const defaultIncomeCat = currentCategories.find(c => c.type === 'income' && c.context === currentContext)?.id || 
-                            currentCategories.find(c => c.type === 'income')?.id || 0;
-    const defaultExpenseCat = currentCategories.find(c => c.type === 'expense' && c.context === currentContext)?.id || 
-                             currentCategories.find(c => c.type === 'expense')?.id || 0;
+    // Use a neutral fallback (0) if we can't find a dedicated "Other" category. Do not randomly pick the first category.
+    const defaultIncomeCat = currentCategories.find(c => c.name.toLowerCase().includes('other') && c.type === 'income' && c.context === currentContext)?.id || 0;
+    const defaultExpenseCat = currentCategories.find(c => c.name.toLowerCase().includes('other') && c.type === 'expense' && c.context === currentContext)?.id || 0;
 
     const enhancedResults = rawResults.map(pt => {
       const lowerDesc = pt.description.toLowerCase();
       let matchedCat = pt.type === 'income' ? defaultIncomeCat : defaultExpenseCat;
       
-      const catMap: Record<string, string[]> = {
-        'salary': ['salary', 'paycheck', 'payroll', 'stipend', 'bonus', 'wage'],
-        'groceries': ['grocery', 'supermarket', 'mart', 'karyana', 'milk', 'bread', 'imtiyaz', 'metro', 'carrefour', 'food', 'meat', 'bakers'],
-        'utility bills (bijli/sui gas)': ['bill', 'electric', 'gas', 'water', 'internet', 'ptcl', 'wapda', 'lesco', 'kelectric', 'nayatel', 'sui northern'],
-        'transport': ['uber', 'careem', 'petrol', 'fuel', 'bike', 'bus', 'train', 'ticket', 'indrive', 'yango', 'bykea', 'hascol', 'pso', 'shell'],
-        'dining out': ['restaurant', 'cafe', 'foodpanda', 'cheetay', 'kfc', 'mcdonalds', 'hardees', 'pizza', 'burger', 'eatery'],
-        'shopping': ['daraz', 'aliexpress', 'amazon', 'clothing', 'shoes', 'boutique', 'outfitters', 'khaadi', 'sapphire', 'alkaram', 'store'],
-        'medical': ['pharmacy', 'hospital', 'clinic', 'doctor', 'chughtai', 'shaukat khanum', 'agha khan', 'medicine', 'health'],
-        'entertainment': ['netflix', 'spotify', 'cinema', 'movie', 'game', 'steam', 'subscription'],
-        'transfer': ['transfer', 'ibft', 'raast', 'nayapay', 'sadapay', 'easypaisa', 'jazzcash', 'sent to', 'received from'],
-        'cattle feed (chara)': ['feed', 'chara', 'khal', 'banola', 'fodder'],
-        'daily milk sales': ['milk sale', 'doodh', 'client payment'],
+      const catMap: Record<string, { aliases: string[], keywords: string[] }> = {
+        'salary': { aliases: ['salary'], keywords: ['salary', 'paycheck', 'payroll', 'stipend', 'bonus', 'wage', 'tankhwa'] },
+        'groceries': { aliases: ['groceries', 'grocery'], keywords: ['grocery', 'supermarket', 'mart', 'karyana', 'bread', 'imtiyaz', 'metro', 'carrefour', 'meat', 'bakers', 'rashan'] },
+        'utilities': { aliases: ['utility bills (bijli/sui gas)', 'utilities', 'bills'], keywords: ['bill', 'electric', 'gas', 'water', 'internet', 'ptcl', 'wapda', 'lesco', 'kelectric', 'nayatel', 'sui northern', 'bijli', 'electricity'] },
+        'transport': { aliases: ['transport', 'commute'], keywords: ['uber', 'careem', 'petrol', 'fuel', 'bike', 'bus', 'train', 'ticket', 'indrive', 'yango', 'bykea', 'hascol', 'pso', 'shell', 'rikshaw'] },
+        'dining out': { aliases: ['dining out', 'food', 'dining'], keywords: ['restaurant', 'cafe', 'foodpanda', 'cheetay', 'kfc', 'mcdonalds', 'hardees', 'pizza', 'burger', 'eatery', 'tea', 'chai', 'food', 'lunch', 'dinner', 'hotel'] },
+        'shopping': { aliases: ['shopping'], keywords: ['daraz', 'aliexpress', 'amazon', 'clothing', 'shoes', 'boutique', 'outfitters', 'khaadi', 'sapphire', 'alkaram', 'store'] },
+        'medical': { aliases: ['medical', 'health'], keywords: ['pharmacy', 'hospital', 'clinic', 'doctor', 'chughtai', 'shaukat khanum', 'agha khan', 'medicine', 'health'] },
+        'entertainment': { aliases: ['entertainment'], keywords: ['netflix', 'spotify', 'cinema', 'movie', 'game', 'steam', 'subscription'] },
+        'transfer': { aliases: ['transfer', 'bank transfer'], keywords: ['transfer', 'ibft', 'raast', 'nayapay', 'sadapay', 'easypaisa', 'jazzcash', 'sent to', 'received from', 'bank transfer', 'wallet transfer'] },
+        'cattle feed': { aliases: ['cattle feed (chara)', 'cattle feed'], keywords: ['feed', 'chara', 'khal', 'banola', 'fodder'] },
+        'sales': { aliases: ['daily milk sales', 'sales', 'milk sales'], keywords: ['milk sale', 'doodh', 'daily milk', 'shop sale'] },
+        'mobile': { aliases: ['mobile/utilities/communication', 'communication', 'mobile', 'utilities'], keywords: ['mobile load', 'jazz load', 'easypaisa load', 'balance', 'recharge'] },
+        'rent': { aliases: ['rent'], keywords: ['rent', 'kiraya'] },
+        'customer payment': { aliases: ['customer payment', 'income'], keywords: ['customer payment', 'payment received', 'ali paid'] }
       };
 
-      for (const [catName, keywords] of Object.entries(catMap)) {
-        if (keywords.some(k => lowerDesc.includes(k))) {
-          const found = currentCategories.find(c => c.name.toLowerCase() === catName && c.context === currentContext);
+      for (const [_, data] of Object.entries(catMap)) {
+        if (data.keywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(lowerDesc))) {
+          const found = currentCategories.find(c => 
+            data.aliases.some(a => c.name.toLowerCase().includes(a) || a.includes(c.name.toLowerCase())) 
+            && c.context === currentContext
+            && c.type === pt.type
+          );
           if (found) {
             matchedCat = found.id!;
             break;
@@ -162,7 +168,16 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
         setImportSavedIds(inserted.map(t => t.id as number));
         setImportErrors(failed.map((f, i) => {
           const pt = selectedData.find(d => d.referenceId === f.transaction.importReferenceId);
-          return { index: pt?.sourceRowIndex !== undefined ? pt.sourceRowIndex : i, reason: f.reason };
+          let friendlyReason = f.reason;
+          if (friendlyReason.includes('[{')) {
+            try {
+               const parsed = JSON.parse(friendlyReason.substring(friendlyReason.indexOf('[{')));
+               if (parsed && parsed.length > 0) {
+                 friendlyReason = parsed.map((p: any) => `${p.path?.join('.')}: ${p.message}`).join(', ');
+               }
+            } catch (e) {}
+          }
+          return { index: pt?.sourceRowIndex !== undefined ? pt.sourceRowIndex : i, reason: friendlyReason };
         }));
       } else {
         setImportSavedIds([]);

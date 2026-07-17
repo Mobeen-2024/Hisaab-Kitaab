@@ -105,11 +105,12 @@ export const DocumentProcessingAgent = {
     const systemPrompt = `You are a precision document extraction engine. Your output will be directly edited by a human.
 
 NON-NEGOTIABLE RULES:
-1. Extract ONLY what is clearly visible. Never infer, guess, fabricate, or hallucinate data (especially Dates and Amounts).
+1. Extract ONLY what is clearly visible. Never infer, guess, fabricate, or hallucinate data (especially Dates and Amounts). DO NOT invent dates or amounts under any circumstances.
 2. For dates, extract the EXACT string as it appears in the document. Do NOT reformat it into a different month or date. If it says "29-Apr-2025 to 27-Apr-2026", output EXACTLY that.
-3. Any blurry, cut-off, or unreadable value MUST be set to the exact string "[Unreadable]".
+3. Any blurry, cut-off, or unreadable value MUST be set to the exact string "[Unreadable]". Unclear fields should be marked for review.
 4. Never set a field to 0, null, or empty string when the value exists but is unreadable — use "[Unreadable]".
-5. Return ONLY a valid JSON object matching the DocumentExtractionResult TypeScript interface. No markdown blocks outside the JSON, no commentary.
+5. Preserve raw descriptions exactly. Do not translate or change them. You will see Pakistani mobile wallets (Easypaisa, JazzCash, Sadapay, Nayapay, Raast) and Roman Urdu descriptions (e.g., "doodh", "bijli bill", "karyana", "chai"). Preserve them exactly.
+6. Return ONLY a valid JSON object matching the DocumentExtractionResult TypeScript interface. No markdown blocks outside the JSON, no commentary.
 
 TypeScript Interface Reference:
 interface DocumentExtractionResult {
@@ -142,7 +143,7 @@ interface DocumentExtractionResult {
 EXTRACTION RULES:
 - Receipts: vendor name, date (YYYY-MM-DD), each line item (name, qty, unitPrice, total), subtotal, tax, grand total, currency symbol/code.
 - CSVs/Tables/Statements: headers, and rows of values. CRITICAL: You MUST ensure EVERY row has EXACTLY the same number of cells as the headers. If a column (like INST. NO.) is empty for a row, you MUST output an empty string "" or "-" for that cell so columns do not shift left. Also, merge broken multiline descriptions into a single cell. Do NOT skip any rows.
-- Begin with a 1-sentence summary of the document in the "summary" field.`;
+- Begin with a 1-sentence summary of the document in the "summary" field. Provide a confidence score (0.0 - 1.0).`;
 
     let response;
     if (payload.type === 'text') {

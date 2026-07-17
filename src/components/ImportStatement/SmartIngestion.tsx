@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { AIService } from '../../services/AIService';
 import { parseCSVFile } from '../../utils/csvParser';
-import { extractTextFromPDF, ParsedTransaction, generateDeterministicId, parseJazzCashCSV, parseEasypaisaCSV, parseGenericCSV } from '../../utils/statementParsers';
+import { extractTextFromPDF, ParsedTransaction, generateDeterministicId, parseJazzCashCSV, parseEasypaisaCSV, parseGenericCSV, parseSadapayCSV, parseNayapayCSV } from '../../utils/statementParsers';
 import DatePicker from '../DatePicker';
 import { useVoiceAssistant } from '../../contexts/VoiceAssistantContext';
 
@@ -138,8 +138,9 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
           try {
             const fileFingerprint = `${file.name}-${file.size}-${file.lastModified}`;
             const fallbackTxns = runOfflineCSVParser(serializedText, file.name.toLowerCase(), fileFingerprint);
-            if (fallbackTxns.length === 0) throw new Error("No transactions matched standard CSV formats.");
-            onResult(fallbackTxns, file.name.toLowerCase().includes('jazz') ? 'jazzcash' : 'easypaisa');
+            const fn = file.name.toLowerCase();
+            const fallbackPlatform = fn.includes('jazz') ? 'jazzcash' : fn.includes('easy') ? 'easypaisa' : fn.includes('sada') ? 'sadapay' : fn.includes('naya') ? 'nayapay' : 'generic_csv';
+            onResult(fallbackTxns, fallbackPlatform);
             setSuccessPlatform('Local CSV Parser (Offline)');
             return;
           } catch (fallbackError: any) {
@@ -262,6 +263,10 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
       return parseJazzCashCSV(csvText, fileFingerprint);
     } else if (fn.includes('easy')) {
       return parseEasypaisaCSV(csvText, fileFingerprint);
+    } else if (fn.includes('sada')) {
+      return parseSadapayCSV(csvText, fileFingerprint);
+    } else if (fn.includes('naya')) {
+      return parseNayapayCSV(csvText, fileFingerprint);
     } else {
       return parseGenericCSV(csvText, fileFingerprint);
     }
