@@ -70,11 +70,33 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
         }
         
         try {
+          const fileFingerprint = `${file.name}-${file.size}-${file.lastModified}`;
           analysisResult = await AIService.analyzeDocument({ type: 'text', content: extractedText });
+          
+          if (analysisResult && analysisResult.transactions) {
+            analysisResult.transactions = analysisResult.transactions.map((tx: any, index: number) => {
+              const originalDate = tx.date;
+              const originalAmount = tx.amount;
+              const originalType = tx.type;
+              const originalDesc = tx.description;
+              const sourceRowIndex = tx.sourceRowIndex !== undefined ? tx.sourceRowIndex : index;
+              return {
+                ...tx,
+                originalDate,
+                originalAmount,
+                originalType,
+                originalDescription: originalDesc,
+                sourceRowIndex,
+                fileFingerprint,
+                referenceId: generateDeterministicId(originalDate, originalAmount, originalDesc, sourceRowIndex, fileFingerprint, analysisResult.platform)
+              };
+            });
+          }
         } catch (geminiError: any) {
           console.warn("Gemini parsing failed, falling back to local statement parser:", geminiError);
           try {
-            const fallbackTxns = await runOfflineTextParser(extractedText);
+            const fileFingerprint = `${file.name}-${file.size}-${file.lastModified}`;
+            const fallbackTxns = await runOfflineTextParser(extractedText, fileFingerprint);
             onResult(fallbackTxns, 'pdf_fallback');
             setSuccessPlatform('Local PDF Extractor (Offline)');
             return;
@@ -89,11 +111,33 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
         const serializedText = rawRows.map(row => row.join(', ')).join('\n');
         
         try {
+          const fileFingerprint = `${file.name}-${file.size}-${file.lastModified}`;
           analysisResult = await AIService.analyzeDocument({ type: 'text', content: serializedText });
+          
+          if (analysisResult && analysisResult.transactions) {
+            analysisResult.transactions = analysisResult.transactions.map((tx: any, index: number) => {
+              const originalDate = tx.date;
+              const originalAmount = tx.amount;
+              const originalType = tx.type;
+              const originalDesc = tx.description;
+              const sourceRowIndex = tx.sourceRowIndex !== undefined ? tx.sourceRowIndex : index;
+              return {
+                ...tx,
+                originalDate,
+                originalAmount,
+                originalType,
+                originalDescription: originalDesc,
+                sourceRowIndex,
+                fileFingerprint,
+                referenceId: generateDeterministicId(originalDate, originalAmount, originalDesc, sourceRowIndex, fileFingerprint, analysisResult.platform)
+              };
+            });
+          }
         } catch (geminiError) {
           console.warn("Gemini parsing failed, falling back to local CSV parser:", geminiError);
           try {
-            const fallbackTxns = runOfflineCSVParser(serializedText, file.name.toLowerCase());
+            const fileFingerprint = `${file.name}-${file.size}-${file.lastModified}`;
+            const fallbackTxns = runOfflineCSVParser(serializedText, file.name.toLowerCase(), fileFingerprint);
             if (fallbackTxns.length === 0) throw new Error("No transactions matched standard CSV formats.");
             onResult(fallbackTxns, file.name.toLowerCase().includes('jazz') ? 'jazzcash' : 'easypaisa');
             setSuccessPlatform('Local CSV Parser (Offline)');
@@ -108,11 +152,32 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
         const base64 = await fileToBase64(file);
         
         try {
+          const fileFingerprint = `${file.name}-${file.size}-${file.lastModified}`;
           analysisResult = await AIService.analyzeDocument({ 
             type: 'image', 
             base64, 
             mimeType: file.type 
           });
+          
+          if (analysisResult && analysisResult.transactions) {
+            analysisResult.transactions = analysisResult.transactions.map((tx: any, index: number) => {
+              const originalDate = tx.date;
+              const originalAmount = tx.amount;
+              const originalType = tx.type;
+              const originalDesc = tx.description;
+              const sourceRowIndex = tx.sourceRowIndex !== undefined ? tx.sourceRowIndex : index;
+              return {
+                ...tx,
+                originalDate,
+                originalAmount,
+                originalType,
+                originalDescription: originalDesc,
+                sourceRowIndex,
+                fileFingerprint,
+                referenceId: generateDeterministicId(originalDate, originalAmount, originalDesc, sourceRowIndex, fileFingerprint, analysisResult.platform)
+              };
+            });
+          }
         } catch (geminiError: any) {
           throw new Error(`Gemini Vision analysis is required for images: ${geminiError.message || geminiError}`);
         }
@@ -151,12 +216,12 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
   };
 
   // Fallback: Parse statements using local regex offline helper
-  const runOfflineTextParser = async (text: string): Promise<ParsedTransaction[]> => {
+  const runOfflineTextParser = async (text: string, fileFingerprint?: string): Promise<ParsedTransaction[]> => {
     const lines = text.split('\n');
     const results: ParsedTransaction[] = [];
     const dateRegex = /(\d{1,4}[-/.\s](?:[A-Za-z]{3}|\d{1,2})[-/.\s]\d{2,4})/;
 
-    lines.forEach(line => {
+    lines.forEach((line, index) => {
       const trimmed = line.trim();
       if (trimmed.length < 5) return;
 
@@ -172,7 +237,13 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
             amount,
             type,
             description: description || 'Offline Transaction',
-            referenceId: generateDeterministicId(dateMatch[0], amount, description)
+            referenceId: generateDeterministicId(dateMatch[0], amount, description, index, fileFingerprint, 'pdf_fallback'),
+            sourceRowIndex: index,
+            originalDate: dateMatch[0],
+            originalAmount: amount,
+            originalType: type,
+            originalDescription: description,
+            fileFingerprint
           });
         }
       }
@@ -185,14 +256,14 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
   };
 
   // Fallback: Parse CSV using proper robust offline helpers
-  const runOfflineCSVParser = (csvText: string, filename: string): ParsedTransaction[] => {
+  const runOfflineCSVParser = (csvText: string, filename: string, fileFingerprint?: string): ParsedTransaction[] => {
     const fn = filename.toLowerCase();
     if (fn.includes('jazz')) {
-      return parseJazzCashCSV(csvText);
+      return parseJazzCashCSV(csvText, fileFingerprint);
     } else if (fn.includes('easy')) {
-      return parseEasypaisaCSV(csvText);
+      return parseEasypaisaCSV(csvText, fileFingerprint);
     } else {
-      return parseGenericCSV(csvText);
+      return parseGenericCSV(csvText, fileFingerprint);
     }
   };
 
