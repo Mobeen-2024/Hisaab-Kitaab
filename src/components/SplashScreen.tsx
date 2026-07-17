@@ -35,7 +35,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   // Empty dependency array ensures this timer NEVER resets even if App.tsx re-renders.
   useEffect(() => {
     const ultimateTimer = setTimeout(() => {
-      console.log("[SplashScreen] Ultimate Failsafe Triggered!");
+      if (import.meta.env.DEV) console.log("[SplashScreen] Ultimate Failsafe Triggered!");
       onComplete();
     }, 6000);
     return () => clearTimeout(ultimateTimer);
@@ -45,7 +45,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   useEffect(() => {
     if (!isVisible) {
       const exitTimer = setTimeout(() => {
-        console.log("[SplashScreen] Force exit timer triggered!");
+        if (import.meta.env.DEV) console.log("[SplashScreen] Force exit timer triggered!");
         onComplete();
       }, 600);
       return () => clearTimeout(exitTimer);

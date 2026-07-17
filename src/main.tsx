@@ -9,10 +9,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 registerSW({
   immediate: true,
   onNeedRefresh() {
-    console.log('[PWA] New content is available; please refresh.');
+    if (import.meta.env.DEV) console.log('[PWA] New content is available; please refresh.');
   },
   onOfflineReady() {
-    console.log('[PWA] App is ready for offline usage.');
+    if (import.meta.env.DEV) console.log('[PWA] App is ready for offline usage.');
   },
 });
 
