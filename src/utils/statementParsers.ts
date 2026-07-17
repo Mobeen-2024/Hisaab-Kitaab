@@ -43,19 +43,12 @@ export async function extractTextFromPDF(file: File): Promise<string> {
 }
 
 // Deterministic ID for duplicate prevention
-// Avoids 32-bit truncation collisions by appending context to the hash
-export function generateDeterministicId(date: string, amount: number, desc: string): string {
+// Replaces 32-bit hash with a collision-resistant composite string
+export function generateDeterministicId(date: string, amount: number, desc: string, index?: number | string): string {
   const cleanDesc = desc.trim().toLowerCase();
-  const str = `${date}|${amount}|${cleanDesc}`;
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  // Append first 15 chars of description to make it highly collision resistant
-  const suffix = cleanDesc.replace(/[^a-z0-9]/g, '').substring(0, 15);
-  return `auto-${Math.abs(hash).toString(16)}-${suffix}`;
+  const shortDesc = cleanDesc.replace(/[^a-z0-9\s]/g, '').substring(0, 40).trim().replace(/\s+/g, '-');
+  const indexPart = index !== undefined ? `:${index}` : '';
+  return `import-v2:${date}:${amount}:${shortDesc}${indexPart}`;
 }
 
 
@@ -225,7 +218,7 @@ export const parseGenericCSV = (csvText: string): ParsedTransaction[] => {
     const dateStr = d.toISOString().split('T')[0];
 
     // Some CSVs have a Reference/Check number column, but we'll generate a deterministic ID if not mapped
-    const refId = generateDeterministicId(dateStr, amount, desc);
+    const refId = generateDeterministicId(dateStr, amount, desc, i);
 
     results.push({
       date: dateStr,

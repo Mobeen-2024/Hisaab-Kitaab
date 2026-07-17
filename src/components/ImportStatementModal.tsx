@@ -62,17 +62,17 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       let matchedCat = pt.type === 'income' ? defaultIncomeCat : defaultExpenseCat;
       
       const catMap: Record<string, string[]> = {
-        'salary': ['salary', 'paycheck', 'payroll', 'stipend', 'bonus', 'wage', 'tankha', 'amdani'],
-        'groceries': ['grocery', 'supermarket', 'mart', 'karyana', 'milk', 'bread', 'imtiyaz', 'metro', 'carrefour', 'food', 'meat', 'bakers', 'ration', 'rashan', 'doodh'],
-        'utility bills (bijli/sui gas)': ['bill', 'electric', 'gas', 'water', 'internet', 'ptcl', 'wapda', 'lesco', 'kelectric', 'nayatel', 'sui northern', 'bijli', 'gas'],
-        'transport': ['uber', 'careem', 'petrol', 'fuel', 'bike', 'bus', 'train', 'ticket', 'indrive', 'yango', 'bykea', 'hascol', 'pso', 'shell', 'safar', 'kiraya'],
-        'dining out': ['restaurant', 'cafe', 'foodpanda', 'cheetay', 'kfc', 'mcdonalds', 'hardees', 'pizza', 'burger', 'eatery', 'khana', 'nashta'],
-        'shopping': ['daraz', 'aliexpress', 'amazon', 'clothing', 'shoes', 'boutique', 'outfitters', 'khaadi', 'sapphire', 'alkaram', 'store', 'kapre', 'kharidari'],
-        'medical': ['pharmacy', 'hospital', 'clinic', 'doctor', 'chughtai', 'shaukat khanum', 'agha khan', 'medicine', 'health', 'dawai', 'ilaj'],
-        'entertainment': ['netflix', 'spotify', 'cinema', 'movie', 'game', 'steam', 'subscription', 'tafreeh'],
-        'transfer': ['transfer', 'ibft', 'raast', 'nayapay', 'sadapay', 'easypaisa', 'jazzcash', 'sent to', 'received from', 'bheje'],
-        'cattle feed (chara)': ['feed', 'chara', 'khal', 'banola', 'fodder', 'wanda'],
-        'daily milk sales': ['milk sale', 'doodh', 'client payment', 'doodh ki sale'],
+        'salary': ['salary', 'paycheck', 'payroll', 'stipend', 'bonus', 'wage'],
+        'groceries': ['grocery', 'supermarket', 'mart', 'karyana', 'milk', 'bread', 'imtiyaz', 'metro', 'carrefour', 'food', 'meat', 'bakers'],
+        'utility bills (bijli/sui gas)': ['bill', 'electric', 'gas', 'water', 'internet', 'ptcl', 'wapda', 'lesco', 'kelectric', 'nayatel', 'sui northern'],
+        'transport': ['uber', 'careem', 'petrol', 'fuel', 'bike', 'bus', 'train', 'ticket', 'indrive', 'yango', 'bykea', 'hascol', 'pso', 'shell'],
+        'dining out': ['restaurant', 'cafe', 'foodpanda', 'cheetay', 'kfc', 'mcdonalds', 'hardees', 'pizza', 'burger', 'eatery'],
+        'shopping': ['daraz', 'aliexpress', 'amazon', 'clothing', 'shoes', 'boutique', 'outfitters', 'khaadi', 'sapphire', 'alkaram', 'store'],
+        'medical': ['pharmacy', 'hospital', 'clinic', 'doctor', 'chughtai', 'shaukat khanum', 'agha khan', 'medicine', 'health'],
+        'entertainment': ['netflix', 'spotify', 'cinema', 'movie', 'game', 'steam', 'subscription'],
+        'transfer': ['transfer', 'ibft', 'raast', 'nayapay', 'sadapay', 'easypaisa', 'jazzcash', 'sent to', 'received from'],
+        'cattle feed (chara)': ['feed', 'chara', 'khal', 'banola', 'fodder'],
+        'daily milk sales': ['milk sale', 'doodh', 'client payment'],
       };
 
       for (const [catName, keywords] of Object.entries(catMap)) {
@@ -158,9 +158,9 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       setDuplicatesSkipped(transactionsToSave.length - actualImported);
       
       if (newTransactions.length > 0) {
-        const { savedIds, errors } = await TransactionService.bulkAdd(newTransactions);
-        setImportSavedIds(savedIds);
-        setImportErrors(errors);
+        const { inserted, failed } = await TransactionService.bulkImport(newTransactions);
+        setImportSavedIds(inserted.map(t => t.id as number));
+        setImportErrors(failed.map((f, i) => ({ index: i, reason: f.reason })));
       } else {
         setImportSavedIds([]);
         setImportErrors([]);
@@ -309,15 +309,10 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                 </div>
               ) : (
                 <SuccessView 
-                  savedIds={importSavedIds}
-                  errors={importErrors}
-                  duplicatesSkipped={duplicatesSkipped}
-                  onUndo={async () => {
-                    if (importSavedIds.length > 0) {
-                      await TransactionService.bulkDelete(importSavedIds);
-                    }
-                    setStep('select');
-                  }}
+                  importedCount={importSavedIds.length}
+                  failedCount={importErrors.length}
+                  failedRows={importErrors}
+                  skippedDuplicateCount={duplicatesSkipped}
                   onClose={onClose}
                 />
               )}

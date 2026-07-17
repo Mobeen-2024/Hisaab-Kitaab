@@ -152,8 +152,20 @@ export const TransactionService = {
   },
 
   async bulkAdd(transactions: Transaction[]) {
-    const savedIds: number[] = [];
-    const errors: { index: number; reason: string }[] = [];
+    const validated = transactions.map(t => TransactionSchema.parse({
+      ...t,
+      updatedAt: new Date().toISOString()
+    }));
+    const result = await db.transactions.bulkAdd(validated as Transaction[]);
+    // Sync balances for all affected customers
+    const customerIds = [...new Set(validated.map(t => t.customerId).filter(Boolean))];
+    await Promise.all(customerIds.map(id => CustomerService.syncBalance(id as number)));
+    return result;
+  },
+
+  async bulkImport(transactions: Partial<Transaction>[]) {
+    const inserted: Transaction[] = [];
+    const failed: { transaction: Partial<Transaction>; reason: string }[] = [];
     const customerIds = new Set<number>();
     
     for (let i = 0; i < transactions.length; i++) {
@@ -163,10 +175,10 @@ export const TransactionService = {
           updatedAt: new Date().toISOString()
         });
         const id = await db.transactions.add(validated as Transaction);
-        savedIds.push(id as number);
+        inserted.push({ ...validated, id: id as number } as Transaction);
         if (validated.customerId) customerIds.add(validated.customerId);
       } catch (error: any) {
-        errors.push({ index: i, reason: error.message || 'Validation failed' });
+        failed.push({ transaction: transactions[i], reason: error.errors ? JSON.stringify(error.errors) : error.message || 'Validation failed' });
       }
     }
     
@@ -174,21 +186,6 @@ export const TransactionService = {
       await Promise.all(Array.from(customerIds).map(id => CustomerService.syncBalance(id)));
     }
     
-    return { savedIds, errors };
-  },
-
-  async bulkDelete(ids: number[]) {
-    // Get transactions to find affected customers before deleting
-    const txs = await db.transactions.where('id').anyOf(ids).toArray();
-    const customerIds = new Set<number>();
-    txs.forEach(tx => {
-      if (tx.customerId) customerIds.add(tx.customerId);
-    });
-    
-    await db.transactions.bulkDelete(ids);
-    
-    if (customerIds.size > 0) {
-      await Promise.all(Array.from(customerIds).map(id => CustomerService.syncBalance(id)));
-    }
+    return { inserted, failed };
   }
 };
