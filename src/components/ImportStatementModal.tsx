@@ -30,6 +30,8 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicatesSkipped, setDuplicatesSkipped] = useState(0);
   const [activeTab, setActiveTab] = useState<'import' | 'scan'>('import');
+  const [importSavedIds, setImportSavedIds] = useState<number[]>([]);
+  const [importErrors, setImportErrors] = useState<{index: number, reason: string}[]>([]);
   const { activeContext, settingsObj } = useSettings();
   const categories = useCategories();
 
@@ -60,17 +62,17 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
       let matchedCat = pt.type === 'income' ? defaultIncomeCat : defaultExpenseCat;
       
       const catMap: Record<string, string[]> = {
-        'salary': ['salary', 'paycheck', 'payroll', 'stipend', 'bonus', 'wage'],
-        'groceries': ['grocery', 'supermarket', 'mart', 'karyana', 'milk', 'bread', 'imtiyaz', 'metro', 'carrefour', 'food', 'meat', 'bakers'],
-        'utility bills (bijli/sui gas)': ['bill', 'electric', 'gas', 'water', 'internet', 'ptcl', 'wapda', 'lesco', 'kelectric', 'nayatel', 'sui northern'],
-        'transport': ['uber', 'careem', 'petrol', 'fuel', 'bike', 'bus', 'train', 'ticket', 'indrive', 'yango', 'bykea', 'hascol', 'pso', 'shell'],
-        'dining out': ['restaurant', 'cafe', 'foodpanda', 'cheetay', 'kfc', 'mcdonalds', 'hardees', 'pizza', 'burger', 'eatery'],
-        'shopping': ['daraz', 'aliexpress', 'amazon', 'clothing', 'shoes', 'boutique', 'outfitters', 'khaadi', 'sapphire', 'alkaram', 'store'],
-        'medical': ['pharmacy', 'hospital', 'clinic', 'doctor', 'chughtai', 'shaukat khanum', 'agha khan', 'medicine', 'health'],
-        'entertainment': ['netflix', 'spotify', 'cinema', 'movie', 'game', 'steam', 'subscription'],
-        'transfer': ['transfer', 'ibft', 'raast', 'nayapay', 'sadapay', 'easypaisa', 'jazzcash', 'sent to', 'received from'],
-        'cattle feed (chara)': ['feed', 'chara', 'khal', 'banola', 'fodder'],
-        'daily milk sales': ['milk sale', 'doodh', 'client payment'],
+        'salary': ['salary', 'paycheck', 'payroll', 'stipend', 'bonus', 'wage', 'tankha', 'amdani'],
+        'groceries': ['grocery', 'supermarket', 'mart', 'karyana', 'milk', 'bread', 'imtiyaz', 'metro', 'carrefour', 'food', 'meat', 'bakers', 'ration', 'rashan', 'doodh'],
+        'utility bills (bijli/sui gas)': ['bill', 'electric', 'gas', 'water', 'internet', 'ptcl', 'wapda', 'lesco', 'kelectric', 'nayatel', 'sui northern', 'bijli', 'gas'],
+        'transport': ['uber', 'careem', 'petrol', 'fuel', 'bike', 'bus', 'train', 'ticket', 'indrive', 'yango', 'bykea', 'hascol', 'pso', 'shell', 'safar', 'kiraya'],
+        'dining out': ['restaurant', 'cafe', 'foodpanda', 'cheetay', 'kfc', 'mcdonalds', 'hardees', 'pizza', 'burger', 'eatery', 'khana', 'nashta'],
+        'shopping': ['daraz', 'aliexpress', 'amazon', 'clothing', 'shoes', 'boutique', 'outfitters', 'khaadi', 'sapphire', 'alkaram', 'store', 'kapre', 'kharidari'],
+        'medical': ['pharmacy', 'hospital', 'clinic', 'doctor', 'chughtai', 'shaukat khanum', 'agha khan', 'medicine', 'health', 'dawai', 'ilaj'],
+        'entertainment': ['netflix', 'spotify', 'cinema', 'movie', 'game', 'steam', 'subscription', 'tafreeh'],
+        'transfer': ['transfer', 'ibft', 'raast', 'nayapay', 'sadapay', 'easypaisa', 'jazzcash', 'sent to', 'received from', 'bheje'],
+        'cattle feed (chara)': ['feed', 'chara', 'khal', 'banola', 'fodder', 'wanda'],
+        'daily milk sales': ['milk sale', 'doodh', 'client payment', 'doodh ki sale'],
       };
 
       for (const [catName, keywords] of Object.entries(catMap)) {
@@ -154,7 +156,16 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
 
       const actualImported = newTransactions.length;
       setDuplicatesSkipped(transactionsToSave.length - actualImported);
-      if (newTransactions.length > 0) await TransactionService.bulkAdd(newTransactions);
+      
+      if (newTransactions.length > 0) {
+        const { savedIds, errors } = await TransactionService.bulkAdd(newTransactions);
+        setImportSavedIds(savedIds);
+        setImportErrors(errors);
+      } else {
+        setImportSavedIds([]);
+        setImportErrors([]);
+      }
+      
       setParsedData(prev => prev.map(d => d.isSelected ? { ...d, isSelected: false } : d)); // Reset selections on success
       setStep('success');
     } catch (err: any) {
@@ -297,7 +308,18 @@ export default function ImportStatementModal({ isOpen, onClose }: ImportStatemen
                   </div>
                 </div>
               ) : (
-                <SuccessView importedCount={parsedData.filter(d => d.isSelected).length - duplicatesSkipped} />
+                <SuccessView 
+                  savedIds={importSavedIds}
+                  errors={importErrors}
+                  duplicatesSkipped={duplicatesSkipped}
+                  onUndo={async () => {
+                    if (importSavedIds.length > 0) {
+                      await TransactionService.bulkDelete(importSavedIds);
+                    }
+                    setStep('select');
+                  }}
+                  onClose={onClose}
+                />
               )}
             </div>
           </motion.div>

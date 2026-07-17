@@ -42,16 +42,20 @@ export async function extractTextFromPDF(file: File): Promise<string> {
   return fullText;
 }
 
-// Simple deterministic hash for duplicate prevention
+// Deterministic ID for duplicate prevention
+// Avoids 32-bit truncation collisions by appending context to the hash
 export function generateDeterministicId(date: string, amount: number, desc: string): string {
-  const str = `${date}|${amount}|${desc.trim().toLowerCase()}`;
+  const cleanDesc = desc.trim().toLowerCase();
+  const str = `${date}|${amount}|${cleanDesc}`;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash; // Convert to 32bit integer
   }
-  return `auto-${Math.abs(hash).toString(16)}`;
+  // Append first 15 chars of description to make it highly collision resistant
+  const suffix = cleanDesc.replace(/[^a-z0-9]/g, '').substring(0, 15);
+  return `auto-${Math.abs(hash).toString(16)}-${suffix}`;
 }
 
 

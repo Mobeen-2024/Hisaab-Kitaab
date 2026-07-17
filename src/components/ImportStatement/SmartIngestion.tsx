@@ -65,8 +65,8 @@ export default function SmartIngestion({ onResult, onManualEntry, isLoading, set
 
       if (file.type === 'application/pdf') {
         const extractedText = await extractTextFromPDF(file);
-        if (!extractedText.trim()) {
-          throw new Error("Could not extract any text from this PDF.");
+        if (extractedText.trim().length < 50) {
+          throw new Error("Scanned image PDFs are not supported yet. Please upload a photo of the statement instead.");
         }
         
         try {
